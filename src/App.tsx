@@ -107,7 +107,7 @@ export function App() {
   };
 
   return (
-    <div className="h-screen w-screen flex flex-col bg-slate-950 text-slate-100 overflow-hidden font-sans">
+    <div className="h-screen w-screen flex flex-col bg-[#000000] text-[#faf9f6] overflow-hidden font-sans">
       {/* 3-Pane Main Layout */}
       <div className="flex-1 flex overflow-hidden">
         {/* Left: Repositories Sidebar */}
@@ -136,11 +136,13 @@ export function App() {
             onDetailsUpdated={details => setSelectedRepoDetails(details)}
           />
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center bg-slate-900 text-slate-500 p-8 text-center">
-            <FolderGit2 className="w-12 h-12 text-slate-700 mb-3" />
-            <h3 className="font-semibold text-slate-300 text-sm">No Repository Selected</h3>
-            <p className="text-xs text-slate-500 mt-1 max-w-xs">
-              Choose a repository from the left panel to inspect working tree changes, diffs, and history.
+          <div className="flex-1 flex flex-col items-center justify-center bg-[#000000] text-[#868684] p-8 text-center font-mono">
+            <div className="w-12 h-12 rounded-xl bg-[#121212] border border-[#1e1e1d] flex items-center justify-center text-[#cbb0f7] mb-3">
+              <FolderGit2 className="w-6 h-6" />
+            </div>
+            <h3 className="font-semibold text-[#faf9f6] text-xs">No Repository Selected</h3>
+            <p className="text-[11px] text-[#868684] mt-1 max-w-xs">
+              Select a repository from the left panel to inspect working tree changes, diffs, and history.
             </p>
           </div>
         )}

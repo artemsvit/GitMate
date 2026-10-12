@@ -4,9 +4,8 @@ import {
   GitCommit,
   Send,
   Cpu,
-  Settings,
-  AlertCircle,
   CheckCircle2,
+  AlertCircle,
   FileCode2,
   Zap,
   Tag
@@ -36,7 +35,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
   const totalChanges = (details?.stagedCount || 0) + (details?.unstagedCount || 0);
 
-  // Quick type chips
+  // Conventional type chips
   const typeChips = ['feat', 'fix', 'refactor', 'chore', 'docs', 'style'];
 
   const handleApplyType = (type: string) => {
@@ -87,7 +86,6 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
     setIsCommitting(true);
     setStatusMessage(null);
     try {
-      // Auto stage all if nothing staged
       if ((details?.stagedCount || 0) === 0) {
         await fetch('/api/repos/stage', {
           method: 'POST',
@@ -134,76 +132,76 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const isLineTooLong = firstLine.length > 72;
 
   return (
-    <aside className="w-80 h-full flex flex-col bg-slate-950 border-l border-slate-800/80 p-4 select-none shrink-0 justify-between">
+    <aside className="w-80 h-full flex flex-col bg-[#000000] border-l border-[#1e1e1d] p-4 select-none shrink-0 justify-between">
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-slate-800/80">
+        <div className="flex items-center justify-between pb-3 border-b border-[#1e1e1d]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-gradient-to-tr from-indigo-500 to-purple-500 flex items-center justify-center text-white">
+            <div className="w-6 h-6 rounded-md bg-[#121212] border border-[#333333] flex items-center justify-center text-[#cbb0f7]">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <span className="font-bold text-xs text-white">AI Commit Copilot</span>
+            <span className="font-semibold text-xs text-[#faf9f6] tracking-tight">AI Copilot</span>
           </div>
 
           <button
             onClick={onOpenSettings}
-            className="flex items-center gap-1 text-[11px] font-mono text-slate-400 hover:text-slate-200 transition"
+            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[50px] border border-[#333333] text-[10px] font-mono text-[#b4b4b2] hover:text-[#faf9f6] transition"
             title="Configure AI model"
           >
-            <Cpu className="w-3 h-3 text-indigo-400" />
+            <Cpu className="w-3 h-3 text-[#cbb0f7]" />
             <span className="truncate max-w-[90px]">{aiStatus?.activeModel || 'Settings'}</span>
           </button>
         </div>
 
         {/* Change Stats */}
-        <div className="p-2.5 rounded-xl bg-slate-900/60 border border-slate-800/80 text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2 text-slate-300">
-            <FileCode2 className="w-3.5 h-3.5 text-indigo-400" />
-            <span>Working Tree</span>
+        <div className="p-3 rounded-2xl bg-[#121212] border border-[#1e1e1d] text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[#868684]">
+            <FileCode2 className="w-3.5 h-3.5 text-[#cbb0f7]" />
+            <span className="text-[11px] font-medium">Working Tree</span>
           </div>
-          <span className="font-mono font-semibold text-slate-200">
+          <span className="font-mono text-xs text-[#faf9f6]">
             {totalChanges} changed files
           </span>
         </div>
 
-        {/* Generate Button */}
+        {/* Generate Button (Paper #ffffff filled pill button) */}
         <button
           onClick={handleGenerateCommit}
           disabled={isGenerating || totalChanges === 0}
-          className="w-full py-2.5 px-3 rounded-xl bg-gradient-to-r from-indigo-600 via-indigo-500 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-medium text-xs shadow-lg shadow-indigo-600/20 transition flex items-center justify-center gap-2 disabled:opacity-40 cursor-pointer"
+          className="w-full py-2.5 px-4 rounded-[33px] bg-[#ffffff] hover:bg-[#faf9f6] text-[#080808] font-semibold text-xs transition flex items-center justify-center gap-2 disabled:opacity-30 cursor-pointer"
         >
           {isGenerating ? (
             <>
-              <div className="w-3.5 h-3.5 border-2 border-white/20 border-t-white rounded-full animate-spin" />
-              <span>Analyzing diff with {aiStatus?.activeModel || 'AI'}...</span>
+              <div className="w-3.5 h-3.5 border-2 border-[#080808]/30 border-t-[#080808] rounded-full animate-spin" />
+              <span>Analyzing diff...</span>
             </>
           ) : (
             <>
-              <Zap className="w-3.5 h-3.5 text-amber-300" />
-              <span>Generate Commit Message</span>
+              <Zap className="w-3.5 h-3.5 text-[#080808]" />
+              <span>Generate with Local AI</span>
             </>
           )}
         </button>
 
         {/* AI source tag if generated */}
         {aiResult && (
-          <div className="flex items-center justify-between text-[10px] font-mono text-slate-400 px-1">
+          <div className="flex items-center justify-between text-[10px] font-mono text-[#868684] px-1">
             <span>Model: {aiResult.model}</span>
-            <span className="text-emerald-400 font-semibold">{aiResult.provider}</span>
+            <span className="text-[#cbb0f7] font-semibold">{aiResult.provider}</span>
           </div>
         )}
 
-        {/* Conventional Type Quick Chips */}
+        {/* Conventional Type Tags */}
         <div>
-          <div className="flex items-center gap-1 mb-1.5 text-[10px] uppercase font-bold text-slate-500 tracking-wider">
-            <Tag className="w-2.5 h-2.5" /> Conventional Types
+          <div className="flex items-center gap-1 mb-2 text-[9px] uppercase font-bold text-[#868684] tracking-widest">
+            <Tag className="w-2.5 h-2.5" /> Types
           </div>
           <div className="flex gap-1 flex-wrap">
             {typeChips.map(t => (
               <button
                 key={t}
                 onClick={() => handleApplyType(t)}
-                className="px-2 py-0.5 rounded-md bg-slate-900 hover:bg-slate-800 text-[10px] font-mono text-slate-400 hover:text-indigo-300 border border-slate-800 transition"
+                className="px-2.5 py-0.5 rounded-[50px] border border-[#333333] text-[10px] font-mono text-[#868684] hover:text-[#faf9f6] hover:border-[#868684] transition"
               >
                 {t}
               </button>
@@ -214,47 +212,47 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         {/* Commit Message Box */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-semibold text-slate-300 flex items-center gap-1">
-              <GitCommit className="w-3.5 h-3.5 text-slate-500" /> Message
+            <span className="text-[11px] font-medium text-[#faf9f6] flex items-center gap-1">
+              <GitCommit className="w-3.5 h-3.5 text-[#868684]" /> Message
             </span>
-            <span className={`text-[10px] font-mono ${isLineTooLong ? 'text-amber-400' : 'text-slate-500'}`}>
-              {firstLine.length}/72 chars
+            <span className={`text-[10px] font-mono ${isLineTooLong ? 'text-[#f28b82]' : 'text-[#868684]'}`}>
+              {firstLine.length}/72
             </span>
           </div>
           <textarea
             value={commitMessage}
             onChange={e => setCommitMessage(e.target.value)}
-            placeholder="feat(ui): implement modern 3-pane layout..."
+            placeholder="feat(ui): update to warp design tokens..."
             rows={5}
-            className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-100 placeholder-slate-500 font-mono focus:outline-none focus:border-indigo-500 transition resize-none leading-relaxed"
+            className="w-full bg-[#121212] border border-[#333333] focus:border-[#cbb0f7] rounded-xl p-3 text-xs text-[#faf9f6] placeholder-[#666469] font-mono focus:outline-none transition resize-none leading-relaxed"
           />
         </div>
 
-        {/* Status Toast Notification */}
+        {/* Status Toast */}
         {statusMessage && (
           <div
-            className={`p-2.5 rounded-xl border text-xs font-mono flex items-center gap-2 ${
+            className={`p-3 rounded-xl border text-xs font-mono flex items-center gap-2 ${
               statusMessage.type === 'success'
-                ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-                : 'bg-rose-500/10 border-rose-500/30 text-rose-300'
+                ? 'bg-[#121212] border-[#52b774]/40 text-[#86e19b]'
+                : 'bg-[#121212] border-[#d9534f]/40 text-[#f28b82]'
             }`}
           >
             {statusMessage.type === 'success' ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-[#52b774] shrink-0" />
             ) : (
-              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <AlertCircle className="w-3.5 h-3.5 text-[#f28b82] shrink-0" />
             )}
-            <span className="truncate">{statusMessage.text}</span>
+            <span className="truncate text-[11px]">{statusMessage.text}</span>
           </div>
         )}
       </div>
 
       {/* Action Buttons */}
-      <div className="pt-3 border-t border-slate-800/80 space-y-2">
+      <div className="pt-3 border-t border-[#1e1e1d] space-y-2">
         <button
           onClick={() => handleCommit(false)}
           disabled={isCommitting || !commitMessage.trim()}
-          className="w-full py-2 rounded-xl bg-slate-900 hover:bg-slate-850 text-slate-200 border border-slate-800 text-xs font-semibold transition disabled:opacity-40"
+          className="w-full py-2.5 rounded-[33px] border border-[#333333] hover:border-[#868684] bg-transparent text-[#faf9f6] text-xs font-medium transition disabled:opacity-30"
         >
           {isCommitting ? 'Committing...' : 'Commit Changes'}
         </button>
@@ -262,10 +260,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         <button
           onClick={() => handleCommit(true)}
           disabled={isCommitting || !commitMessage.trim()}
-          className="w-full py-2.5 rounded-xl bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold text-xs shadow-md shadow-emerald-600/20 transition flex items-center justify-center gap-1.5 disabled:opacity-40"
+          className="w-full py-2.5 rounded-[33px] bg-[#faf9f6] hover:bg-[#ffffff] text-[#080808] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
         >
           <Send className="w-3.5 h-3.5" />
-          <span>Commit & Push ⚡</span>
+          <span>Commit & Push</span>
         </button>
       </div>
     </aside>

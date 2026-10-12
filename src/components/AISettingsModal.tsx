@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Sparkles, Cpu, CheckCircle2, AlertCircle, Terminal, RefreshCw, ExternalLink } from 'lucide-react';
+import { X, Cpu, CheckCircle2, AlertCircle, Terminal, RefreshCw } from 'lucide-react';
 import { LocalAIStatus } from '../types';
 
 interface AISettingsModalProps {
@@ -25,7 +25,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
       if (data.available) {
         setTestResult(`Connected to ${data.provider.toUpperCase()} (${data.models.length} models detected: ${data.models.slice(0, 3).join(', ')})`);
       } else {
-        setTestResult('No active local AI server detected. Falling back to built-in smart heuristics.');
+        setTestResult('No local AI instance detected on port 11434. Smart heuristics active.');
       }
       onRefreshStatus();
     } catch (err: any) {
@@ -36,95 +36,86 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
-      <div className="bg-slate-900 border border-slate-800 rounded-2xl w-full max-w-lg shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+    <div className="fixed inset-0 z-50 bg-[#000000]/85 backdrop-blur-sm flex items-center justify-center p-4">
+      <div className="bg-[#121212] border border-[#333333] rounded-2xl w-full max-w-lg shadow-none overflow-hidden animate-in fade-in zoom-in-95 duration-150">
         
         {/* Header */}
-        <div className="px-6 py-4 bg-slate-900 border-b border-slate-800 flex items-center justify-between">
+        <div className="px-5 py-3.5 border-b border-[#1e1e1d] flex items-center justify-between bg-[#121212]">
           <div className="flex items-center gap-2.5">
-            <div className="w-8 h-8 rounded-lg bg-indigo-500/20 border border-indigo-500/30 flex items-center justify-center text-indigo-400">
-              <Cpu className="w-4 h-4" />
+            <div className="w-6 h-6 rounded-md bg-[#1e1e1d] border border-[#333333] flex items-center justify-center text-[#cbb0f7]">
+              <Cpu className="w-3.5 h-3.5" />
             </div>
             <div>
-              <h2 className="text-sm font-bold text-white">Local AI Engine Settings</h2>
-              <p className="text-xs text-slate-400">Apple Silicon & Local Model Integration</p>
+              <h2 className="text-xs font-semibold text-[#faf9f6]">Local AI Engine</h2>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-slate-400 hover:text-white hover:bg-slate-800 transition"
+            className="p-1 rounded-full text-[#868684] hover:text-[#faf9f6] hover:bg-[#1e1e1d] transition"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
         {/* Content */}
-        <div className="p-6 space-y-5 text-xs text-slate-300">
+        <div className="p-5 space-y-4 text-xs text-[#b4b4b2]">
           
           {/* Status Box */}
-          <div className={`p-4 rounded-xl border flex items-start gap-3 ${
-            aiStatus?.available
-              ? 'bg-emerald-500/10 border-emerald-500/30 text-emerald-300'
-              : 'bg-amber-500/10 border-amber-500/30 text-amber-300'
-          }`}>
+          <div className="p-3.5 rounded-xl border border-[#1e1e1d] bg-[#1e1e1d] flex items-start gap-3">
             {aiStatus?.available ? (
-              <CheckCircle2 className="w-5 h-5 shrink-0 text-emerald-400 mt-0.5" />
+              <CheckCircle2 className="w-4 h-4 shrink-0 text-[#cbb0f7] mt-0.5" />
             ) : (
-              <AlertCircle className="w-5 h-5 shrink-0 text-amber-400 mt-0.5" />
+              <AlertCircle className="w-4 h-4 shrink-0 text-[#868684] mt-0.5" />
             )}
             <div>
-              <div className="font-semibold text-sm">
+              <div className="font-semibold text-xs text-[#faf9f6]">
                 {aiStatus?.available
                   ? `Active: ${aiStatus.provider.toUpperCase()} (${aiStatus.activeModel})`
-                  : 'Local AI Offline — Smart Heuristic Active'}
+                  : 'Local AI Offline — Smart Heuristics Active'}
               </div>
-              <p className="text-xs mt-1 text-slate-300/80">
+              <p className="text-[11px] mt-1 text-[#868684] leading-relaxed">
                 {aiStatus?.available
-                  ? `Gitler is utilizing your local hardware to generate privacy-first commit messages at ${aiStatus.endpoint}.`
-                  : 'No local AI instance was detected on port 11434 (Ollama) or 1234 (LM Studio). Gitler will automatically generate clean Conventional Commits using intelligent code heuristics.'}
+                  ? `Gitler communicates directly with your local hardware on ${aiStatus.endpoint}. Zero code or diff leaves your device.`
+                  : 'No local Ollama or LM Studio process was detected on port 11434. Gitler uses intelligent heuristics to format Conventional Commits.'}
               </p>
             </div>
           </div>
 
-          {/* How to run Gemma on Mac Guide */}
-          <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 space-y-2.5">
-            <div className="flex items-center gap-1.5 font-bold text-white">
-              <Terminal className="w-3.5 h-3.5 text-indigo-400" />
-              <span>How to run Gemma on macOS (100% Free & Private)</span>
+          {/* Running Gemma locally on Mac */}
+          <div className="bg-[#000000] border border-[#1e1e1d] rounded-xl p-3.5 space-y-2">
+            <div className="flex items-center gap-1.5 font-semibold text-[#faf9f6] text-[11px]">
+              <Terminal className="w-3.5 h-3.5 text-[#cbb0f7]" />
+              <span>Run Local AI on macOS (Apple Silicon)</span>
             </div>
-            <p className="text-slate-400 text-[11px]">
-              You can run Google's Gemma model locally in seconds using Ollama on your Mac terminal:
+            <p className="text-[#868684] text-[11px] leading-relaxed">
+              Install and run Google Gemma 2 or Qwen with one terminal command:
             </p>
-            <div className="bg-slate-900 border border-slate-800 rounded-lg p-2.5 font-mono text-[11px] text-indigo-300 select-all">
-              curl -fsSL https://ollama.com/install.sh | sh<br />
+            <div className="bg-[#121212] border border-[#1e1e1d] rounded-lg p-2.5 font-mono text-[11px] text-[#cbb0f7] select-all leading-normal">
               ollama run gemma2
             </div>
-            <p className="text-[11px] text-slate-400">
-              Once running, click <strong className="text-slate-300">"Test & Refresh Connection"</strong> below and Gitler will immediately detect it!
-            </p>
           </div>
 
           {/* Test connection result */}
           {testResult && (
-            <div className="p-3 rounded-lg bg-slate-950 border border-slate-800 font-mono text-[11px] text-slate-300">
+            <div className="p-2.5 rounded-lg bg-[#000000] border border-[#1e1e1d] font-mono text-[11px] text-[#b4b4b2]">
               {testResult}
             </div>
           )}
 
           {/* Actions */}
-          <div className="pt-2 flex items-center justify-between">
+          <div className="pt-2 flex items-center justify-between border-t border-[#1e1e1d]">
             <button
               onClick={handleTestConnection}
               disabled={testing}
-              className="flex items-center gap-1.5 px-4 py-2 rounded-xl bg-indigo-600 hover:bg-indigo-500 text-white font-medium transition disabled:opacity-50"
+              className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[33px] border border-[#333333] hover:border-[#868684] text-[#faf9f6] text-xs font-medium transition disabled:opacity-30"
             >
-              <RefreshCw className={`w-3.5 h-3.5 ${testing ? 'animate-spin' : ''}`} />
-              <span>{testing ? 'Testing...' : 'Test & Refresh Connection'}</span>
+              <RefreshCw className={`w-3 h-3 ${testing ? 'animate-spin' : ''}`} />
+              <span>{testing ? 'Testing...' : 'Test Connection'}</span>
             </button>
 
             <button
               onClick={onClose}
-              className="px-4 py-2 rounded-xl bg-slate-800 hover:bg-slate-700 text-slate-300 hover:text-white transition"
+              className="px-4 py-1.5 rounded-[33px] bg-[#faf9f6] hover:bg-[#ffffff] text-[#080808] text-xs font-semibold transition"
             >
               Done
             </button>
