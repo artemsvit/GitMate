@@ -117,6 +117,8 @@ export function App() {
     window.addEventListener('mouseup', onMouseUp);
   };
 
+  const [scanError, setScanError] = useState<string | null>(null);
+
   // 1. Initial Load: System folders & AI status
   useEffect(() => {
     const init = async () => {
@@ -126,14 +128,21 @@ export function App() {
           fetch('/api/ai/status')
         ]);
 
+        let targetFolder = localStorage.getItem('gitler_selected_folder');
+
         if (folderRes.ok) {
           const folderData = await folderRes.json();
-          setPresets(folderData.folders || []);
-          if (folderData.folders?.length > 0) {
-            const defaultFolder = folderData.folders[0].path;
-            setCurrentPath(defaultFolder);
-            handleScan(defaultFolder, 3);
+          const availablePresets = folderData.folders || [];
+          setPresets(availablePresets);
+
+          if (!targetFolder && availablePresets.length > 0) {
+            targetFolder = availablePresets[0].path;
           }
+        }
+
+        if (targetFolder) {
+          setCurrentPath(targetFolder);
+          handleScan(targetFolder, 3);
         }
 
         if (aiRes.ok) {
@@ -151,7 +160,9 @@ export function App() {
   // 2. Scan repositories
   const handleScan = async (path: string, depth = 3) => {
     setIsScanning(true);
+    setScanError(null);
     setCurrentPath(path);
+    localStorage.setItem('gitler_selected_folder', path);
 
     try {
       const res = await fetch('/api/repos/scan', {
@@ -164,6 +175,10 @@ export function App() {
         const data = await res.json();
         const repos: RepoSummary[] = data.repositories || [];
         setRepositories(repos);
+
+        if (data.error) {
+          setScanError(data.error);
+        }
 
         // Keep or select first repository
         if (repos.length > 0) {
@@ -179,10 +194,35 @@ export function App() {
           setSelectedRepoDetails(null);
         }
       }
-    } catch (e) {
+    } catch (e: any) {
       console.error('Scan error:', e);
+      setScanError(e.message || 'Failed to scan folder');
     } finally {
       setIsScanning(false);
+    }
+  };
+
+  const handleBrowseFolder = async () => {
+    try {
+      // 1. Electron Native macOS Open Dialog
+      if ((window as any).electronAPI?.selectFolder) {
+        const selected = await (window as any).electronAPI.selectFolder();
+        if (selected) {
+          handleScan(selected, 3);
+          return;
+        }
+      }
+
+      // 2. Web browser fallback via server
+      const res = await fetch('/api/system/browse-folder', { method: 'POST' });
+      if (res.ok) {
+        const data = await res.json();
+        if (!data.canceled && data.path) {
+          handleScan(data.path, 3);
+        }
+      }
+    } catch (err) {
+      console.error('Browse folder error:', err);
     }
   };
 
@@ -208,6 +248,8 @@ export function App() {
       currentPath={currentPath}
       presets={presets}
       onScan={(p, d) => handleScan(p, d)}
+      onBrowseFolder={handleBrowseFolder}
+      scanError={scanError}
       isScanning={isScanning}
       theme={theme}
       onToggleTheme={handleToggleTheme}

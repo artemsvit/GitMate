@@ -1,6 +1,19 @@
-const { app, BrowserWindow, shell, ipcMain } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
+
+ipcMain.handle('select-folder', async () => {
+  if (!mainWindow) return null;
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Folder with Git Repositories',
+    properties: ['openDirectory', 'createDirectory'],
+    buttonLabel: 'Select Folder'
+  });
+  if (result.canceled || !result.filePaths || !result.filePaths.length) {
+    return null;
+  }
+  return result.filePaths[0];
+});
 
 let mainWindow = null;
 let serverProcess = null;

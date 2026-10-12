@@ -26,25 +26,42 @@ export interface ScannedRepo {
   isRepo: boolean;
 }
 
-export async function scanForRepositories(rootDir: string, maxDepth = 3): Promise<string[]> {
+export async function scanForRepositories(rootDir: string, maxDepth = 3): Promise<{ repos: string[]; error?: string }> {
   const resolvedRoot = path.resolve(rootDir);
   const foundRepos: string[] = [];
+  let scanError: string | undefined = undefined;
 
+  // 1. Check if rootDir itself is already a git repository
+  try {
+    if (fs.existsSync(path.join(resolvedRoot, '.git'))) {
+      return { repos: [resolvedRoot] };
+    }
+  } catch (err: any) {
+    if (err.code === 'EPERM' || err.code === 'EACCES') {
+      return {
+        repos: [],
+        error: `macOS permission required to access "${path.basename(resolvedRoot)}". Please use "Open in Finder" to choose your project folder.`
+      };
+    }
+  }
+
+  // 2. Recursive scan
   async function walk(currentDir: string, currentDepth: number) {
     if (currentDepth > maxDepth) return;
 
     let entries: fs.Dirent[];
     try {
       entries = await fs.promises.readdir(currentDir, { withFileTypes: true });
-    } catch {
-      // Permission denied or unreadable folder
+    } catch (err: any) {
+      if (currentDir === resolvedRoot && (err.code === 'EPERM' || err.code === 'EACCES')) {
+        scanError = `macOS permission required to access "${path.basename(resolvedRoot)}". Please use "Open in Finder" to select a folder.`;
+      }
       return;
     }
 
     const hasGit = entries.some(e => e.name === '.git');
     if (hasGit) {
       foundRepos.push(currentDir);
-      // Once we find a git repo, we don't scan deeper inside unless needed
       return;
     }
 
@@ -60,5 +77,5 @@ export async function scanForRepositories(rootDir: string, maxDepth = 3): Promis
   }
 
   await walk(resolvedRoot, 0);
-  return foundRepos;
+  return { repos: foundRepos, error: scanError };
 }

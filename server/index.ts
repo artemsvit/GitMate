@@ -58,6 +58,29 @@ app.get('/api/system/folders', (req, res) => {
   res.json({ home, folders: existingFolders });
 });
 
+// 1b. Browse folder via native macOS Finder dialog
+app.post('/api/system/browse-folder', async (_req, res) => {
+  if (process.platform === 'darwin') {
+    try {
+      const { exec } = await import('child_process');
+      exec(
+        `osascript -e 'POSIX path of (choose folder with prompt "Select folder containing Git repositories:")'`,
+        (error, stdout) => {
+          if (error) {
+            return res.json({ canceled: true, path: null });
+          }
+          const selected = stdout.trim().replace(/\/$/, '');
+          res.json({ canceled: false, path: selected });
+        }
+      );
+      return;
+    } catch {
+      // fallback
+    }
+  }
+  res.json({ canceled: true, path: null });
+});
+
 // 2. Scan folder for git repositories
 app.post('/api/repos/scan', async (req, res) => {
   try {
@@ -66,7 +89,7 @@ app.post('/api/repos/scan', async (req, res) => {
       return res.status(400).json({ error: 'rootDir is required' });
     }
 
-    const repoPaths = await scanForRepositories(rootDir, Number(maxDepth));
+    const { repos: repoPaths, error: scanError } = await scanForRepositories(rootDir, Number(maxDepth));
     
     // Fetch summary for all found repos concurrently
     const summaries = await Promise.all(
@@ -83,7 +106,8 @@ app.post('/api/repos/scan', async (req, res) => {
     res.json({
       rootDir,
       count: validSummaries.length,
-      repositories: validSummaries
+      repositories: validSummaries,
+      error: scanError
     });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Scan failed' });
