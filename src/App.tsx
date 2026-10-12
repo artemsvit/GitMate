@@ -28,11 +28,11 @@ export function App() {
     return (localStorage.getItem('gitler_theme') as 'dark' | 'light') || 'dark';
   });
 
-  // Panel Widths (Draggable & Persisted, default 380px)
+  // Panel Widths (Draggable & Persisted, default 420px)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = localStorage.getItem('gitler_sidebar_width');
-    if (!saved || saved === '280' || saved === '312') return 380;
-    return Math.max(200, Math.min(600, Number(saved)));
+    if (!saved || saved === '280' || saved === '312' || saved === '380') return 420;
+    return Math.max(260, Math.min(650, Number(saved)));
   });
 
   const [copilotWidth, setCopilotWidth] = useState<number>(() => {
@@ -70,7 +70,7 @@ export function App() {
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const delta = moveEvent.clientX - startX;
-      const nextWidth = Math.max(200, Math.min(600, startWidth + delta));
+      const nextWidth = Math.max(260, Math.min(650, startWidth + delta));
       setSidebarWidth(nextWidth);
       localStorage.setItem('gitler_sidebar_width', String(nextWidth));
     };
@@ -266,10 +266,10 @@ export function App() {
         <div
           onMouseDown={handleSidebarMouseDown}
           onDoubleClick={() => {
-            setSidebarWidth(380);
-            localStorage.setItem('gitler_sidebar_width', '380');
+            setSidebarWidth(420);
+            localStorage.setItem('gitler_sidebar_width', '420');
           }}
-          title="Drag to resize repositories sidebar (Double-click to reset)"
+          title="Drag to resize repositories sidebar (Double-click to reset to 420px)"
           className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
             isResizingSidebar ? 'bg-[var(--accent-violet)]/30' : 'hover:bg-[var(--accent-violet)]/20'
           } transition-colors`}

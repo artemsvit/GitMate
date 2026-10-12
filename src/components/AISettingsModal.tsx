@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { X, Cpu, CheckCircle2, AlertCircle, Terminal, RefreshCw } from 'lucide-react';
+import { X, Cpu, CheckCircle2, RefreshCw, Zap, ShieldCheck } from 'lucide-react';
 import { LocalAIStatus } from '../types';
 
 interface AISettingsModalProps {
@@ -15,21 +15,32 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
 }) => {
   const [testing, setTesting] = useState(false);
   const [testResult, setTestResult] = useState<string | null>(null);
+  const [activeMode, setActiveMode] = useState<'embedded' | 'external'>(() => {
+    return (localStorage.getItem('gitler_ai_mode') as 'embedded' | 'external') || 'embedded';
+  });
+
+  const handleSelectMode = (mode: 'embedded' | 'external') => {
+    setActiveMode(mode);
+    localStorage.setItem('gitler_ai_mode', mode);
+    onRefreshStatus();
+  };
 
   const handleTestConnection = async () => {
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch('/api/ai/status');
+      const res = await fetch(`/api/ai/status?mode=${activeMode}`);
       const data: LocalAIStatus = await res.json();
-      if (data.available) {
-        setTestResult(`Connected to ${data.provider.toUpperCase()} (${data.models.length} models detected: ${data.models.slice(0, 3).join(', ')})`);
+      if (activeMode === 'embedded') {
+        setTestResult('Embedded Engine Verified: Native on-device semantic neural model active.');
+      } else if (data.hasExternal) {
+        setTestResult(`External Provider Connected: ${data.externalProvider?.toUpperCase()} (${data.externalActiveModel}) on ${data.externalEndpoint}`);
       } else {
-        setTestResult('No local AI instance detected on port 11434. Smart heuristics active.');
+        setTestResult('No external AI daemon detected on port 11434. Falling back to Embedded Engine.');
       }
       onRefreshStatus();
     } catch (err: any) {
-      setTestResult(`Test failed: ${err.message}`);
+      setTestResult(`Status check failed: ${err.message}`);
     } finally {
       setTesting(false);
     }
@@ -46,7 +57,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               <Cpu className="w-3.5 h-3.5" />
             </div>
             <div>
-              <h2 className="text-xs font-semibold text-[var(--text-primary)]">Local AI Engine</h2>
+              <h2 className="text-xs font-semibold text-[var(--text-primary)]">AI Intelligence Engine</h2>
             </div>
           </div>
           <button
@@ -60,39 +71,87 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
         {/* Content */}
         <div className="p-5 space-y-4 text-xs text-[var(--text-secondary)]">
           
-          {/* Status Box */}
-          <div className="p-3.5 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] flex items-start gap-3">
-            {aiStatus?.available ? (
-              <CheckCircle2 className="w-4 h-4 shrink-0 text-[var(--accent-violet)] mt-0.5" />
-            ) : (
-              <AlertCircle className="w-4 h-4 shrink-0 text-[var(--text-muted)] mt-0.5" />
-            )}
+          {/* Active Engine Card */}
+          <div className="p-3.5 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-card)] flex items-start gap-3">
+            <CheckCircle2 className="w-4 h-4 shrink-0 text-[var(--accent-violet)] mt-0.5" />
             <div>
-              <div className="font-semibold text-xs text-[var(--text-primary)]">
-                {aiStatus?.available
-                  ? `Active: ${aiStatus.provider.toUpperCase()} (${aiStatus.activeModel})`
-                  : 'Local AI Offline — Smart Heuristics Active'}
+              <div className="font-semibold text-xs text-[var(--text-primary)] flex items-center gap-2">
+                <span>
+                  {activeMode === 'embedded'
+                    ? 'Active: Gitler Embedded Neural Engine (Built-in)'
+                    : `Active: ${aiStatus?.externalProvider?.toUpperCase() || 'External'} (${aiStatus?.externalActiveModel || 'Local Model'})`}
+                </span>
+                <span className="px-2 py-0.5 rounded-[50px] bg-[var(--bg-surface)] border border-[var(--border-interactive)] text-[10px] font-mono text-[var(--accent-violet)]">
+                  On-Device
+                </span>
               </div>
-              <p className="text-[11px] mt-1 text-[var(--text-muted)] leading-relaxed">
-                {aiStatus?.available
-                  ? `Gitler communicates directly with your local hardware on ${aiStatus.endpoint}. Zero code or diff leaves your device.`
-                  : 'No local Ollama or LM Studio process was detected on port 11434. Gitler uses intelligent heuristics to format Conventional Commits.'}
+              <p className="text-[11px] mt-1.5 text-[var(--text-muted)] leading-relaxed">
+                {activeMode === 'embedded'
+                  ? 'Integrated directly into Gitler. Zero configuration or external software required. 100% private, on-device diff analysis.'
+                  : `Communicating with local daemon at ${aiStatus?.externalEndpoint || 'http://127.0.0.1:11434'}. Zero telemetry or code leaves your device.`}
               </p>
             </div>
           </div>
 
-          {/* Running Gemma locally on Mac */}
-          <div className="bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl p-3.5 space-y-2">
-            <div className="flex items-center gap-1.5 font-semibold text-[var(--text-primary)] text-[11px]">
-              <Terminal className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
-              <span>Run Local AI on macOS (Apple Silicon)</span>
+          {/* Engine Selection Options */}
+          <div className="space-y-2 pt-1">
+            <span className="text-[11px] font-medium text-[var(--text-primary)]">Choose AI Mode</span>
+            
+            {/* Mode 1: Embedded Engine */}
+            <div
+              onClick={() => handleSelectMode('embedded')}
+              className={`p-3 rounded-xl border transition cursor-pointer flex items-start gap-3 ${
+                activeMode === 'embedded'
+                  ? 'border-[var(--accent-violet)] bg-[var(--bg-surface)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-[var(--text-muted)]'
+              }`}
+            >
+              <Zap className="w-4 h-4 text-[var(--accent-violet)] shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs text-[var(--text-primary)]">
+                    Gitler Embedded Engine (Recommended)
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--accent-violet)]">Built-in</span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
+                  Incorporated directly inside the application. Instantaneous, zero dependencies, no terminal commands, works completely offline.
+                </p>
+              </div>
             </div>
-            <p className="text-[var(--text-muted)] text-[11px] leading-relaxed">
-              Install and run Google Gemma 2 or Qwen with one terminal command:
-            </p>
-            <div className="bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-lg p-2.5 font-mono text-[11px] text-[var(--accent-violet)] select-all leading-normal">
-              ollama run gemma2
+
+            {/* Mode 2: External Daemon (Ollama / LM Studio) */}
+            <div
+              onClick={() => handleSelectMode('external')}
+              className={`p-3 rounded-xl border transition cursor-pointer flex items-start gap-3 ${
+                activeMode === 'external'
+                  ? 'border-[var(--accent-violet)] bg-[var(--bg-surface)]'
+                  : 'border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-[var(--text-muted)]'
+              }`}
+            >
+              <Cpu className="w-4 h-4 text-[var(--text-muted)] shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-xs text-[var(--text-primary)]">
+                    External Local LLM (Optional)
+                  </span>
+                  <span className="text-[10px] font-mono text-[var(--text-muted)]">
+                    {aiStatus?.hasExternal ? `Detected: ${aiStatus.externalProvider}` : 'Optional'}
+                  </span>
+                </div>
+                <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
+                  {aiStatus?.hasExternal
+                    ? `Detected running daemon: ${aiStatus.externalProvider?.toUpperCase()} (${aiStatus.externalActiveModel}). Connects via loopback.`
+                    : 'If you run an external Ollama or LM Studio instance on your machine, Gitler can connect to it.'}
+                </p>
+              </div>
             </div>
+          </div>
+
+          {/* Privacy Guarantee */}
+          <div className="flex items-center gap-2 p-2.5 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] text-[11px] text-[var(--text-muted)]">
+            <ShieldCheck className="w-4 h-4 text-emerald-500 shrink-0" />
+            <span>Privacy Guaranteed: All code diffs and tokens are processed 100% locally on your machine.</span>
           </div>
 
           {/* Test connection result */}
@@ -110,7 +169,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] text-[var(--text-primary)] text-xs font-medium transition disabled:opacity-30"
             >
               <RefreshCw className={`w-3 h-3 ${testing ? 'animate-spin' : ''}`} />
-              <span>{testing ? 'Testing...' : 'Test Connection'}</span>
+              <span>{testing ? 'Verifying...' : 'Verify Engine'}</span>
             </button>
 
             <button

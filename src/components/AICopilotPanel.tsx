@@ -55,13 +55,17 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
     setIsGenerating(true);
     setStatusMessage(null);
     try {
+      const savedMode = localStorage.getItem('gitler_ai_mode') || 'embedded';
+      const targetProvider = savedMode === 'external' ? (aiStatus?.externalProvider || 'ollama') : 'embedded';
+      const targetModel = savedMode === 'external' ? aiStatus?.externalActiveModel : 'Gitler Embedded';
+
       const res = await fetch('/api/ai/generate-commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           repoPath: repoSummary.path,
-          provider: aiStatus?.provider,
-          model: aiStatus?.activeModel
+          provider: targetProvider,
+          model: targetModel
         })
       });
 
@@ -155,7 +159,11 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
               title="Configure AI model"
             >
               <Cpu className="w-3 h-3 text-[var(--accent-violet)]" />
-              <span className="truncate max-w-[80px]">{aiStatus?.activeModel || 'Settings'}</span>
+              <span className="truncate max-w-[100px]">
+                {localStorage.getItem('gitler_ai_mode') === 'external' && aiStatus?.externalActiveModel
+                  ? aiStatus.externalActiveModel
+                  : 'Embedded AI'}
+              </span>
             </button>
           </div>
         </div>
@@ -233,6 +241,12 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             rows={5}
             className="w-full bg-[var(--bg-surface)] border border-[var(--border-interactive)] focus:border-[var(--accent-violet)] rounded-xl p-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-dim)] font-mono focus:outline-none transition resize-none leading-relaxed"
           />
+          {aiResult && (
+            <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[var(--accent-violet)] font-mono">
+              <Zap className="w-3 h-3" />
+              <span>Generated with {aiResult.provider}</span>
+            </div>
+          )}
         </div>
 
         {/* Status Toast */}

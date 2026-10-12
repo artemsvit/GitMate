@@ -3,6 +3,9 @@ import cors from 'cors';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
+const appRoot = typeof __dirname !== 'undefined'
+  ? path.resolve(__dirname, '..')
+  : process.cwd();
 import { scanForRepositories } from './scanner';
 import {
   getRepoSummary,
@@ -225,7 +228,7 @@ app.post('/api/repos/checkout', async (req, res) => {
 // 12. Local AI status
 app.get('/api/ai/status', async (req, res) => {
   try {
-    const status = await detectLocalAI();
+    const status = await detectLocalAI(req.query.mode as string);
     res.json(status);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'AI detection failed' });
@@ -276,8 +279,7 @@ app.post('/api/ai/generate-commit', async (req, res) => {
 
 // Serve promotional landing page
 const landingCandidates = [
-  path.join(__dirname, '../landing'),
-  path.join(__dirname, 'landing'),
+  path.join(appRoot, 'landing'),
   path.resolve('landing')
 ];
 const landingPath = landingCandidates.find(p => fs.existsSync(p)) || path.resolve('landing');
@@ -287,8 +289,7 @@ if (fs.existsSync(landingPath)) {
 
 // Serve frontend static build if available
 const distCandidates = [
-  path.join(__dirname, '../dist'),
-  path.join(__dirname, 'dist'),
+  path.join(appRoot, 'dist'),
   path.resolve('dist')
 ];
 const distPath = distCandidates.find(p => fs.existsSync(p)) || path.resolve('dist');

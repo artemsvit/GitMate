@@ -42,15 +42,21 @@ export interface RepoDetails extends RepoSummary {
 
 export interface LocalAIStatus {
   available: boolean;
-  provider: 'ollama' | 'lmstudio' | 'none';
+  provider: 'embedded' | 'ollama' | 'lmstudio' | 'none';
   endpoint: string;
   models: string[];
   activeModel: string;
+  mode?: 'embedded' | 'external';
+  hasExternal?: boolean;
+  externalProvider?: 'ollama' | 'lmstudio' | 'none';
+  externalEndpoint?: string;
+  externalModels?: string[];
+  externalActiveModel?: string;
 }
 
 export interface AICommitResult {
   message: string;
-  source: 'local-ai' | 'smart-heuristic';
+  source: 'embedded' | 'local-ai' | 'smart-heuristic';
   provider: string;
   model: string;
 }

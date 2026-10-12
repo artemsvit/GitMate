@@ -73,8 +73,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
       className="h-full flex flex-col bg-[var(--bg-canvas)] select-none shrink-0 transition-colors"
     >
       {/* Top Header: Brand, Version Tag, Theme Switcher & Rescan */}
-      <div className="h-12 px-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-canvas)]">
-        <div className="flex items-center gap-2.5">
+      <div
+        style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
+        className="h-12 pl-[78px] pr-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-canvas)] select-none"
+      >
+        <div className="flex items-center gap-2.5" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <div className="w-6 h-6 rounded-md bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-violet)]">
             <Terminal className="w-3.5 h-3.5 stroke-[2.2]" />
           </div>
@@ -88,7 +91,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
 
         {/* Right side Header Controls: Theme switcher & Rescan */}
-        <div className="flex items-center gap-1">
+        <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           {/* Light / Dark Theme Switcher */}
           <button
             onClick={onToggleTheme}
