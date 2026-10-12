@@ -3,3 +3,9 @@ dist
 .DS_Store
 *.log
 .env
+.env.*
+*.p12
+*.key
+*.pem
+release
+build/*.p12
