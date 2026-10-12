@@ -274,6 +274,12 @@ app.post('/api/ai/generate-commit', async (req, res) => {
   }
 });
 
+// Serve promotional landing page
+const landingPath = path.resolve('landing');
+if (fs.existsSync(landingPath)) {
+  app.use('/landing', express.static(landingPath));
+}
+
 // Serve frontend static build if available
 const distPath = path.resolve('dist');
 if (fs.existsSync(distPath)) {
@@ -286,7 +292,7 @@ if (fs.existsSync(distPath)) {
       }
     }
   }));
-  app.get(/^(?!\/api).*/, (_req, res) => {
+  app.get(/^(?!\/api|\/landing).*/, (_req, res) => {
     res.setHeader('Cache-Control', 'no-cache, no-store, must-revalidate');
     res.setHeader('Pragma', 'no-cache');
     res.setHeader('Expires', '0');

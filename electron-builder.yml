@@ -1,0 +1,55 @@
+appId: com.artemsvit.gitler
+productName: Gitler
+copyright: Copyright © 2026 Artem Svitelskyi
+
+directories:
+  output: release
+  buildResources: build
+
+files:
+  - dist/**/*
+  - server/**/*
+  - landing/**/*
+  - package.json
+  - node_modules/**/*
+
+mac:
+  category: public.app-category.developer-tools
+  target:
+    - target: dmg
+      arch:
+        - arm64
+        - x64
+    - target: zip
+      arch:
+        - arm64
+        - x64
+  icon: build/icon.icns
+  hardenedRuntime: true
+  gatekeeperAssess: false
+  entitlements: build/entitlements.mac.plist
+  entitlementsInherit: build/entitlements.mac.inherit.plist
+  darkModeSupport: true
+  minimumSystemVersion: "12.0.0"
+  notarize:
+    teamId: "${APPLE_TEAM_ID}"
+
+dmg:
+  title: "Install ${productName}"
+  contents:
+    - x: 130
+      y: 190
+      type: file
+    - x: 410
+      y: 190
+      type: link
+      path: /Applications
+  window:
+    width: 540
+    height: 380
+
+publish:
+  provider: github
+  owner: artemsvitelskyi
+  repo: Gitler
+  releaseType: release

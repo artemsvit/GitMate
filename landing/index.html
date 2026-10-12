@@ -1,0 +1,370 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Gitler — Local Git Visualizer & Native AI Companion for macOS</title>
+  <meta name="description" content="Visual Git workspace with on-device Apple Silicon AI for generating conventional commits. 100% offline, private, and free." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+</head>
+<body>
+  <!-- Navigation Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <div class="brand">
+        <div class="brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </div>
+        <span class="brand-name">Gitler</span>
+        <span class="version-tag">v1.0.0</span>
+      </div>
+
+      <nav class="nav-links">
+        <a href="#features">Features</a>
+        <a href="#mockup">Live Preview</a>
+        <a href="#architecture">Local AI</a>
+        <a href="#download" class="nav-btn-primary">Download .dmg</a>
+      </nav>
+    </div>
+  </header>
+
+  <!-- Hero Section -->
+  <section class="hero">
+    <div class="hero-badge">
+      <span class="badge-dot"></span>
+      <span>Native Apple Silicon App • Free & Open Source</span>
+    </div>
+    <h1 class="hero-title">
+      Your Git repositories, <br/>
+      <span class="gradient-text">visualized & AI-supercharged.</span>
+    </h1>
+    <p class="hero-subtitle">
+      Scan your local folders in milliseconds. Inspect diffs, branch status, and remotes across all your projects. Generate conventional commit messages using local on-device Apple Silicon AI — 100% offline, zero cloud telemetry.
+    </p>
+
+    <div class="hero-actions">
+      <a href="#download" class="btn btn-primary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+          <polyline points="7 10 12 15 17 10"></polyline>
+          <line x1="12" y1="15" x2="12" y2="3"></line>
+        </svg>
+        Download for macOS (.dmg)
+      </a>
+      <a href="https://github.com/artemsvitelskyi/Gitler" target="_blank" rel="noreferrer" class="btn btn-secondary">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
+        </svg>
+        Star on GitHub
+      </a>
+    </div>
+
+    <div class="hero-meta">
+      <span>Universal Apple Silicon & Intel</span> • <span>Notarized by Apple</span> • <span>Sparkle Auto-Updates</span>
+    </div>
+  </section>
+
+  <!-- Interactive Mockup Section -->
+  <section id="mockup" class="mockup-section">
+    <div class="mockup-frame">
+      <!-- Window Titlebar -->
+      <div class="mockup-titlebar">
+        <div class="window-controls">
+          <span class="control-dot close"></span>
+          <span class="control-dot minimize"></span>
+          <span class="control-dot maximize"></span>
+        </div>
+        <div class="mockup-title">Gitler — /Users/asvit/Desktop/Gitler</div>
+        <div class="mockup-badge">Metal GPU Active</div>
+      </div>
+
+      <!-- App Interface Container -->
+      <div class="mockup-app">
+        <!-- Sidebar -->
+        <aside class="mockup-sidebar">
+          <div class="sidebar-header">
+            <span class="folder-pill">
+              <span class="folder-icon">📁</span>
+              Desktop (16)
+            </span>
+            <span class="theme-icon">☀️</span>
+          </div>
+
+          <div class="sidebar-filters">
+            <span class="filter-pill active">All (16)</span>
+            <span class="filter-pill"><span class="dot amber"></span>Dirty (4)</span>
+            <span class="filter-pill"><span class="dot violet"></span>Ahead (2)</span>
+            <span class="filter-pill"><span class="dot emerald"></span>Clean (10)</span>
+          </div>
+
+          <div class="repo-list">
+            <div class="repo-item selected">
+              <span class="status-dot amber"></span>
+              <div class="repo-info">
+                <div class="repo-title-row">
+                  <span class="repo-name">Gitler</span>
+                  <span class="repo-badge amber">3</span>
+                </div>
+                <span class="repo-branch">⌥ master</span>
+              </div>
+            </div>
+
+            <div class="repo-item">
+              <span class="status-dot violet"></span>
+              <div class="repo-info">
+                <div class="repo-title-row">
+                  <span class="repo-name">BarBoss</span>
+                  <span class="repo-badge violet">+2</span>
+                </div>
+                <span class="repo-branch">⌥ main</span>
+              </div>
+            </div>
+
+            <div class="repo-item">
+              <span class="status-dot emerald"></span>
+              <div class="repo-info">
+                <div class="repo-title-row">
+                  <span class="repo-name">Paletteo</span>
+                </div>
+                <span class="repo-branch">⌥ release/v1.2</span>
+              </div>
+            </div>
+
+            <div class="repo-item">
+              <span class="status-dot sky"></span>
+              <div class="repo-info">
+                <div class="repo-title-row">
+                  <span class="repo-name">EVUS</span>
+                  <span class="repo-badge sky">-1</span>
+                </div>
+                <span class="repo-branch">⌥ dev</span>
+              </div>
+            </div>
+          </div>
+        </aside>
+
+        <!-- Main Workspace -->
+        <main class="mockup-workspace">
+          <div class="workspace-header">
+            <div class="workspace-tabs">
+              <span class="tab active">Changes (3)</span>
+              <span class="tab">History</span>
+              <span class="tab">Remotes</span>
+            </div>
+            <div class="workspace-actions">
+              <span class="btn-micro">Stage All</span>
+              <span class="btn-micro primary">Sync</span>
+            </div>
+          </div>
+
+          <div class="diff-area">
+            <div class="file-list">
+              <div class="file-item active">
+                <span class="file-status m">M</span>
+                <span class="file-path">src/App.tsx</span>
+              </div>
+              <div class="file-item">
+                <span class="file-status m">M</span>
+                <span class="file-path">src/components/Sidebar.tsx</span>
+              </div>
+              <div class="file-item">
+                <span class="file-status a">A</span>
+                <span class="file-path">landing/index.html</span>
+              </div>
+            </div>
+
+            <div class="diff-viewer">
+              <div class="diff-header">
+                <code>src/App.tsx</code>
+                <span class="diff-stats">+14 -2</span>
+              </div>
+              <pre class="diff-code"><code><span class="diff-del">- const defaultSidebarWidth = 280;</span>
+<span class="diff-add">+ const defaultSidebarWidth = 380;</span>
+<span class="diff-add">+ const defaultCopilotWidth = 380;</span>
+  
+  // Smooth draggable panels with localStorage sync
+  const handleDragResize = (e: MouseEvent) => { ... };</code></pre>
+            </div>
+          </div>
+        </main>
+
+        <!-- AI Copilot -->
+        <aside class="mockup-copilot">
+          <div class="copilot-header">
+            <div class="copilot-title">
+              <span class="sparkle">✦</span>
+              AI Copilot
+            </div>
+            <span class="model-badge">qwen3.5:0.8b-mlx</span>
+          </div>
+
+          <div class="copilot-box">
+            <div class="chip-row">
+              <span class="chip">feat</span>
+              <span class="chip active">ui</span>
+              <span class="chip">fix</span>
+              <span class="chip">refactor</span>
+            </div>
+
+            <div class="generated-commit">
+              <div class="commit-header">Generated Conventional Commit</div>
+              <p class="commit-text">feat(ui): set 380px default widths for sidebar and copilot panels with drag resize</p>
+              <div class="commit-bullets">
+                • Increased sidebar and copilot default width to 380px<br/>
+                • Added high-contrast status dot color coding
+              </div>
+            </div>
+
+            <button class="btn-commit">
+              Commit & Push to origin
+            </button>
+          </div>
+        </aside>
+      </div>
+
+      <!-- Status Bar -->
+      <div class="mockup-statusbar">
+        <div class="status-left">
+          <span class="dot-live"></span>
+          <span>Apple Silicon Neural Engine Active (MLX 8B)</span>
+          <span class="sep">|</span>
+          <span>~/Desktop/Gitler</span>
+        </div>
+        <div class="status-right">
+          <span>Gitler (master)</span>
+          <span class="sep">|</span>
+          <span>16 repositories detected</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Features Section -->
+  <section id="features" class="features-section">
+    <div class="section-badge">Crafted for Developers</div>
+    <h2 class="section-title">Everything you need to master your Git repos</h2>
+
+    <div class="grid-features">
+      <div class="feature-card">
+        <div class="feature-icon">⚡️</div>
+        <h3>Instant Local Discovery</h3>
+        <p>Point Gitler at your Desktop, Developer, or Projects folder. It scans recursively in milliseconds, identifying uncommitted changes, branches, and remote sync states.</p>
+      </div>
+
+      <div class="feature-card highlight">
+        <div class="feature-icon">🧠</div>
+        <h3>100% On-Device AI Commits</h3>
+        <p>Embedded MLX and Ollama integration on Apple Silicon. Generates concise, accurate Conventional Commit messages from your staged diffs. No OpenAI keys, no monthly fees, no data leaves your Mac.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🎨</div>
+        <h3>Warp Dev Tools Aesthetic</h3>
+        <p>Flat Obsidian palettes, Phosphor Violet accents, pill buttons, and draggable panel dividers. Seamlessly switches between Dark and Paper Light themes.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">🔒</div>
+        <h3>Zero Cloud Telemetry</h3>
+        <p>Gitler does not connect to any analytics or cloud databases. Your code, secrets, commit history, and diffs remain strictly on your local disk.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">📦</div>
+        <h3>Single Standalone macOS .dmg</h3>
+        <p>Packaged into an all-in-one native Mac application. Universal binary with Apple Notarization and built-in Sparkle auto-updates.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">☕️</div>
+        <h3>100% Free & Open Source</h3>
+        <p>Built for the open source community under the MIT license. Fork it, customize the AI prompt templates, or contribute features on GitHub.</p>
+      </div>
+    </div>
+  </section>
+
+  <!-- Local AI Architecture Section -->
+  <section id="architecture" class="architecture-section">
+    <div class="architecture-box">
+      <div class="section-badge">Under the Hood</div>
+      <h2 class="section-title">How Gitler Runs AI On Your Mac</h2>
+      <p class="architecture-desc">
+        Gitler utilizes a hybrid local inference engine. When packaged as a macOS application, it combines embedded on-device execution with automatic host daemon discovery:
+      </p>
+
+      <div class="arch-flow">
+        <div class="arch-step">
+          <div class="step-num">1</div>
+          <h4>Embedded Code Model</h4>
+          <p>Lightweight Qwen2.5-Coder quantized GGUF model executed via Metal acceleration inside the app bundle.</p>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-step">
+          <div class="step-num">2</div>
+          <h4>Ollama & MLX Discovery</h4>
+          <p>Auto-detects high-parameter models on your machine (e.g. Qwen 8B, Gemma 4) with zero manual configuration.</p>
+        </div>
+        <div class="arch-arrow">→</div>
+        <div class="arch-step">
+          <div class="step-num">3</div>
+          <h4>Diff Tokenizer & Guardrails</h4>
+          <p>Intelligently trims and sanitizes diffs, enforces Conventional Commit standards, and commits directly via native Git.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <!-- Download Section -->
+  <section id="download" class="download-section">
+    <div class="download-card">
+      <div class="badge-dot-green"></div>
+      <h2>Get Gitler for macOS</h2>
+      <p>Download the latest release for Apple Silicon (M1/M2/M3/M4) and Intel Macs.</p>
+
+      <div class="download-buttons">
+        <a href="https://github.com/artemsvitelskyi/Gitler/releases/latest/download/Gitler-1.0.0-arm64.dmg" class="btn btn-primary btn-large">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+            <polyline points="7 10 12 15 17 10"></polyline>
+            <line x1="12" y1="15" x2="12" y2="3"></line>
+          </svg>
+          Download Gitler for Apple Silicon (.dmg)
+        </a>
+      </div>
+
+      <div class="terminal-install">
+        <span class="terminal-label">Or install via Homebrew:</span>
+        <div class="terminal-cmd">
+          <code>brew install --cask artemsvitelskyi/tap/gitler</code>
+          <button class="copy-btn" onclick="navigator.clipboard.writeText('brew install --cask artemsvitelskyi/tap/gitler')">Copy</button>
+        </div>
+      </div>
+
+      <div class="security-note">
+        <span>✓ Apple Notarized</span> • <span>✓ Gatekeeper Compliant</span> • <span>✓ Sparkle Update Protocol</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <span class="footer-brand">Gitler</span>
+        <span class="footer-copy">© 2026 Artem Svitelskyi. Open source under the MIT License.</span>
+      </div>
+      <div class="footer-links">
+        <a href="https://github.com/artemsvitelskyi/Gitler" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/artemsvitelskyi/Gitler/releases" target="_blank" rel="noreferrer">Releases</a>
+        <a href="https://github.com/artemsvitelskyi/Gitler/issues" target="_blank" rel="noreferrer">Issues</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
