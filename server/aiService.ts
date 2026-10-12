@@ -9,14 +9,14 @@ export interface LocalAIStatus {
 export async function detectLocalAI(): Promise<LocalAIStatus> {
   // Check Ollama
   try {
-    const res = await fetch('http://localhost:11434/api/tags', { signal: AbortSignal.timeout(1500) });
+    const res = await fetch('http://127.0.0.1:11434/api/tags', { signal: AbortSignal.timeout(600) });
     if (res.ok) {
       const data = await res.json() as any;
       const models = (data.models || []).map((m: any) => m.name);
       return {
         available: true,
         provider: 'ollama',
-        endpoint: 'http://localhost:11434',
+        endpoint: 'http://127.0.0.1:11434',
         models,
         activeModel: models.find((m: string) => m.includes('gemma')) || models[0] || 'gemma2'
       };
@@ -27,14 +27,14 @@ export async function detectLocalAI(): Promise<LocalAIStatus> {
 
   // Check LM Studio / Local OpenAI server
   try {
-    const res = await fetch('http://localhost:1234/v1/models', { signal: AbortSignal.timeout(1500) });
+    const res = await fetch('http://127.0.0.1:1234/v1/models', { signal: AbortSignal.timeout(600) });
     if (res.ok) {
       const data = await res.json() as any;
       const models = (data.data || []).map((m: any) => m.id);
       return {
         available: true,
         provider: 'lmstudio',
-        endpoint: 'http://localhost:1234',
+        endpoint: 'http://127.0.0.1:1234',
         models,
         activeModel: models[0] || 'local-model'
       };
@@ -85,31 +85,33 @@ ${trimmedDiff}
 `;
 
   if (targetProvider === 'ollama' || aiStatus.provider === 'ollama') {
-    const targetEndpoint = endpoint || 'http://localhost:11434';
+    const targetEndpoint = endpoint || aiStatus.endpoint || 'http://127.0.0.1:11434';
     try {
       const response = await fetch(`${targetEndpoint}/api/generate`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          model: targetModel || 'gemma2',
+          model: targetModel || 'qwen3.5:0.8b-mlx',
           prompt: prompt,
           stream: false,
+          think: false,
           options: {
-            temperature: 0.3
+            temperature: 0.2,
+            num_predict: 120
           }
         }),
-        signal: AbortSignal.timeout(20000)
+        signal: AbortSignal.timeout(10000)
       });
 
       if (response.ok) {
         const data = await response.json() as any;
-        const msg = data.response?.trim();
+        const msg = (data.response || data.thinking || '').trim();
         if (msg) {
           return {
             message: cleanCommitMessage(msg),
             source: 'local-ai',
             provider: 'Ollama',
-            model: targetModel || 'gemma2'
+            model: targetModel || 'qwen3.5:0.8b-mlx'
           };
         }
       }
@@ -117,7 +119,7 @@ ${trimmedDiff}
       console.warn('Ollama generate failed, falling back to heuristics:', err);
     }
   } else if (targetProvider === 'lmstudio' || aiStatus.provider === 'lmstudio') {
-    const targetEndpoint = endpoint || 'http://localhost:1234';
+    const targetEndpoint = endpoint || aiStatus.endpoint || 'http://127.0.0.1:1234';
     try {
       const response = await fetch(`${targetEndpoint}/v1/chat/completions`, {
         method: 'POST',
@@ -127,7 +129,7 @@ ${trimmedDiff}
           messages: [{ role: 'user', content: prompt }],
           temperature: 0.3
         }),
-        signal: AbortSignal.timeout(20000)
+        signal: AbortSignal.timeout(10000)
       });
 
       if (response.ok) {
