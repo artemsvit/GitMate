@@ -205,12 +205,16 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
         setDetails(data.updated);
         onDetailsUpdated(data.updated);
         onRefreshParent();
+      } else {
+        alert(`Push failed: ${data.error || 'Check remote and credentials'}`);
       }
+    } catch (err: any) {
+      alert(`Push error: ${err.message}`);
     } finally {
       setIsPushing(false);
     }

@@ -2,6 +2,11 @@ const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
 const path = require('path');
 const { fork } = require('child_process');
 
+// Ensure standard macOS paths for git and ssh tools in packaged app
+const standardPaths = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+const existingPaths = (process.env.PATH || '').split(':');
+process.env.PATH = Array.from(new Set([...standardPaths, ...existingPaths])).join(':');
+
 ipcMain.handle('select-folder', async () => {
   if (!mainWindow) return null;
   const result = await dialog.showOpenDialog(mainWindow, {

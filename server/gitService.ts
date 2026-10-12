@@ -239,11 +239,43 @@ export async function commit(repoPath: string, message: string): Promise<string>
   return result.commit;
 }
 
-export async function push(repoPath: string, remote = 'origin', branch?: string): Promise<string> {
+export async function push(repoPath: string, remote?: string, branch?: string): Promise<string> {
   const git = getGit(repoPath);
-  const currentBranch = branch || (await git.status()).current;
-  const result = await git.push(remote, currentBranch, ['-u']);
-  return result ? 'Pushed successfully' : 'Push completed';
+  const status = await git.status();
+  const currentBranch = branch || status.current;
+
+  if (!currentBranch) {
+    throw new Error('Cannot push: detached HEAD or no active branch found.');
+  }
+
+  const remotes = await git.getRemotes(true);
+  if (!remotes || remotes.length === 0) {
+    throw new Error('No remote repository configured (e.g. origin). Please configure a remote URL first.');
+  }
+
+  // Find target remote: prefer requested remote, or 'origin', or first available
+  const targetRemote = remote && remotes.some(r => r.name === remote)
+    ? remote
+    : (remotes.find(r => r.name === 'origin')?.name || remotes[0].name);
+
+  try {
+    if (status.tracking) {
+      await git.push(targetRemote, currentBranch);
+      return `Pushed ${currentBranch} to ${targetRemote}`;
+    } else {
+      await git.push(targetRemote, currentBranch, ['-u']);
+      return `Pushed ${currentBranch} to ${targetRemote} (upstream configured)`;
+    }
+  } catch (err: any) {
+    const msg = err.message || String(err);
+    if (msg.includes('non-fast-forward') || msg.includes('fetch first')) {
+      throw new Error('Remote contains commits you do not have locally. Please Pull first.');
+    }
+    if (msg.includes('Permission denied') || msg.includes('publickey') || msg.includes('Authentication failed')) {
+      throw new Error(`Authentication failed for ${targetRemote}. Check your SSH keys or credentials.`);
+    }
+    throw new Error(msg);
+  }
 }
 
 export async function pull(repoPath: string): Promise<string> {

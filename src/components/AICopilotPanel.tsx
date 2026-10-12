@@ -112,14 +112,32 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         setAiResult(null);
 
         if (andPush) {
-          await fetch('/api/repos/push', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ path: repoSummary.path })
-          });
-          setStatusMessage({ text: `Committed & Pushed! (${data.commitHash})`, type: 'success' });
+          try {
+            const pushRes = await fetch('/api/repos/push', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ path: repoSummary.path })
+            });
+            const pushData = await pushRes.json();
+            if (pushRes.ok) {
+              setStatusMessage({
+                text: `Committed & Pushed to remote! (${data.commitHash.slice(0, 7)})`,
+                type: 'success'
+              });
+            } else {
+              setStatusMessage({
+                text: `Committed locally (${data.commitHash.slice(0, 7)}), but Push failed: ${pushData.error || 'Push error'}`,
+                type: 'error'
+              });
+            }
+          } catch (pushErr: any) {
+            setStatusMessage({
+              text: `Committed locally (${data.commitHash.slice(0, 7)}), but Push failed: ${pushErr.message}`,
+              type: 'error'
+            });
+          }
         } else {
-          setStatusMessage({ text: `Committed: ${data.commitHash}`, type: 'success' });
+          setStatusMessage({ text: `Committed: ${data.commitHash.slice(0, 7)}`, type: 'success' });
         }
 
         onCommitSuccess();

@@ -3,6 +3,11 @@ import cors from 'cors';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
+
+// Ensure standard macOS paths for git and ssh tools
+const standardPaths = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
+const existingPaths = (process.env.PATH || '').split(':');
+process.env.PATH = Array.from(new Set([...standardPaths, ...existingPaths])).join(':');
 const appRoot = typeof __dirname !== 'undefined'
   ? path.resolve(__dirname, '..')
   : process.cwd();
