@@ -44,7 +44,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   width = 420
 }) => {
   const [search, setSearch] = useState('');
-  const [filter, setFilter] = useState<'all' | 'dirty' | 'ahead' | 'clean'>('all');
+  const [filter, setFilter] = useState<'all' | 'dirty' | 'ahead' | 'behind' | 'clean'>('all');
   const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState(false);
   const [customPathInput, setCustomPathInput] = useState(currentPath);
 
@@ -61,12 +61,14 @@ export const Sidebar: React.FC<SidebarProps> = ({
     if (!matchesSearch) return false;
     if (filter === 'dirty') return !repo.isClean;
     if (filter === 'ahead') return repo.ahead > 0;
+    if (filter === 'behind') return repo.behind > 0;
     if (filter === 'clean') return repo.isClean;
     return true;
   });
 
   const dirtyCount = repositories.filter(r => !r.isClean).length;
   const aheadCount = repositories.filter(r => r.ahead > 0).length;
+  const behindCount = repositories.filter(r => r.behind > 0).length;
   const cleanCount = repositories.filter(r => r.isClean).length;
 
   const currentFolderLabel =
@@ -263,6 +265,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
         >
           <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-ahead)]" />
           Ahead ({aheadCount})
+        </button>
+
+        <button
+          onClick={() => setFilter('behind')}
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
+            filter === 'behind'
+              ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
+              : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
+          }`}
+        >
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-behind)]" />
+          Behind ({behindCount})
         </button>
 
         <button
