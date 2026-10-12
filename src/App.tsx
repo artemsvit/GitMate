@@ -42,6 +42,18 @@ export function App() {
     return Math.max(260, Math.min(650, Number(saved)));
   });
 
+  const [isCopilotCollapsed, setIsCopilotCollapsed] = useState<boolean>(() => {
+    return localStorage.getItem('gitler_copilot_collapsed') === 'true';
+  });
+
+  const handleToggleCopilotCollapse = () => {
+    setIsCopilotCollapsed(prev => {
+      const next = !prev;
+      localStorage.setItem('gitler_copilot_collapsed', String(next));
+      return next;
+    });
+  };
+
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [isResizingCopilot, setIsResizingCopilot] = useState(false);
 
@@ -278,6 +290,8 @@ export function App() {
         onOpenSettings={() => setAISettingsOpen(true)}
         onCommitSuccess={() => handleScan(currentPath)}
         width={copilotWidth}
+        isCollapsed={isCopilotCollapsed}
+        onToggleCollapse={handleToggleCopilotCollapse}
       />
     ) : null
   );
@@ -354,7 +368,7 @@ export function App() {
         {renderMainWorkspace()}
 
         {/* Drag Handle: AI Copilot */}
-        {selectedRepo && (
+        {selectedRepo && !isCopilotCollapsed && (
           <div
             onMouseDown={handleCopilotMouseDown}
             onDoubleClick={() => {

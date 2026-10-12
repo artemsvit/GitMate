@@ -8,7 +8,9 @@ import {
   AlertCircle,
   FileCode2,
   Zap,
-  Tag
+  Tag,
+  PanelRightClose,
+  PanelRightOpen
 } from 'lucide-react';
 import { RepoDetails, RepoSummary, LocalAIStatus, AICommitResult } from '../types';
 
@@ -19,6 +21,8 @@ interface AICopilotPanelProps {
   onOpenSettings: () => void;
   onCommitSuccess: () => void;
   width?: number;
+  isCollapsed?: boolean;
+  onToggleCollapse?: () => void;
 }
 
 export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
@@ -27,7 +31,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   aiStatus,
   onOpenSettings,
   onCommitSuccess,
-  width = 380
+  width = 380,
+  isCollapsed = false,
+  onToggleCollapse
 }) => {
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -155,6 +161,49 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const firstLine = commitMessage.split('\n')[0] || '';
   const isLineTooLong = firstLine.length > 72;
 
+  if (isCollapsed) {
+    return (
+      <aside
+        style={{ width: 44 }}
+        className="h-full flex flex-col items-center justify-between bg-[var(--bg-canvas)] border-l border-[var(--border-subtle)] py-3 px-1 select-none shrink-0 transition-colors"
+      >
+        <div className="flex flex-col items-center gap-3">
+          <button
+            onClick={onToggleCollapse}
+            className="w-7 h-7 rounded-lg border border-[var(--border-interactive)] hover:border-[var(--accent-violet)] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition flex items-center justify-center cursor-pointer shadow-sm"
+            title="Expand AI Copilot panel"
+          >
+            <PanelRightOpen className="w-3.5 h-3.5" />
+          </button>
+
+          <button
+            onClick={onToggleCollapse}
+            className="flex flex-col items-center gap-2 group cursor-pointer pt-3"
+            title="Expand AI Copilot panel"
+          >
+            <div className="w-6 h-6 rounded-md bg-[var(--bg-surface)] border border-[var(--border-interactive)] flex items-center justify-center text-[var(--accent-violet)] group-hover:scale-105 transition">
+              <Sparkles className="w-3.5 h-3.5" />
+            </div>
+            <span
+              className="text-[10px] font-mono tracking-widest uppercase text-[var(--text-dim)] group-hover:text-[var(--text-primary)] transition"
+              style={{ writingMode: 'vertical-rl', transform: 'rotate(180deg)' }}
+            >
+              AI Copilot
+            </span>
+          </button>
+        </div>
+
+        <button
+          onClick={onOpenSettings}
+          className="w-7 h-7 rounded-lg hover:bg-[var(--bg-surface)] text-[var(--text-dim)] hover:text-[var(--text-primary)] transition flex items-center justify-center cursor-pointer"
+          title="AI Settings"
+        >
+          <Cpu className="w-3.5 h-3.5" />
+        </button>
+      </aside>
+    );
+  }
+
   return (
     <aside
       style={{ width }}
@@ -172,16 +221,11 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
           <div className="flex items-center gap-1">
             <button
-              onClick={onOpenSettings}
-              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[50px] border border-[var(--border-interactive)] text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
-              title="Configure AI model"
+              onClick={onToggleCollapse}
+              className="p-1.5 rounded-lg border border-[var(--border-interactive)] hover:border-[var(--accent-violet)] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition flex items-center justify-center cursor-pointer"
+              title="Collapse AI Copilot panel"
             >
-              <Cpu className="w-3 h-3 text-[var(--accent-violet)]" />
-              <span className="truncate max-w-[100px]">
-                {localStorage.getItem('gitler_ai_mode') === 'external' && aiStatus?.externalActiveModel
-                  ? aiStatus.externalActiveModel
-                  : 'Gitler Neural Engine'}
-              </span>
+              <PanelRightClose className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
