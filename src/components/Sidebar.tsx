@@ -34,7 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isScanning,
   theme,
   onToggleTheme,
-  width = 280
+  width = 312
 }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'dirty' | 'ahead' | 'clean'>('all');

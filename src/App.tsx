@@ -28,15 +28,17 @@ export function App() {
     return (localStorage.getItem('gitler_theme') as 'dark' | 'light') || 'dark';
   });
 
-  // Panel Widths (Draggable & Persisted)
+  // Panel Widths (Draggable & Persisted, default +32px wider)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = localStorage.getItem('gitler_sidebar_width');
-    return saved ? Math.max(200, Math.min(520, Number(saved))) : 280;
+    if (!saved || saved === '280') return 312;
+    return Math.max(200, Math.min(520, Number(saved)));
   });
 
   const [copilotWidth, setCopilotWidth] = useState<number>(() => {
     const saved = localStorage.getItem('gitler_copilot_width');
-    return saved ? Math.max(260, Math.min(600, Number(saved))) : 340;
+    if (!saved || saved === '340') return 372;
+    return Math.max(260, Math.min(600, Number(saved)));
   });
 
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
@@ -264,8 +266,8 @@ export function App() {
         <div
           onMouseDown={handleSidebarMouseDown}
           onDoubleClick={() => {
-            setSidebarWidth(280);
-            localStorage.setItem('gitler_sidebar_width', '280');
+            setSidebarWidth(312);
+            localStorage.setItem('gitler_sidebar_width', '312');
           }}
           title="Drag to resize repositories sidebar (Double-click to reset)"
           className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
@@ -286,8 +288,8 @@ export function App() {
           <div
             onMouseDown={handleCopilotMouseDown}
             onDoubleClick={() => {
-              setCopilotWidth(340);
-              localStorage.setItem('gitler_copilot_width', '340');
+              setCopilotWidth(372);
+              localStorage.setItem('gitler_copilot_width', '372');
             }}
             title="Drag to resize AI Copilot panel (Double-click to reset)"
             className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
