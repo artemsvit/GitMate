@@ -278,6 +278,29 @@ export async function commit(repoPath: string, message: string): Promise<string>
   return result.commit;
 }
 
+function formatRemoteError(err: any, remoteName?: string): Error {
+  const msg = err?.message || String(err);
+  if (/No route to host|Network is unreachable/i.test(msg)) {
+    return new Error(`Network unreachable: Cannot route to host${remoteName ? ` for "${remoteName}"` : ''}. Check your Wi-Fi, local network, VPN, or verify that the server is online.`);
+  }
+  if (/Connection refused/i.test(msg)) {
+    return new Error(`Connection refused: Host is reachable, but the Git port is not listening${remoteName ? ` on "${remoteName}"` : ''}.`);
+  }
+  if (/Could not resolve host/i.test(msg)) {
+    return new Error(`Host not found: DNS failed to resolve server hostname${remoteName ? ` for "${remoteName}"` : ''}. Check your network or URL.`);
+  }
+  if (/Operation timed out|Connection timed out/i.test(msg)) {
+    return new Error(`Connection timed out: The remote server did not respond${remoteName ? ` for "${remoteName}"` : ''}.`);
+  }
+  if (/Permission denied \(publickey\)/i.test(msg)) {
+    return new Error(`SSH authentication failed${remoteName ? ` for "${remoteName}"` : ''}. The remote server rejected your SSH key.`);
+  }
+  if (/Authentication failed|HTTP 401|HTTP 403/i.test(msg)) {
+    return new Error(`Authentication failed${remoteName ? ` for "${remoteName}"` : ''}. Check your Personal Access Token or credentials.`);
+  }
+  return new Error(msg);
+}
+
 export async function push(repoPath: string, remote?: string, branch?: string): Promise<string> {
   if (remote !== undefined) validateArgument(remote, 'remote');
   if (branch !== undefined) validateArgument(branch, 'branch');
@@ -312,10 +335,7 @@ export async function push(repoPath: string, remote?: string, branch?: string): 
     if (msg.includes('non-fast-forward') || msg.includes('fetch first')) {
       throw new Error('Remote contains commits you do not have locally. Please Pull first.');
     }
-    if (msg.includes('Permission denied') || msg.includes('publickey') || msg.includes('Authentication failed')) {
-      throw new Error(`Authentication failed for ${targetRemote}. Check your SSH keys or credentials.`);
-    }
-    throw new Error(msg);
+    throw formatRemoteError(err, targetRemote);
   }
 }
 
@@ -358,12 +378,6 @@ export async function pull(repoPath: string, remote?: string, branch?: string): 
     if (msg.includes('overwritten by merge') || msg.includes('local changes')) {
       throw new Error('Cannot pull: you have uncommitted local changes that would be overwritten. Please commit or stash them first.');
     }
-    if (msg.includes('Permission denied') || msg.includes('publickey')) {
-      throw new Error(`SSH authentication failed for "${targetRemote}". The remote server rejected your SSH key.`);
-    }
-    if (msg.includes('Authentication failed') || msg.includes('HTTP 401') || msg.includes('HTTP 403')) {
-      throw new Error(`Authentication failed for "${targetRemote}". Please check your Personal Access Token or credentials.`);
-    }
     if (msg.includes('no tracking information') || msg.includes('Please specify which branch')) {
       try {
         const fallbackRes = await git.pull(targetRemote, currentBranch);
@@ -373,14 +387,18 @@ export async function pull(repoPath: string, remote?: string, branch?: string): 
         throw new Error(`No tracking information found for branch "${currentBranch}". Run "git branch --set-upstream-to=${targetRemote}/${currentBranch}".`);
       }
     }
-    throw new Error(msg);
+    throw formatRemoteError(err, targetRemote);
   }
 }
 
 export async function fetchAll(repoPath: string): Promise<string> {
   const git = getGit(repoPath);
-  await git.fetch(['--all']);
-  return 'Fetched remotes';
+  try {
+    await git.fetch(['--all']);
+    return 'Fetched remotes';
+  } catch (err: any) {
+    throw formatRemoteError(err);
+  }
 }
 
 export async function checkout(repoPath: string, branchName: string, createNew = false): Promise<string> {

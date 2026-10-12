@@ -434,9 +434,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Status Notice */}
               {syncSshNotice && (
-                <div className="p-3 rounded-xl border border-[var(--alert-success-border)] bg-[var(--alert-success-bg)] text-[var(--alert-success-text)] flex items-center justify-between text-xs font-mono animate-in fade-in">
+                <div className={`p-3 rounded-xl border flex items-center justify-between text-xs font-mono animate-in fade-in ${
+                  syncSshNotice.toLowerCase().startsWith('error')
+                    ? 'border-rose-500/30 bg-rose-500/10 text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300'
+                    : 'border-[var(--alert-success-border)] bg-[var(--alert-success-bg)] text-[var(--alert-success-text)]'
+                }`}>
                   <div className="flex items-center gap-2">
-                    <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    {syncSshNotice.toLowerCase().startsWith('error') ? (
+                      <AlertCircle className="w-4 h-4 text-rose-400 shrink-0" />
+                    ) : (
+                      <CheckCircle2 className="w-4 h-4 text-emerald-500 shrink-0" />
+                    )}
                     <span>{syncSshNotice}</span>
                   </div>
                   <button

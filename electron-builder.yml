@@ -48,14 +48,14 @@ mac:
 
 dmg:
   title: "Install ${productName}"
-  background: build/background.png
+  background: build/background.tiff
   iconSize: 80
   contents:
     - x: 130
-      y: 190
+      y: 195
       type: file
     - x: 410
-      y: 190
+      y: 195
       type: link
       path: /Applications
   window:

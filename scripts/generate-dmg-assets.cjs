@@ -18,66 +18,62 @@ app.whenReady().then(async () => {
       body {
         width: 540px;
         height: 380px;
-        background: #ffffff;
-        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 50%, #f1f5f9 100%);
+        background: linear-gradient(180deg, #ffffff 0%, #f8fafc 55%, #f1f5f9 100%);
         color: #0f172a;
-        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+        font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
         display: flex;
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        padding: 26px 24px 20px;
+        padding: 30px 24px 22px;
         overflow: hidden;
         user-select: none;
         position: relative;
-        border: 1px solid rgba(0, 0, 0, 0.06);
       }
       .bg-glow {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 460px;
-        height: 280px;
-        background: radial-gradient(circle, rgba(168, 85, 247, 0.08) 0%, rgba(124, 58, 237, 0.03) 40%, transparent 70%);
+        width: 480px;
+        height: 300px;
+        background: radial-gradient(circle at 50% 50%, rgba(139, 92, 246, 0.08) 0%, rgba(124, 58, 237, 0.02) 45%, transparent 70%);
         pointer-events: none;
       }
-      .drop-target-left, .drop-target-right {
+      .slot-glow-left, .slot-glow-right {
         position: absolute;
-        top: 190px;
+        top: 195px;
         transform: translate(-50%, -50%);
-        width: 114px;
-        height: 114px;
-        border-radius: 24px;
-        background: rgba(255, 255, 255, 0.65);
-        border: 1.5px dashed rgba(168, 85, 247, 0.3);
-        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
+        width: 120px;
+        height: 120px;
+        border-radius: 28px;
+        background: radial-gradient(circle, rgba(255, 255, 255, 0.8) 0%, rgba(241, 245, 249, 0.4) 60%, transparent 80%);
         pointer-events: none;
       }
-      .drop-target-left { left: 130px; }
-      .drop-target-right { left: 410px; }
+      .slot-glow-left { left: 130px; }
+      .slot-glow-right { left: 410px; }
       .header {
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 7px;
         z-index: 10;
       }
       .brand-row {
         display: flex;
         align-items: center;
-        gap: 9px;
+        gap: 10px;
       }
       .logo-img {
-        width: 28px;
-        height: 28px;
-        border-radius: 6px;
-        filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
+        width: 32px;
+        height: 32px;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0, 0, 0, 0.16);
       }
       .brand-name {
-        font-size: 17px;
+        font-size: 19px;
         font-weight: 700;
-        letter-spacing: -0.02em;
+        letter-spacing: -0.025em;
         color: #0f172a;
       }
       .version-tag {
@@ -86,41 +82,42 @@ app.whenReady().then(async () => {
         font-weight: 600;
         color: #7c3aed;
         background: rgba(124, 58, 237, 0.08);
-        border: 1px solid rgba(124, 58, 237, 0.22);
-        padding: 2px 7px;
+        border: 1px solid rgba(124, 58, 237, 0.2);
+        padding: 2px 8px;
         border-radius: 50px;
       }
       .subtitle {
-        font-size: 11px;
+        font-size: 12px;
         color: #64748b;
         font-weight: 500;
+        letter-spacing: -0.01em;
       }
       .arrow-container {
         position: absolute;
-        top: 190px;
+        top: 195px;
         left: 270px;
         transform: translate(-50%, -50%);
         display: flex;
         flex-direction: column;
         align-items: center;
-        gap: 6px;
+        gap: 8px;
         z-index: 10;
       }
       .arrow-svg {
-        width: 76px;
-        height: 36px;
-        filter: drop-shadow(0 2px 8px rgba(124, 58, 237, 0.25));
+        width: 82px;
+        height: 32px;
+        filter: drop-shadow(0 2px 8px rgba(124, 58, 237, 0.22));
       }
       .drag-label {
         font-size: 9px;
         font-weight: 700;
-        letter-spacing: 0.08em;
+        letter-spacing: 0.09em;
         text-transform: uppercase;
         color: #7c3aed;
         background: rgba(124, 58, 237, 0.08);
-        padding: 2px 8px;
+        padding: 3px 10px;
         border-radius: 20px;
-        border: 1px solid rgba(124, 58, 237, 0.2);
+        border: 1px solid rgba(124, 58, 237, 0.18);
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       }
       .footer {
@@ -128,15 +125,15 @@ app.whenReady().then(async () => {
         color: #94a3b8;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-weight: 600;
-        letter-spacing: 0.06em;
+        letter-spacing: 0.08em;
         z-index: 10;
       }
     </style>
   </head>
   <body>
     <div class="bg-glow"></div>
-    <div class="drop-target-left"></div>
-    <div class="drop-target-right"></div>
+    <div class="slot-glow-left"></div>
+    <div class="slot-glow-right"></div>
 
     <div class="header">
       <div class="brand-row">
@@ -148,20 +145,20 @@ app.whenReady().then(async () => {
     </div>
 
     <div class="arrow-container">
-      <svg class="arrow-svg" viewBox="0 0 84 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <svg class="arrow-svg" viewBox="0 0 84 32" fill="none" xmlns="http://www.w3.org/2000/svg">
         <defs>
           <linearGradient id="arrowGrad" x1="0" y1="0" x2="84" y2="0" gradientUnits="userSpaceOnUse">
             <stop offset="0%" stop-color="#a855f7"/>
             <stop offset="100%" stop-color="#7c3aed"/>
           </linearGradient>
         </defs>
-        <path d="M6 20H72" stroke="url(#arrowGrad)" stroke-width="3.5" stroke-linecap="round"/>
-        <path d="M56 8L74 20L56 32" stroke="url(#arrowGrad)" stroke-width="3.5" stroke-linecap="round" stroke-linejoin="round"/>
+        <path d="M6 16H72" stroke="url(#arrowGrad)" stroke-width="3" stroke-linecap="round"/>
+        <path d="M58 6L74 16L58 26" stroke="url(#arrowGrad)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
       </svg>
       <span class="drag-label">DRAG TO INSTALL</span>
     </div>
 
-    <div class="footer">GITLER • NATIVE ON-DEVICE GIT CLIENT FOR MACOS</div>
+    <div class="footer">GITLER • LOCAL GIT CLIENT FOR MACOS</div>
   </body>
   </html>
   `;
@@ -198,9 +195,19 @@ app.whenReady().then(async () => {
 
   const bgPath = path.join(__dirname, '../build/background.png');
   const bg2xPath = path.join(__dirname, '../build/background@2x.png');
+  const bgTiffPath = path.join(__dirname, '../build/background.tiff');
 
   fs.writeFileSync(bgPath, image1x.toPNG());
   fs.writeFileSync(bg2xPath, image2x.toPNG());
+
+  // Compile multi-resolution TIFF for Finder Retina support
+  const { execSync } = require('child_process');
+  try {
+    execSync(`tiffutil -cathidpicheck "${bgPath}" "${bg2xPath}" -out "${bgTiffPath}"`);
+    console.log(`Generated multi-resolution background.tiff`);
+  } catch (err) {
+    console.warn('Could not run tiffutil:', err.message);
+  }
 
   console.log(`Generated DMG background: 1x (${image1x.getSize().width}x${image1x.getSize().height}) and 2x (${image2x.getSize().width}x${image2x.getSize().height})`);
   app.quit();
