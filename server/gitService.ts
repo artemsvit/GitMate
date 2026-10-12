@@ -1,4 +1,4 @@
-import { simpleGit, SimpleGit, StatusResult } from 'simple-git';
+import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
 import path from 'path';
 
 export interface RepoSummary {
