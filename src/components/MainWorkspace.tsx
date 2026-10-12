@@ -13,7 +13,8 @@ import {
   Copy,
   Check,
   Plus,
-  ChevronDown
+  ChevronDown,
+  AlertCircle
 } from 'lucide-react';
 import { RepoDetails, RepoSummary } from '../types';
 import { DiffViewer } from './DiffViewer';
@@ -45,6 +46,13 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   const [isPushing, setIsPushing] = useState(false);
   const [isFetching, setIsFetching] = useState(false);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
+  const [syncNotice, setSyncNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+
+  useEffect(() => {
+    if (!syncNotice) return;
+    const timer = setTimeout(() => setSyncNotice(null), 6000);
+    return () => clearTimeout(timer);
+  }, [syncNotice]);
 
   // Branch switcher dropdown & create
   const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
@@ -179,18 +187,33 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   // Pull
   const handlePull = async () => {
     setIsPulling(true);
+    setSyncNotice(null);
     try {
       const res = await fetch('/api/repos/pull', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
+        setSyncNotice({
+          type: 'success',
+          message: data.output || 'Successfully pulled latest changes from remote.'
+        });
         setDetails(data.updated);
         onDetailsUpdated(data.updated);
         onRefreshParent();
+      } else {
+        setSyncNotice({
+          type: 'error',
+          message: data.error || 'Pull failed. Check remote and local changes.'
+        });
       }
+    } catch (err: any) {
+      setSyncNotice({
+        type: 'error',
+        message: err.message || 'Network error while pulling from remote.'
+      });
     } finally {
       setIsPulling(false);
     }
@@ -199,6 +222,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   // Push
   const handlePush = async () => {
     setIsPushing(true);
+    setSyncNotice(null);
     try {
       const res = await fetch('/api/repos/push', {
         method: 'POST',
@@ -207,14 +231,24 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       });
       const data = await res.json();
       if (res.ok) {
+        setSyncNotice({
+          type: 'success',
+          message: data.output || 'Successfully pushed commits to remote.'
+        });
         setDetails(data.updated);
         onDetailsUpdated(data.updated);
         onRefreshParent();
       } else {
-        alert(`Push failed: ${data.error || 'Check remote and credentials'}`);
+        setSyncNotice({
+          type: 'error',
+          message: data.error || 'Push failed. Check remote and credentials.'
+        });
       }
     } catch (err: any) {
-      alert(`Push error: ${err.message}`);
+      setSyncNotice({
+        type: 'error',
+        message: err.message || 'Network error while pushing to remote.'
+      });
     } finally {
       setIsPushing(false);
     }
@@ -223,18 +257,33 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   // Fetch
   const handleFetch = async () => {
     setIsFetching(true);
+    setSyncNotice(null);
     try {
       const res = await fetch('/api/repos/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
       });
+      const data = await res.json();
       if (res.ok) {
-        const data = await res.json();
+        setSyncNotice({
+          type: 'success',
+          message: 'Fetched latest updates from all remotes.'
+        });
         setDetails(data.updated);
         onDetailsUpdated(data.updated);
         onRefreshParent();
+      } else {
+        setSyncNotice({
+          type: 'error',
+          message: data.error || 'Fetch failed.'
+        });
       }
+    } catch (err: any) {
+      setSyncNotice({
+        type: 'error',
+        message: err.message || 'Fetch error.'
+      });
     } finally {
       setIsFetching(false);
     }
@@ -392,6 +441,30 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Sync Status Banner */}
+      {syncNotice && (
+        <div className={`px-5 py-2.5 text-xs flex items-center justify-between border-b transition-all shrink-0 ${
+          syncNotice.type === 'success'
+            ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
+            : 'bg-rose-500/10 border-rose-500/25 text-rose-300'
+        }`}>
+          <div className="flex items-center gap-2 min-w-0">
+            {syncNotice.type === 'success' ? (
+              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+            )}
+            <span className="font-mono text-[11px] truncate">{syncNotice.message}</span>
+          </div>
+          <button
+            onClick={() => setSyncNotice(null)}
+            className="text-xs opacity-60 hover:opacity-100 transition px-2 py-0.5 rounded hover:bg-white/10"
+          >
+            ✕
+          </button>
+        </div>
+      )}
 
       {/* Mode Underline Tabs */}
       <div className="px-5 bg-[var(--bg-canvas)] border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0">

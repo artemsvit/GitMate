@@ -278,10 +278,57 @@ export async function push(repoPath: string, remote?: string, branch?: string): 
   }
 }
 
-export async function pull(repoPath: string): Promise<string> {
+export async function pull(repoPath: string, remote?: string, branch?: string): Promise<string> {
   const git = getGit(repoPath);
-  const result = await git.pull();
-  return `Pulled: ${result.summary.changes} changes`;
+  const status = await git.status();
+  const currentBranch = branch || status.current;
+
+  if (!currentBranch) {
+    throw new Error('Cannot pull: detached HEAD or no active branch found.');
+  }
+
+  const remotes = await git.getRemotes(true);
+  if (!remotes || remotes.length === 0) {
+    throw new Error('No remote repository configured. Please configure a remote URL first.');
+  }
+
+  const targetRemote = remote && remotes.some(r => r.name === remote)
+    ? remote
+    : (remotes.find(r => r.name === 'origin')?.name || remotes[0].name);
+
+  try {
+    let result;
+    if (status.tracking) {
+      result = await git.pull();
+    } else {
+      result = await git.pull(targetRemote, currentBranch);
+    }
+    const changes = result?.summary?.changes ?? 0;
+    const insertions = result?.summary?.insertions ?? 0;
+    const deletions = result?.summary?.deletions ?? 0;
+    return `Pulled successfully (${changes} changes, +${insertions}/-${deletions})`;
+  } catch (err: any) {
+    const msg = err.message || String(err);
+    if (msg.includes('overwritten by merge') || msg.includes('local changes')) {
+      throw new Error('Cannot pull: you have uncommitted local changes that would be overwritten. Please commit or stash them first.');
+    }
+    if (msg.includes('Permission denied') || msg.includes('publickey') || msg.includes('Authentication failed') || msg.includes('Could not read from remote')) {
+      throw new Error(`Authentication failed for ${targetRemote}. Check your SSH keys or remote credentials.`);
+    }
+    if (msg.includes('no tracking information') || msg.includes('Please specify which branch')) {
+      try {
+        const fallbackRes = await git.pull(targetRemote, currentBranch);
+        const changes = fallbackRes?.summary?.changes ?? 0;
+        return `Pulled from ${targetRemote}/${currentBranch} (${changes} changes)`;
+      } catch (fallbackErr: any) {
+        throw new Error(`No tracking information found for branch "${currentBranch}". Run "git branch --set-upstream-to=${targetRemote}/${currentBranch}".`);
+      }
+    }
+    if (msg.includes('divergent branches') || msg.includes('Need to specify how to reconcile')) {
+      throw new Error('Branches have diverged. Please configure pull reconciliation (rebase or merge).');
+    }
+    throw new Error(msg);
+  }
 }
 
 export async function fetchAll(repoPath: string): Promise<string> {

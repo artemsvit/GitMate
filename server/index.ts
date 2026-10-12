@@ -215,10 +215,10 @@ app.post('/api/repos/push', async (req, res) => {
 // 9. Pull
 app.post('/api/repos/pull', async (req, res) => {
   try {
-    const { path: repoPath } = req.body;
+    const { path: repoPath, remote, branch } = req.body;
     if (!repoPath) return res.status(400).json({ error: 'path is required' });
 
-    const output = await pull(repoPath);
+    const output = await pull(repoPath, remote, branch);
     const updated = await getRepoDetails(repoPath);
     res.json({ success: true, output, updated });
   } catch (err: any) {
