@@ -259,8 +259,8 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs max-h-[90vh] overflow-y-auto">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-12 px-4 pb-6 animate-in fade-in duration-200">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs max-h-[88vh] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">

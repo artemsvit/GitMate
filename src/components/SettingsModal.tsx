@@ -213,8 +213,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col max-h-[88vh] overflow-hidden text-xs">
+    <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-start justify-center pt-12 px-4 pb-6 animate-in fade-in duration-200">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-2xl w-full shadow-2xl flex flex-col h-[620px] max-h-[88vh] overflow-hidden text-xs">
         
         {/* Modal Top Header */}
         <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0 bg-[var(--bg-surface)]">
