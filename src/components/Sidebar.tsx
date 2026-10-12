@@ -12,7 +12,8 @@ import {
   Moon,
   AlertCircle,
   Filter,
-  Check
+  Check,
+  Settings
 } from 'lucide-react';
 import { RepoSummary } from '../types';
 
@@ -28,6 +29,7 @@ interface SidebarProps {
   isScanning: boolean;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
+  onOpenSettings: () => void;
   width?: number;
 }
 
@@ -43,6 +45,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isScanning,
   theme,
   onToggleTheme,
+  onOpenSettings,
   width = 420
 }) => {
   const [search, setSearch] = useState('');
@@ -118,13 +121,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Right side Header Controls: Theme switcher & Rescan */}
+        {/* Right side Header Controls: Settings, Theme switcher & Rescan */}
         <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
+          {/* Command Center / Settings Button */}
+          <button
+            onClick={onOpenSettings}
+            title="Command Center & Settings (Git providers, AI engine, identity)"
+            className="p-1.5 rounded-full hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer"
+          >
+            <Settings className="w-3.5 h-3.5 text-[var(--text-muted)] hover:text-[var(--accent-violet)]" />
+          </button>
+
           {/* Light / Dark Theme Switcher */}
           <button
             onClick={onToggleTheme}
             title={theme === 'dark' ? 'Switch to Light theme' : 'Switch to Dark theme'}
-            className="p-1.5 rounded-full hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+            className="p-1.5 rounded-full hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer"
           >
             {theme === 'dark' ? (
               <Sun className="w-3.5 h-3.5 text-[var(--accent-violet)]" />

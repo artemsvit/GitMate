@@ -26,7 +26,10 @@ import {
   setRemoteUrl,
   testRemoteConnection,
   getAuthDiagnostics,
-  getOrCreateGitlerSshKey
+  getOrCreateGitlerSshKey,
+  getGlobalGitConfig,
+  updateGlobalGitConfig,
+  testHostSsh
 } from './gitService';
 import { detectLocalAI, generateCommitMessage } from './aiService';
 
@@ -312,6 +315,39 @@ app.post('/api/auth/gitler-key/regenerate', async (_req, res) => {
   try {
     const keyInfo = await getOrCreateGitlerSshKey(true);
     res.json(keyInfo);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 11g. Get Global Git Config
+app.get('/api/settings/git-config', async (_req, res) => {
+  try {
+    const config = await getGlobalGitConfig();
+    res.json(config);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 11h. Update Global Git Config
+app.post('/api/settings/git-config', async (req, res) => {
+  try {
+    await updateGlobalGitConfig(req.body);
+    const updated = await getGlobalGitConfig();
+    res.json({ success: true, updated });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 11i. Test Host SSH
+app.post('/api/settings/test-host', async (req, res) => {
+  try {
+    const { host, port = 22 } = req.body;
+    if (!host) return res.status(400).json({ error: 'host is required' });
+    const result = await testHostSsh(host, Number(port));
+    res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }

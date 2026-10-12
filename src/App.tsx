@@ -5,6 +5,7 @@ import { AICopilotPanel } from './components/AICopilotPanel';
 import { StatusBar } from './components/StatusBar';
 import { AISettingsModal } from './components/AISettingsModal';
 import { RemoteAuthModal } from './components/RemoteAuthModal';
+import { SettingsModal, SettingsTab } from './components/SettingsModal';
 import { RepoSummary, RepoDetails, LocalAIStatus } from './types';
 import { FolderGit2, FolderOpen, ShieldAlert } from 'lucide-react';
 
@@ -16,6 +17,15 @@ export function App() {
   const [selectedRepoDetails, setSelectedRepoDetails] = useState<RepoDetails | null>(null);
   const [permissionPromptFolder, setPermissionPromptFolder] = useState<string | null>(null);
   const [authModalRepo, setAuthModalRepo] = useState<RepoSummary | null>(null);
+
+  // Command Center & Settings
+  const [isSettingsOpen, setIsSettingsOpen] = useState(false);
+  const [settingsTab, setSettingsTab] = useState<SettingsTab>('providers');
+
+  const handleOpenSettings = (tab: SettingsTab = 'providers') => {
+    setSettingsTab(tab);
+    setIsSettingsOpen(true);
+  };
   
   // Selected file for diff
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -278,6 +288,7 @@ export function App() {
       isScanning={isScanning}
       theme={theme}
       onToggleTheme={handleToggleTheme}
+      onOpenSettings={() => handleOpenSettings('providers')}
       width={sidebarWidth}
     />
   );
@@ -289,7 +300,7 @@ export function App() {
         repoSummary={selectedRepo}
         details={selectedRepoDetails}
         aiStatus={aiStatus}
-        onOpenSettings={() => setAISettingsOpen(true)}
+        onOpenSettings={() => handleOpenSettings('ai')}
         onCommitSuccess={() => handleScan(currentPath)}
         onOpenRemoteAuth={() => setAuthModalRepo(selectedRepo)}
         width={copilotWidth}
@@ -398,18 +409,21 @@ export function App() {
       {/* Bottom Status Bar */}
       <StatusBar
         aiStatus={aiStatus}
-        onOpenAISettings={() => setAISettingsOpen(true)}
+        onOpenAISettings={() => handleOpenSettings('ai')}
         selectedRepo={selectedRepo}
         repoCount={repositories.length}
         currentPath={currentPath}
       />
 
-      {/* Local AI Settings Modal */}
-      {aiSettingsOpen && (
-        <AISettingsModal
+      {/* Command Center & Settings Modal */}
+      {isSettingsOpen && (
+        <SettingsModal
+          initialTab={settingsTab}
           aiStatus={aiStatus}
-          onClose={() => setAISettingsOpen(false)}
-          onRefreshStatus={refreshAIStatus}
+          theme={theme}
+          onToggleTheme={handleToggleTheme}
+          onRefreshAIStatus={refreshAIStatus}
+          onClose={() => setIsSettingsOpen(false)}
         />
       )}
 

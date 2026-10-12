@@ -546,3 +546,107 @@ export async function getAuthDiagnostics(): Promise<{
     credentialHelper
   };
 }
+
+export async function getGlobalGitConfig(): Promise<{
+  userName: string;
+  userEmail: string;
+  defaultBranch: string;
+}> {
+  const { exec } = await import('child_process');
+  const execCmd = (cmd: string): Promise<string> =>
+    new Promise(res => exec(cmd, (_e, stdout) => res((stdout || '').trim())));
+
+  const [userName, userEmail, defaultBranch] = await Promise.all([
+    execCmd('git config --global user.name'),
+    execCmd('git config --global user.email'),
+    execCmd('git config --global init.defaultBranch')
+  ]);
+
+  return {
+    userName,
+    userEmail,
+    defaultBranch: defaultBranch || 'main'
+  };
+}
+
+export async function updateGlobalGitConfig(config: {
+  userName?: string;
+  userEmail?: string;
+  defaultBranch?: string;
+}): Promise<void> {
+  const { exec } = await import('child_process');
+  const execCmd = (cmd: string): Promise<void> =>
+    new Promise((resolve, reject) => exec(cmd, err => (err ? reject(err) : resolve())));
+
+  if (config.userName !== undefined) {
+    await execCmd(`git config --global user.name "${config.userName.replace(/"/g, '\\"')}"`);
+  }
+  if (config.userEmail !== undefined) {
+    await execCmd(`git config --global user.email "${config.userEmail.replace(/"/g, '\\"')}"`);
+  }
+  if (config.defaultBranch !== undefined) {
+    await execCmd(`git config --global init.defaultBranch "${config.defaultBranch.replace(/"/g, '\\"')}"`);
+  }
+}
+
+export async function testHostSsh(host: string, port = 22): Promise<{
+  success: boolean;
+  authenticated: boolean;
+  provider: string;
+  message: string;
+  raw: string;
+}> {
+  const { exec } = await import('child_process');
+  const keyPath = path.join(os.homedir(), '.ssh', 'gitler_ed25519');
+  const keyFlag = fs.existsSync(keyPath) ? `-i "${keyPath}" ` : '';
+  const cmd = `ssh ${keyFlag}-p ${port} -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -T git@${host}`;
+
+  return new Promise(resolve => {
+    exec(cmd, { timeout: 6000 }, (_err, stdout, stderr) => {
+      const raw = ((stdout || '') + ' ' + (stderr || '')).trim();
+      let provider = 'generic';
+      if (host.includes('github.com')) provider = 'github';
+      else if (host.includes('gitlab.com')) provider = 'gitlab';
+      else if (raw.toLowerCase().includes('gitea') || host.includes(':222') || port === 222) provider = 'gitea';
+
+      if (raw.includes('successfully authenticated') || raw.includes('Welcome to GitLab') || raw.includes('Hi there')) {
+        return resolve({
+          success: true,
+          authenticated: true,
+          provider,
+          message: `Authenticated with ${host}:${port}! Access verified.`,
+          raw
+        });
+      }
+
+      if (raw.includes('Permission denied') || raw.includes('publickey')) {
+        return resolve({
+          success: false,
+          authenticated: false,
+          provider,
+          message: `Connected to ${host}:${port}, but SSH key was not accepted yet. Add the Gitler public key to your ${provider === 'gitea' ? 'Gitea' : 'git host'} account.`,
+          raw
+        });
+      }
+
+      if (raw.includes('Connection refused') || raw.includes('timed out') || raw.includes('No route to host')) {
+        return resolve({
+          success: false,
+          authenticated: false,
+          provider,
+          message: `Cannot connect to ${host}:${port}. Server unreachable or port closed.`,
+          raw
+        });
+      }
+
+      return resolve({
+        success: false,
+        authenticated: false,
+        provider,
+        message: raw || 'SSH probe finished.',
+        raw
+      });
+    });
+  });
+}
+
