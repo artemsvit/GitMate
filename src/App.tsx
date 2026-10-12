@@ -23,6 +23,41 @@ export function App() {
   const [aiStatus, setAIStatus] = useState<LocalAIStatus | null>(null);
   const [aiSettingsOpen, setAISettingsOpen] = useState(false);
 
+  // Theme (Dark / Light)
+  const [theme, setTheme] = useState<'dark' | 'light'>(() => {
+    return (localStorage.getItem('gitler_theme') as 'dark' | 'light') || 'dark';
+  });
+
+  // Layout Swap (Default: Repos Left, Copilot Right; Flipped: Copilot Left, Repos Right)
+  const [layoutFlipped, setLayoutFlipped] = useState<boolean>(() => {
+    return localStorage.getItem('gitler_layout_flipped') === 'true';
+  });
+
+  // Apply theme to document element
+  useEffect(() => {
+    const root = document.documentElement;
+    if (theme === 'light') {
+      root.classList.remove('dark');
+      root.classList.add('light');
+    } else {
+      root.classList.remove('light');
+      root.classList.add('dark');
+    }
+    localStorage.setItem('gitler_theme', theme);
+  }, [theme]);
+
+  const handleToggleTheme = () => {
+    setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
+  };
+
+  const handleToggleLayout = () => {
+    setLayoutFlipped(prev => {
+      const next = !prev;
+      localStorage.setItem('gitler_layout_flipped', String(next));
+      return next;
+    });
+  };
+
   // 1. Initial Load: System folders & AI status
   useEffect(() => {
     const init = async () => {
@@ -106,57 +141,80 @@ export function App() {
     }
   };
 
+  const renderSidebar = () => (
+    <Sidebar
+      repositories={repositories}
+      selectedRepo={selectedRepo}
+      onSelectRepo={handleSelectRepo}
+      currentPath={currentPath}
+      presets={presets}
+      onScan={(p, d) => handleScan(p, d)}
+      isScanning={isScanning}
+      theme={theme}
+      onToggleTheme={handleToggleTheme}
+      layoutFlipped={layoutFlipped}
+      onToggleLayout={handleToggleLayout}
+    />
+  );
+
+  const renderAICopilot = () => (
+    selectedRepo ? (
+      <AICopilotPanel
+        key={'ai-' + selectedRepo.path}
+        repoSummary={selectedRepo}
+        details={selectedRepoDetails}
+        aiStatus={aiStatus}
+        onOpenSettings={() => setAISettingsOpen(true)}
+        onCommitSuccess={() => handleScan(currentPath)}
+        isLeftPosition={layoutFlipped}
+        onToggleLayout={handleToggleLayout}
+      />
+    ) : null
+  );
+
+  const renderMainWorkspace = () => (
+    selectedRepo ? (
+      <MainWorkspace
+        key={selectedRepo.path}
+        repoSummary={selectedRepo}
+        onRefreshParent={() => handleScan(currentPath)}
+        selectedFile={selectedFile}
+        onSelectFile={(file, isStaged) => {
+          setSelectedFile(file);
+          setSelectedDiffStaged(isStaged);
+        }}
+        selectedDiffStaged={selectedDiffStaged}
+        onDetailsUpdated={details => setSelectedRepoDetails(details)}
+      />
+    ) : (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg-canvas)] text-[var(--text-muted)] p-8 text-center font-mono transition-colors">
+        <div className="w-12 h-12 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-violet)] mb-3">
+          <FolderGit2 className="w-6 h-6" />
+        </div>
+        <h3 className="font-semibold text-[var(--text-primary)] text-xs">No Repository Selected</h3>
+        <p className="text-[11px] text-[var(--text-muted)] mt-1 max-w-xs">
+          Select a repository to inspect working tree changes, diffs, and commit history.
+        </p>
+      </div>
+    )
+  );
+
   return (
-    <div className="h-screen w-screen flex flex-col bg-[#000000] text-[#faf9f6] overflow-hidden font-sans">
-      {/* 3-Pane Main Layout */}
+    <div className={`h-screen w-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] overflow-hidden font-sans ${theme}`}>
+      {/* 3-Pane Main Layout (Supports Left/Right Column Swapping) */}
       <div className="flex-1 flex overflow-hidden">
-        {/* Left: Repositories Sidebar */}
-        <Sidebar
-          repositories={repositories}
-          selectedRepo={selectedRepo}
-          onSelectRepo={handleSelectRepo}
-          currentPath={currentPath}
-          presets={presets}
-          onScan={(p, d) => handleScan(p, d)}
-          isScanning={isScanning}
-        />
-
-        {/* Center: Main Workspace (Staging, File List, and Diff Viewer) */}
-        {selectedRepo ? (
-          <MainWorkspace
-            key={selectedRepo.path}
-            repoSummary={selectedRepo}
-            onRefreshParent={() => handleScan(currentPath)}
-            selectedFile={selectedFile}
-            onSelectFile={(file, isStaged) => {
-              setSelectedFile(file);
-              setSelectedDiffStaged(isStaged);
-            }}
-            selectedDiffStaged={selectedDiffStaged}
-            onDetailsUpdated={details => setSelectedRepoDetails(details)}
-          />
+        {layoutFlipped ? (
+          <>
+            {renderAICopilot()}
+            {renderMainWorkspace()}
+            {renderSidebar()}
+          </>
         ) : (
-          <div className="flex-1 flex flex-col items-center justify-center bg-[#000000] text-[#868684] p-8 text-center font-mono">
-            <div className="w-12 h-12 rounded-xl bg-[#121212] border border-[#1e1e1d] flex items-center justify-center text-[#cbb0f7] mb-3">
-              <FolderGit2 className="w-6 h-6" />
-            </div>
-            <h3 className="font-semibold text-[#faf9f6] text-xs">No Repository Selected</h3>
-            <p className="text-[11px] text-[#868684] mt-1 max-w-xs">
-              Select a repository from the left panel to inspect working tree changes, diffs, and history.
-            </p>
-          </div>
-        )}
-
-        {/* Right: AI Commit Copilot Panel */}
-        {selectedRepo && (
-          <AICopilotPanel
-            key={'ai-' + selectedRepo.path}
-            repoSummary={selectedRepo}
-            details={selectedRepoDetails}
-            aiStatus={aiStatus}
-            onOpenSettings={() => setAISettingsOpen(true)}
-            onCommitSuccess={() => handleScan(currentPath)}
-          />
+          <>
+            {renderSidebar()}
+            {renderMainWorkspace()}
+            {renderAICopilot()}
+          </>
         )}
       </div>
 
@@ -167,6 +225,8 @@ export function App() {
         selectedRepo={selectedRepo}
         repoCount={repositories.length}
         currentPath={currentPath}
+        layoutFlipped={layoutFlipped}
+        onToggleLayout={handleToggleLayout}
       />
 
       {/* Local AI Settings Modal */}

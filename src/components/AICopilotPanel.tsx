@@ -8,7 +8,8 @@ import {
   AlertCircle,
   FileCode2,
   Zap,
-  Tag
+  Tag,
+  ArrowLeftRight
 } from 'lucide-react';
 import { RepoDetails, RepoSummary, LocalAIStatus, AICommitResult } from '../types';
 
@@ -18,6 +19,8 @@ interface AICopilotPanelProps {
   aiStatus: LocalAIStatus | null;
   onOpenSettings: () => void;
   onCommitSuccess: () => void;
+  isLeftPosition?: boolean;
+  onToggleLayout?: () => void;
 }
 
 export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
@@ -25,7 +28,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   details,
   aiStatus,
   onOpenSettings,
-  onCommitSuccess
+  onCommitSuccess,
+  isLeftPosition = false,
+  onToggleLayout
 }) => {
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -132,52 +137,64 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const isLineTooLong = firstLine.length > 72;
 
   return (
-    <aside className="w-80 h-full flex flex-col bg-[#000000] border-l border-[#1e1e1d] p-4 select-none shrink-0 justify-between">
+    <aside className={`w-80 h-full flex flex-col bg-[var(--bg-canvas)] ${isLeftPosition ? 'border-r' : 'border-l'} border-[var(--border-subtle)] p-4 select-none shrink-0 justify-between transition-colors`}>
       <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[#1e1e1d]">
+        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
           <div className="flex items-center gap-2">
-            <div className="w-6 h-6 rounded-md bg-[#121212] border border-[#333333] flex items-center justify-center text-[#cbb0f7]">
+            <div className="w-6 h-6 rounded-md bg-[var(--bg-surface)] border border-[var(--border-interactive)] flex items-center justify-center text-[var(--accent-violet)]">
               <Sparkles className="w-3.5 h-3.5" />
             </div>
-            <span className="font-semibold text-xs text-[#faf9f6] tracking-tight">AI Copilot</span>
+            <span className="font-semibold text-xs text-[var(--text-primary)] tracking-tight">AI Copilot</span>
           </div>
 
-          <button
-            onClick={onOpenSettings}
-            className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[50px] border border-[#333333] text-[10px] font-mono text-[#b4b4b2] hover:text-[#faf9f6] transition"
-            title="Configure AI model"
-          >
-            <Cpu className="w-3 h-3 text-[#cbb0f7]" />
-            <span className="truncate max-w-[90px]">{aiStatus?.activeModel || 'Settings'}</span>
-          </button>
+          <div className="flex items-center gap-1">
+            {onToggleLayout && (
+              <button
+                onClick={onToggleLayout}
+                title="Swap column position"
+                className="p-1 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+              >
+                <ArrowLeftRight className="w-3.5 h-3.5" />
+              </button>
+            )}
+
+            <button
+              onClick={onOpenSettings}
+              className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[50px] border border-[var(--border-interactive)] text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+              title="Configure AI model"
+            >
+              <Cpu className="w-3 h-3 text-[var(--accent-violet)]" />
+              <span className="truncate max-w-[80px]">{aiStatus?.activeModel || 'Settings'}</span>
+            </button>
+          </div>
         </div>
 
         {/* Change Stats */}
-        <div className="p-3 rounded-2xl bg-[#121212] border border-[#1e1e1d] text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[#868684]">
-            <FileCode2 className="w-3.5 h-3.5 text-[#cbb0f7]" />
+        <div className="p-3 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs flex items-center justify-between">
+          <div className="flex items-center gap-2 text-[var(--text-muted)]">
+            <FileCode2 className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
             <span className="text-[11px] font-medium">Working Tree</span>
           </div>
-          <span className="font-mono text-xs text-[#faf9f6]">
+          <span className="font-mono text-xs text-[var(--text-primary)]">
             {totalChanges} changed files
           </span>
         </div>
 
-        {/* Generate Button (Paper #ffffff filled pill button) */}
+        {/* Generate Button (Paper filled pill button) */}
         <button
           onClick={handleGenerateCommit}
           disabled={isGenerating || totalChanges === 0}
-          className="w-full py-2.5 px-4 rounded-[33px] bg-[#ffffff] hover:bg-[#faf9f6] text-[#080808] font-semibold text-xs transition flex items-center justify-center gap-2 disabled:opacity-30 cursor-pointer"
+          className="w-full py-2.5 px-4 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-2 disabled:opacity-30 cursor-pointer"
         >
           {isGenerating ? (
             <>
-              <div className="w-3.5 h-3.5 border-2 border-[#080808]/30 border-t-[#080808] rounded-full animate-spin" />
+              <div className="w-3.5 h-3.5 border-2 border-current/30 border-t-current rounded-full animate-spin" />
               <span>Analyzing diff...</span>
             </>
           ) : (
             <>
-              <Zap className="w-3.5 h-3.5 text-[#080808]" />
+              <Zap className="w-3.5 h-3.5" />
               <span>Generate with Local AI</span>
             </>
           )}
@@ -185,15 +202,15 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
         {/* AI source tag if generated */}
         {aiResult && (
-          <div className="flex items-center justify-between text-[10px] font-mono text-[#868684] px-1">
+          <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)] px-1">
             <span>Model: {aiResult.model}</span>
-            <span className="text-[#cbb0f7] font-semibold">{aiResult.provider}</span>
+            <span className="text-[var(--accent-violet)] font-semibold">{aiResult.provider}</span>
           </div>
         )}
 
         {/* Conventional Type Tags */}
         <div>
-          <div className="flex items-center gap-1 mb-2 text-[9px] uppercase font-bold text-[#868684] tracking-widest">
+          <div className="flex items-center gap-1 mb-2 text-[9px] uppercase font-bold text-[var(--text-muted)] tracking-widest">
             <Tag className="w-2.5 h-2.5" /> Types
           </div>
           <div className="flex gap-1 flex-wrap">
@@ -201,7 +218,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
               <button
                 key={t}
                 onClick={() => handleApplyType(t)}
-                className="px-2.5 py-0.5 rounded-[50px] border border-[#333333] text-[10px] font-mono text-[#868684] hover:text-[#faf9f6] hover:border-[#868684] transition"
+                className="px-2.5 py-0.5 rounded-[50px] border border-[var(--border-interactive)] text-[10px] font-mono text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)] transition"
               >
                 {t}
               </button>
@@ -212,10 +229,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         {/* Commit Message Box */}
         <div>
           <div className="flex items-center justify-between mb-1.5">
-            <span className="text-[11px] font-medium text-[#faf9f6] flex items-center gap-1">
-              <GitCommit className="w-3.5 h-3.5 text-[#868684]" /> Message
+            <span className="text-[11px] font-medium text-[var(--text-primary)] flex items-center gap-1">
+              <GitCommit className="w-3.5 h-3.5 text-[var(--text-muted)]" /> Message
             </span>
-            <span className={`text-[10px] font-mono ${isLineTooLong ? 'text-[#f28b82]' : 'text-[#868684]'}`}>
+            <span className={`text-[10px] font-mono ${isLineTooLong ? 'text-amber-500' : 'text-[var(--text-muted)]'}`}>
               {firstLine.length}/72
             </span>
           </div>
@@ -224,7 +241,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             onChange={e => setCommitMessage(e.target.value)}
             placeholder="feat(ui): update to warp design tokens..."
             rows={5}
-            className="w-full bg-[#121212] border border-[#333333] focus:border-[#cbb0f7] rounded-xl p-3 text-xs text-[#faf9f6] placeholder-[#666469] font-mono focus:outline-none transition resize-none leading-relaxed"
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border-interactive)] focus:border-[var(--accent-violet)] rounded-xl p-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-dim)] font-mono focus:outline-none transition resize-none leading-relaxed"
           />
         </div>
 
@@ -233,14 +250,14 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
           <div
             className={`p-3 rounded-xl border text-xs font-mono flex items-center gap-2 ${
               statusMessage.type === 'success'
-                ? 'bg-[#121212] border-[#52b774]/40 text-[#86e19b]'
-                : 'bg-[#121212] border-[#d9534f]/40 text-[#f28b82]'
+                ? 'bg-[var(--bg-surface)] border-emerald-500/40 text-emerald-500'
+                : 'bg-[var(--bg-surface)] border-rose-500/40 text-rose-500'
             }`}
           >
             {statusMessage.type === 'success' ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-[#52b774] shrink-0" />
+              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
             ) : (
-              <AlertCircle className="w-3.5 h-3.5 text-[#f28b82] shrink-0" />
+              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
             )}
             <span className="truncate text-[11px]">{statusMessage.text}</span>
           </div>
@@ -248,11 +265,11 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
       </div>
 
       {/* Action Buttons */}
-      <div className="pt-3 border-t border-[#1e1e1d] space-y-2">
+      <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
         <button
           onClick={() => handleCommit(false)}
           disabled={isCommitting || !commitMessage.trim()}
-          className="w-full py-2.5 rounded-[33px] border border-[#333333] hover:border-[#868684] bg-transparent text-[#faf9f6] text-xs font-medium transition disabled:opacity-30"
+          className="w-full py-2.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-[var(--text-primary)] text-xs font-medium transition disabled:opacity-30"
         >
           {isCommitting ? 'Committing...' : 'Commit Changes'}
         </button>
@@ -260,7 +277,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         <button
           onClick={() => handleCommit(true)}
           disabled={isCommitting || !commitMessage.trim()}
-          className="w-full py-2.5 rounded-[33px] bg-[#faf9f6] hover:bg-[#ffffff] text-[#080808] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
+          className="w-full py-2.5 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
         >
           <Send className="w-3.5 h-3.5" />
           <span>Commit & Push</span>
