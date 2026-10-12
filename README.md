@@ -155,3 +155,13 @@ The API binds to `127.0.0.1`. The interface obtains a per-process session token,
 Stage files before generating a message or committing. Partially staged files appear in both lists, with separate index and working-tree previews. Gitler leaves Git lock files in place. Untracked text previews stop at 256 KiB; binary files show a notice. External suggestions use the detected local Ollama or LM Studio endpoint and reject redirects.
 
 Local packaging does not prove signing, notarization, or update delivery. Those checks require the release credentials and a published release.
+
+## Check a provider connection
+
+Open **Command Center & Settings → Git Providers & Auth** and use **Test connection** on a provider card. The result distinguishes server reachability from account access. This check does not upload keys or change repositories.
+
+Local repositories work offline. Remote Git operations use the repository's fetch or push URL and its SSH key or HTTPS Git credentials. An account token verifies the provider API; it does not by itself configure Git authentication. Use **Remote → Test Connection** to verify repository read access. A successful read check does not prove push permission.
+
+For local servers, macOS may ask for **Local Network** permission on the first connection. Allow Gitler to reach your server. If access was denied, enable Gitler in **System Settings → Privacy & Security → Local Network** and retry. Gitler does not change the Mac's privacy settings or use a child process to bypass permission.
+
+Provider requests verify TLS certificates and reject redirects to other origins before forwarding a token. Packaged executables use a stable app-specific UUID to support macOS permission tracking.

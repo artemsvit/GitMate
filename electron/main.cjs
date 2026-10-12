@@ -1,8 +1,6 @@
-const { app, BrowserWindow, shell, ipcMain, dialog, net } = require('electron');
+const { app, BrowserWindow, shell, ipcMain, dialog, session } = require('electron');
 const path = require('node:path');
-
-// Expose Electron's Chromium net.fetch to backend server to trigger native macOS Local Network prompt
-globalThis.__electronNetFetch = (url, options) => net.fetch(url, options);
+const { networkPermissions, trustedInterfacePermission } = require('./permissions.cjs');
 
 const standardPaths = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
 process.env.PATH = Array.from(new Set([...standardPaths, ...(process.env.PATH || '').split(':')])).join(':');
@@ -75,7 +73,12 @@ function createWindow() {
   mainWindow.webContents.on('will-navigate', (event, url) => {
     if (new URL(url).origin !== interfaceURL) event.preventDefault();
   });
-  mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+  mainWindow.webContents.session.setPermissionRequestHandler((contents, permission, callback, details) => {
+    callback(trustedInterfacePermission(contents, permission, details.requestingUrl, interfaceURL));
+  });
+  mainWindow.webContents.session.setPermissionCheckHandler((contents, permission, origin) => {
+    return trustedInterfacePermission(contents, permission, origin, interfaceURL);
+  });
   mainWindow.loadURL(interfaceURL).catch(error => dialog.showErrorBox('Gitler could not load', error.message));
   mainWindow.on('closed', () => { mainWindow = null; });
   if (app.isPackaged) {
@@ -89,7 +92,15 @@ else {
     if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); }
   });
   app.whenReady().then(async () => {
-    try { await startBackendServer(); createWindow(); }
+    try {
+      // This partition has no web pages. Only backend provider requests use it.
+      const providerSession = session.fromPartition('gitler-provider-network');
+      providerSession.setPermissionRequestHandler((_contents, permission, callback) => callback(networkPermissions.has(permission)));
+      providerSession.setPermissionCheckHandler((_contents, permission) => networkPermissions.has(permission));
+      globalThis.__electronNetFetch = (url, options) => providerSession.fetch(url, options);
+      await startBackendServer();
+      createWindow();
+    }
     catch (error) { dialog.showErrorBox('Gitler could not start', error.message); app.quit(); }
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
   });

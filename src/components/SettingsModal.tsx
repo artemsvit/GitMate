@@ -51,6 +51,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
   // Tab 1: Providers & SSH
   const [providers, setProviders] = useState<ProvidersStatus | null>(null);
+  const [testingProvider, setTestingProvider] = useState<string | null>(null);
+  const [connectionResults, setConnectionResults] = useState<Record<string, string>>({});
   const [isLoadingProviders, setIsLoadingProviders] = useState(false);
   const [connectModalProvider, setConnectModalProvider] = useState<'github' | 'gitlab' | 'gitea' | null>(null);
   const [connectToken, setConnectToken] = useState('');
@@ -125,6 +127,20 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     } finally {
       setIsLoadingProviders(false);
     }
+  };
+
+  const handleTestProvider = async (provider: 'github' | 'gitlab' | 'gitea', instanceUrl?: string) => {
+    setTestingProvider(provider);
+    try {
+      const response = await apiFetch('/api/auth/providers/test', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ provider, instanceUrl })
+      });
+      const result = await response.json();
+      setConnectionResults(previous => ({ ...previous, [provider]: result.message || result.error || 'Connection test failed.' }));
+    } catch {
+      setConnectionResults(previous => ({ ...previous, [provider]: 'Could not run the connection test. Retry after restarting Gitler.' }));
+    } finally { setTestingProvider(null); }
   };
 
   const handleOpenConnect = (provider: 'github' | 'gitlab' | 'gitea') => {
@@ -461,7 +477,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <div>
                   <h3 className="text-xs font-semibold text-[var(--text-primary)]">Connected Git Providers</h3>
                   <p className="text-[11px] text-[var(--text-muted)]">
-                    Authorize Gitler with your accounts for 1-click authentication and automated SSH key synchronization.
+                    Local repositories work offline. Account checks verify API access; push and pull use each repository’s SSH key or HTTPS Git credentials. Test a remote before syncing.
                   </p>
                 </div>
                 <button
@@ -518,11 +534,17 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     ) : (
                       <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                        Connect with your Personal Access Token to push and pull seamlessly.
+                        Connect your account to verify API access. Git push and pull use each repository’s remote and Git credentials.
                       </p>
                     )}
                   </div>
 
+                  <button type="button" disabled={testingProvider !== null}
+                    onClick={() => handleTestProvider('github', providers?.github?.instanceUrl)}
+                    className="text-xs text-[var(--accent-violet)] hover:underline disabled:opacity-50 text-left">
+                    {testingProvider === 'github' ? 'Testing connection…' : 'Test GitHub connection'}
+                  </button>
+                  {connectionResults.github && <p role="status" className="text-xs text-[var(--text-secondary)] leading-relaxed">{connectionResults.github}</p>}
                   <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center gap-2">
                     {providers?.github?.connected ? (
                       <>
@@ -604,6 +626,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                   </div>
 
+                  <button type="button" disabled={testingProvider !== null}
+                    onClick={() => handleTestProvider('gitlab', providers?.gitlab?.instanceUrl)}
+                    className="text-xs text-[var(--accent-violet)] hover:underline disabled:opacity-50 text-left">
+                    {testingProvider === 'gitlab' ? 'Testing connection…' : 'Test GitLab connection'}
+                  </button>
+                  {connectionResults.gitlab && <p role="status" className="text-xs text-[var(--text-secondary)] leading-relaxed">{connectionResults.gitlab}</p>}
                   <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center gap-2">
                     {providers?.gitlab?.connected ? (
                       <>
@@ -674,7 +702,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </div>
                         <div className="flex items-center gap-1 text-[9px] text-emerald-500 font-mono">
                           <Check className="w-2.5 h-2.5" />
-                          <span>SSH Key Auto-Synchronized</span>
+                          <span>{providers.gitea.sshKeySynced ? 'SSH key registered' : 'SSH key not verified'}</span>
                         </div>
                       </div>
                     ) : (
@@ -684,6 +712,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     )}
                   </div>
 
+                  <button type="button" disabled={testingProvider !== null}
+                    onClick={() => handleTestProvider('gitea', providers?.gitea?.instanceUrl)}
+                    className="text-xs text-[var(--accent-violet)] hover:underline disabled:opacity-50 text-left">
+                    {testingProvider === 'gitea' ? 'Testing connection…' : 'Test Gitea connection'}
+                  </button>
+                  {connectionResults.gitea && <p role="status" className="text-xs text-[var(--text-secondary)] leading-relaxed">{connectionResults.gitea}</p>}
                   <div className="pt-2 border-t border-[var(--border-subtle)] flex items-center gap-2">
                     {providers?.gitea?.connected ? (
                       <>
@@ -1124,14 +1158,11 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
                 {connectError.includes('Local Network') && (
                   <div className="flex gap-2">
-                    <button
-                      type="button"
-                      onClick={() => {
-                        apiFetch('/api/system/request-local-network-permission', { method: 'POST' });
-                      }}
-                      className="flex-1 py-1.5 px-3 rounded-lg bg-[var(--btn-accent-bg)] text-[var(--btn-accent-text)] text-xs font-bold flex items-center justify-center gap-1.5 transition cursor-pointer shadow-xs"
-                    >
-                      <span>Trigger System Prompt</span>
+                    <button type="button"
+                      onClick={() => handleTestProvider(connectModalProvider, connectInstanceUrl)}
+                      disabled={testingProvider !== null}
+                      className="flex-1 py-1.5 px-3 rounded-lg bg-[var(--btn-accent-bg)] text-[var(--btn-accent-text)] text-xs font-bold">
+                      Test Server
                     </button>
                     <button
                       type="button"
@@ -1145,6 +1176,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
             )}
 
+            {connectionResults[connectModalProvider] && <p role="status" className="text-xs text-[var(--text-secondary)]">{connectionResults[connectModalProvider]}</p>}
+
             {connectSuccess && (
               <div className="p-2.5 rounded-xl border border-[var(--alert-success-border)] bg-[var(--alert-success-bg)] text-[var(--alert-success-text)] text-[11px] font-mono flex items-center gap-2">
                 <CheckCircle2 className="w-3.5 h-3.5 shrink-0 text-emerald-500" />
@@ -1156,12 +1189,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Server URL for Gitea / GitLab */}
               {connectModalProvider !== 'github' && (
                 <div className="space-y-1">
-                  <label className="text-[11px] font-semibold text-[var(--text-primary)] block">
+                  <label htmlFor="provider-server-url" className="text-[11px] font-semibold text-[var(--text-primary)] block">
                     Server URL
                   </label>
                   <input
                     type="text"
                     required
+                    id="provider-server-url"
                     value={connectInstanceUrl}
                     onChange={e => setConnectInstanceUrl(e.target.value)}
                     placeholder={connectModalProvider === 'gitea' ? 'http://192.168.0.102:3000' : 'https://gitlab.com'}
@@ -1172,6 +1206,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   </span>
                 </div>
               )}
+
+              <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
+                For a local server, macOS may ask for Local Network access on your first connection. Choose Allow for Gitler. If you previously denied access, open System Settings → Privacy &amp; Security → Local Network.
+              </p>
 
               {/* Step 1: Token Guide Link */}
               <div className="p-3 rounded-xl bg-[var(--bg-canvas)] border border-[var(--border-subtle)] space-y-1.5">
@@ -1212,6 +1250,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 <input
                   type="password"
                   required
+                  aria-label="Personal access token"
                   value={connectToken}
                   onChange={e => setConnectToken(e.target.value)}
                   placeholder="Paste token here..."

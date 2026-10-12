@@ -29,175 +29,89 @@ export function normalizeUrl(rawUrl: string, defaultProtocol = 'http://'): strin
   return trimmed.replace(/\/+$/, '');
 }
 
-import { execFile } from 'child_process';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+const runFile = promisify(execFile);
 
-function isLocalAddress(urlStr: string): boolean {
+export function isLocalAddress(urlStr: string): boolean {
   try {
-    const { hostname } = new URL(urlStr);
-    return /^(localhost|127\.\d+\.\d+\.\d+|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+|172\.(1[6-9]|2\d|3[01])\.\d+\.\d+|.*\.local)$/i.test(hostname);
-  } catch {
-    return false;
+    const hostname = new URL(urlStr).hostname.replace(/^\[|\]$/g, '');
+    return /^(localhost|127\.|192\.168\.|10\.|172\.(1[6-9]|2\d|3[01])\.|169\.254\.|::1$|f[cd][0-9a-f]*:|fe80:)/i.test(hostname) || hostname.endsWith('.local');
+  } catch { return false; }
+}
+
+function validatedUrl(value: string): URL {
+  const url = new URL(value);
+  if (!['http:', 'https:'].includes(url.protocol) || url.username || url.password || url.hash) {
+    throw new Error('Enter an HTTP or HTTPS server URL without credentials.');
   }
+  return url;
 }
 
-function curlRequest(urlStr: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
-  return new Promise((resolve, reject) => {
-    const args = ['-sS', '-i', '--location', '--connect-timeout', '5', '--max-time', '20', '-k'];
-    const method = (options.method || 'GET').toUpperCase();
-    args.push('-X', method);
-
-    if (options.headers) {
-      for (const [key, val] of Object.entries(options.headers)) {
-        args.push('-H', `${key}: ${val}`);
-      }
-    }
-
-    if (options.body && method !== 'GET' && method !== 'HEAD') {
-      args.push('--data-raw', options.body);
-    }
-
-    args.push(urlStr);
-
-    execFile('curl', args, { timeout: 25000 }, (error, stdout, stderr) => {
-      if (error) {
-        return reject(new Error(`Network error: ${stderr?.trim() || error.message}`));
-      }
-
-      const separator = stdout.includes('\r\n\r\n') ? '\r\n\r\n' : '\n\n';
-      const parts = stdout.split(separator);
-      let lastHeaderIndex = 0;
-      for (let i = 0; i < parts.length - 1; i++) {
-        if (/^HTTP\/[0-9.]+\s+\d{3}/im.test(parts[i])) {
-          lastHeaderIndex = i;
-        }
-      }
-      const headerPart = parts[lastHeaderIndex] || '';
-      const body = parts.slice(lastHeaderIndex + 1).join(separator);
-
-      const statusMatch = headerPart.match(/^HTTP\/[0-9.]+\s+([0-9]+)/im);
-      const status = statusMatch ? parseInt(statusMatch[1], 10) : 0;
-
-      resolve({
-        status,
-        ok: status >= 200 && status < 300,
-        data: body,
-        json: async () => JSON.parse(body),
-        text: async () => body
-      });
-    });
-  });
+export function describeNetworkError(error: any, url: string): Error {
+  const code = error?.cause?.code || error?.code || '';
+  const detail = String(error?.message || 'Network request failed.');
+  if (/redirected to a different address|HTTP or HTTPS server URL/.test(detail)) return new Error(detail);
+  if (/CERT|TLS|SSL/i.test(code + ' ' + detail)) return new Error(`The certificate for ${new URL(url).origin} could not be verified. Check the server certificate and the Mac clock.`);
+  if (/ECONNREFUSED|ERR_CONNECTION_REFUSED/i.test(code + ' ' + detail)) return new Error(`The server at ${new URL(url).origin} refused the connection. Check the server address, port, and service.`);
+  if (isLocalAddress(url)) return new Error(`Cannot reach ${new URL(url).origin}. On macOS, allow Gitler in System Settings → Privacy & Security → Local Network, then retry. If access is already allowed, check the server address, Wi-Fi, and VPN.`);
+  return new Error(`Cannot reach ${new URL(url).origin}. Check your internet connection and server address.`);
 }
 
+// Node transport is used by the browser development server. Packaged apps use Electron's own session.
 export function httpRequest(urlStr: string, options: HttpRequestOptions = {}, redirectsLeft = 3): Promise<HttpResponse> {
   return new Promise((resolve, reject) => {
     try {
-      const parsed = new URL(urlStr);
-      const isHttps = parsed.protocol === 'https:';
-      const transport = isHttps ? https : http;
-      const timeoutMs = options.timeoutMs ?? 10000;
-
-      const reqOptions: https.RequestOptions = {
-        protocol: parsed.protocol,
-        hostname: parsed.hostname,
-        port: parsed.port ? Number(parsed.port) : (isHttps ? 443 : 80),
-        path: `${parsed.pathname}${parsed.search}`,
-        method: (options.method || 'GET').toUpperCase(),
-        headers: {
-          'User-Agent': 'Gitler-App',
-          ...options.headers
-        },
-        timeout: timeoutMs,
-        rejectUnauthorized: false
-      };
-
-      const req = transport.request(reqOptions, res => {
-        if (res.statusCode && [301, 302, 307, 308].includes(res.statusCode) && res.headers.location && redirectsLeft > 0) {
-          const redirectUrl = new URL(res.headers.location, urlStr).toString();
-          return httpRequest(redirectUrl, options, redirectsLeft - 1).then(resolve, reject);
+      const parsed = validatedUrl(urlStr);
+      const transport = parsed.protocol === 'https:' ? https : http;
+      const req = transport.request(parsed, {
+        method: options.method || 'GET', headers: { 'User-Agent': 'Gitler-App', ...options.headers },
+        timeout: options.timeoutMs ?? 15000
+      }, res => {
+        if (res.statusCode && [301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
+          res.resume();
+          const target = validatedUrl(new URL(res.headers.location, parsed).href);
+          if (!redirectsLeft || target.origin !== parsed.origin) return reject(new Error('The server redirected to a different address. Enter its final URL before sending credentials.'));
+          return httpRequest(target.href, options, redirectsLeft - 1).then(resolve, reject);
         }
-
         let body = '';
         res.setEncoding('utf8');
-        res.on('data', chunk => { body += chunk; });
+        res.on('data', chunk => {
+          body += chunk;
+          if (body.length > 2 * 1024 * 1024) req.destroy(new Error('Server response is too large.'));
+        });
+        res.on('error', reject);
         res.on('end', () => {
           const status = res.statusCode || 0;
-          resolve({
-            status,
-            ok: status >= 200 && status < 300,
-            data: body,
-            json: async () => JSON.parse(body),
-            text: async () => body
-          });
+          resolve({ status, ok: status >= 200 && status < 300, data: body, json: async () => JSON.parse(body), text: async () => body });
         });
       });
-
-      req.on('timeout', () => {
-        req.destroy(new Error(`Connection to ${parsed.host} timed out after ${timeoutMs}ms.`));
-      });
-
-      req.on('error', err => {
-        // Fallback to native system curl if local network socket is blocked by macOS sandbox
-        if (['EHOSTUNREACH', 'ENETUNREACH', 'EACCES', 'ECONNREFUSED'].includes((err as any)?.code)) {
-          return curlRequest(urlStr, options).then(resolve, reject);
-        }
-        reject(err);
-      });
-
-      if (options.body) {
-        req.write(options.body);
-      }
+      req.on('timeout', () => req.destroy(new Error('Connection timed out.')));
+      req.on('error', reject);
+      if (options.body) req.write(options.body);
       req.end();
-    } catch (err) {
-      reject(err);
-    }
+    } catch (error) { reject(error); }
   });
 }
 
-export async function universalFetch(urlStr: string, options: HttpRequestOptions = {}): Promise<HttpResponse> {
+export async function universalFetch(urlStr: string, options: HttpRequestOptions = {}, redirectsLeft = 3): Promise<HttpResponse> {
+  const parsed = validatedUrl(urlStr);
   const electronNetFetch = (globalThis as any).__electronNetFetch;
-  
-  // 1. Electron Chromium net.fetch: Invokes macOS Network.framework, triggering the native system prompt if needed
-  if (typeof electronNetFetch === 'function') {
-    try {
-      const fetchOpts: any = {
-        method: (options.method || 'GET').toUpperCase(),
-        headers: options.headers
-      };
-      if (options.body && fetchOpts.method !== 'GET' && fetchOpts.method !== 'HEAD') {
-        fetchOpts.body = options.body;
-      }
-      const resp = await electronNetFetch(urlStr, fetchOpts);
-      const text = await resp.text();
-      return {
-        status: resp.status,
-        ok: resp.ok,
-        data: text,
-        json: async () => JSON.parse(text),
-        text: async () => text
-      };
-    } catch (err: any) {
-      console.warn('Electron net.fetch fell back to system network handler:', err?.message);
-    }
+  if (typeof electronNetFetch !== 'function') return httpRequest(urlStr, options, redirectsLeft);
+  // Do not switch to a child process when macOS denies access. The user must grant access to Gitler.
+  const response = await electronNetFetch(urlStr, {
+    method: options.method || 'GET', headers: { 'User-Agent': 'Gitler-App', ...options.headers },
+    ...(options.body ? { body: options.body } : {}),
+    redirect: 'manual', signal: AbortSignal.timeout(options.timeoutMs ?? 15000)
+  });
+  if ([301, 302, 303, 307, 308].includes(response.status) && response.headers.get('location')) {
+    const target = validatedUrl(new URL(response.headers.get('location'), parsed).href);
+    if (!redirectsLeft || target.origin !== parsed.origin) throw new Error('The server redirected to a different address. Enter its final URL before sending credentials.');
+    return universalFetch(target.href, options, redirectsLeft - 1);
   }
-
-  // 2. Direct macOS curl for local addresses or socket-restricted environments
-  if (process.platform === 'darwin' && isLocalAddress(urlStr)) {
-    try {
-      return await curlRequest(urlStr, options);
-    } catch (curlErr: any) {
-      console.warn('Direct curl local request failed, falling back to Node sockets:', curlErr?.message);
-    }
-  }
-
-  // 3. Node standard http/https
-  try {
-    return await httpRequest(urlStr, options);
-  } catch (err: any) {
-    if (process.platform === 'darwin') {
-      return await curlRequest(urlStr, options);
-    }
-    throw err;
-  }
+  const body = await response.text();
+  if (body.length > 2 * 1024 * 1024) throw new Error('Server response is too large.');
+  return { status: response.status, ok: response.ok, data: body, json: async () => JSON.parse(body), text: async () => body };
 }
 
 export interface ProviderAccount {
@@ -218,7 +132,7 @@ export interface ProvidersConfig {
   gitea?: ProviderAccount;
 }
 
-const CONFIG_DIR = path.join(os.homedir(), '.gitler');
+const CONFIG_DIR = process.env.GITLER_CONFIG_DIR || path.join(os.homedir(), '.gitler');
 const CONFIG_FILE = path.join(CONFIG_DIR, 'providers.json');
 
 function ensureConfigDir(): void {
@@ -299,6 +213,15 @@ export async function getProvidersStatus(): Promise<{
   };
 }
 
+async function keyAlreadyRegistered(provider: string, instance: string, token: string, publicKey: string): Promise<boolean> {
+  const endpoint = provider === 'github' ? 'https://api.github.com/user/keys' : `${instance}/api/${provider === 'gitlab' ? 'v4' : 'v1'}/user/keys`;
+  const response = await universalFetch(endpoint, { headers: { Authorization: `${provider === 'gitea' ? 'token' : 'Bearer'} ${token}`, Accept: 'application/json' } });
+  if (!response.ok) return false;
+  const keys: any = await response.json();
+  const fingerprint = publicKey.trim().split(/\s+/).slice(0, 2).join(' ');
+  return Array.isArray(keys) && keys.some(key => typeof key.key === 'string' && key.key.trim().split(/\s+/).slice(0, 2).join(' ') === fingerprint);
+}
+
 export async function connectProvider(params: {
   provider: 'github' | 'gitlab' | 'gitea';
   token: string;
@@ -313,7 +236,8 @@ export async function connectProvider(params: {
     throw new Error('Token is required.');
   }
 
-  const cleanToken = token.trim().replace(/[\r\n\t\s]/g, '');
+  const cleanToken = token.trim();
+  if (/\s/.test(cleanToken)) throw new Error('The token contains whitespace. Paste the complete token without spaces.');
   const rawUrl = (params.instanceUrl || '').trim();
 
   let account: ProviderAccount;
@@ -382,12 +306,7 @@ export async function connectProvider(params: {
         }
       });
     } catch (netErr: any) {
-      const errMsg = netErr?.message || '';
-      if (/192\.168\.|10\.|172\.(1[6-9]|2[0-9]|3[0-1])\.|localhost|127\.0\.0\.1/i.test(instance) &&
-          /(EHOSTUNREACH|ENETUNREACH|Failed to connect|Couldn't connect)/i.test(errMsg)) {
-        throw new Error(`Cannot reach ${instance}. Check your network connection or verify the server address.`);
-      }
-      throw netErr;
+      throw describeNetworkError(netErr, instance);
     }
 
     if (!userRes.ok) {
@@ -428,7 +347,7 @@ export async function connectProvider(params: {
         if (keyPostRes.status === 201) {
           account.sshKeySynced = true;
           sshSyncedMessage = 'Gitler SSH key automatically installed into Gitea!';
-        } else if (keyPostRes.status === 422) {
+        } else if (keyPostRes.status === 422 && await keyAlreadyRegistered('gitea', instance, cleanToken, keyInfo.publicKey)) {
           account.sshKeySynced = true;
           sshSyncedMessage = 'Gitler SSH key already registered on Gitea.';
         }
@@ -494,7 +413,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
       writeProvidersConfig(config);
       return { success: true, message: 'SSH key uploaded to Gitea successfully!' };
     }
-    if (res.status === 422) {
+    if (res.status === 422 && await keyAlreadyRegistered(provider, instance, acc.token, keyInfo.publicKey)) {
       acc.sshKeySynced = true;
       writeProvidersConfig(config);
       return { success: true, message: 'SSH key is already active in your Gitea account.' };
@@ -522,7 +441,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
       writeProvidersConfig(config);
       return { success: true, message: 'SSH key uploaded to GitLab successfully!' };
     }
-    if (res.status === 400 || res.status === 422) {
+    if ((res.status === 400 || res.status === 422) && await keyAlreadyRegistered(provider, instance, acc.token, keyInfo.publicKey)) {
       acc.sshKeySynced = true;
       writeProvidersConfig(config);
       return { success: true, message: 'SSH key is already active in your GitLab account.' };
@@ -550,7 +469,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
       writeProvidersConfig(config);
       return { success: true, message: 'SSH key uploaded to GitHub successfully!' };
     }
-    if (res.status === 422) {
+    if (res.status === 422 && await keyAlreadyRegistered(provider, 'https://github.com', acc.token, keyInfo.publicKey)) {
       acc.sshKeySynced = true;
       writeProvidersConfig(config);
       return { success: true, message: 'SSH key is already active in your GitHub account.' };
@@ -560,4 +479,35 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
   }
 
   throw new Error('Unsupported provider.');
+}
+
+export async function testProviderConnection(provider: 'github' | 'gitlab' | 'gitea', instanceUrl?: string) {
+  if (!['github', 'gitlab', 'gitea'].includes(provider)) throw new Error('Choose GitHub, GitLab, or Gitea.');
+  const config = readProvidersConfig();
+  const account = config[provider];
+  const instance = provider === 'github' ? 'https://github.com' : normalizeUrl(instanceUrl || account?.instanceUrl || (provider === 'gitlab' ? 'https://gitlab.com' : ''), provider === 'gitlab' ? 'https://' : 'http://');
+  if (!instance) throw new Error('Enter your server URL first.');
+  validatedUrl(instance);
+  let token = account?.instanceUrl && normalizeUrl(account.instanceUrl) === instance ? account.token : undefined;
+  if (provider === 'github' && !token && config.github === undefined) {
+    try { token = (await runFile('gh', ['auth', 'token', '--hostname', 'github.com'], { timeout: 3000 })).stdout.trim(); } catch {}
+  }
+  const endpoint = provider === 'github' ? 'https://api.github.com/user' : `${instance}/api/${provider === 'gitlab' ? 'v4' : 'v1'}/user`;
+  const headers: Record<string, string> = { Accept: 'application/json' };
+  if (token) headers.Authorization = `${provider === 'gitea' ? 'token' : 'Bearer'} ${token}`;
+  try {
+    const response = await universalFetch(endpoint, { headers });
+    if (response.status === 401 || response.status === 403) {
+      return { reachable: true, authenticated: false, state: token ? 'authorization_failed' : 'sign_in_required',
+        message: token ? 'Server reached. Your token was rejected or lacks permission. Reconnect with a valid token.' : 'Server reached. Connect your account to verify private repository access.' };
+    }
+    if (!response.ok) return { reachable: true, authenticated: false, state: 'server_error', message: `Server reached, but the provider API returned HTTP ${response.status}. Check the server URL.` };
+    let data: any;
+    try { data = await response.json(); } catch { return { reachable: true, authenticated: false, state: 'server_error', message: 'The server returned a web page instead of the provider API. Check its URL or proxy login.' }; }
+    const username = provider === 'gitlab' ? data.username : data.login;
+    if (!username) return { reachable: true, authenticated: false, state: 'server_error', message: 'The address did not return a valid provider account.' };
+    return { reachable: true, authenticated: true, state: 'ready', username, message: `Account access verified as @${username}. Test a repository remote to verify Git access.` };
+  } catch (error: any) {
+    return { reachable: false, authenticated: false, state: 'unreachable', diagnosticCode: error?.cause?.code || error?.code || String(error?.message).match(/ERR_[A-Z_]+/)?.[0] || 'NETWORK_ERROR', message: describeNetworkError(error, instance).message };
+  }
 }

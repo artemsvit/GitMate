@@ -34,6 +34,7 @@ import {
 } from './gitService';
 import { detectLocalAI, generateCommitMessage } from './aiService';
 import {
+  testProviderConnection,
   getProvidersStatus,
   connectProvider,
   disconnectProvider,
@@ -123,17 +124,6 @@ app.post('/api/system/browse-folder', async (req, res) => {
 app.post('/api/system/open-local-network-settings', (_req, res) => {
   if (process.platform === 'darwin') {
     execFile('open', ['x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork'], () => {});
-  }
-  res.json({ success: true });
-});
-
-// 1d. Request macOS Local Network permission prompt
-app.post('/api/system/request-local-network-permission', async (_req, res) => {
-  const electronNetFetch = (globalThis as any).__electronNetFetch;
-  if (typeof electronNetFetch === 'function') {
-    try {
-      await electronNetFetch('http://255.255.255.255:1/', { method: 'GET' });
-    } catch {}
   }
   res.json({ success: true });
 });
@@ -405,6 +395,11 @@ app.get('/api/auth/providers', async (_req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message });
   }
+});
+
+app.post('/api/auth/providers/test', async (req, res) => {
+  try { res.json(await testProviderConnection(req.body?.provider, req.body?.instanceUrl)); }
+  catch (error: any) { res.status(400).json({ error: error.message }); }
 });
 
 app.post('/api/auth/providers/connect', async (req, res) => {

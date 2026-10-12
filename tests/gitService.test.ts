@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { getRepoDetails, getRepoSummary, getDiff, stageFiles, unstageFiles, updateGlobalGitConfig, testHostSsh, getGit } from '../server/gitService';
+import { getRepoDetails, getRepoSummary, getDiff, stageFiles, unstageFiles, updateGlobalGitConfig, testHostSsh, getGit, testRemoteConnection } from '../server/gitService';
 
 const run = promisify(execFile);
 async function fixture(t: any) {
@@ -117,4 +117,15 @@ test('simple-git applies the dedicated SSH command to its child process', async 
   const args = await fs.readFile(output, 'utf8');
   assert.match(args, /BatchMode=yes/); assert.match(args, /ConnectTimeout=15/);
   if (await fs.access(path.join(os.homedir(), '.ssh/gitler_ed25519')).then(() => true, () => false)) assert.match(args, /gitler_ed25519/);
+});
+
+
+test('repository read checks report the fetch provider when push uses another host', async t => {
+  const { dir, git, write } = await fixture(t);
+  await write('README.md', 'fixture'); await stageFiles(dir); await git('commit', '-m', 'fixture');
+  await git('remote', 'add', 'origin', dir);
+  await git('remote', 'set-url', '--push', 'origin', 'https://github.com/fixture/repository.git');
+  const result = await testRemoteConnection(dir, 'origin');
+  assert.equal(result.success, true); assert.equal(result.detectedProvider, 'generic');
+  assert.match(result.message, /Repository read access verified/);
 });

@@ -533,7 +533,8 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
       return { success: false, message: 'No remote configured for this repository.' };
     }
 
-    const remoteUrl = target.refs.push || target.refs.fetch || '';
+    // ls-remote checks the fetch URL; the push URL may be a different provider.
+    const remoteUrl = target.refs.fetch || target.refs.push || '';
     let detectedProvider = 'generic';
     if (remoteUrl.includes('github.com')) {
       detectedProvider = 'github';
@@ -546,7 +547,7 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
     await git.listRemote([target.name]);
     return {
       success: true,
-      message: `Connected to "${target.name}" (${detectedProvider.toUpperCase()}) successfully! SSH authorization verified.`,
+      message: `Connected to "${target.name}" (${detectedProvider.toUpperCase()}) successfully. Repository read access verified.`,
       detectedProvider
     };
   } catch (err: any) {
