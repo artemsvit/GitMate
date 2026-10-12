@@ -10,12 +10,10 @@ import {
   ArrowRightLeft,
   ExternalLink,
   Lock,
-  Copy,
   ChevronDown,
   ChevronUp,
   Server,
-  CheckCircle2,
-  HelpCircle
+  CheckCircle2
 } from 'lucide-react';
 import { RepoSummary } from '../types';
 
@@ -44,22 +42,8 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     message: string;
     rawError?: string;
     detectedProvider?: string;
-    sshProbe?: any;
   } | null>(null);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
-
-  // Public SSH key
-  const [sshKey, setSshKey] = useState<{
-    hasKey: boolean;
-    publicKey?: string;
-    keyType?: string;
-    keyFile?: string;
-  } | null>(null);
-  const [copiedKey, setCopiedKey] = useState(false);
-
-  // Host probe
-  const [probingHost, setProbingHost] = useState(false);
-  const [probeResult, setProbeResult] = useState<any>(null);
 
   // System Diagnostics
   const [diagnostics, setDiagnostics] = useState<{
@@ -101,14 +85,12 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
 
   useEffect(() => {
     fetchDiagnostics();
-    fetchSshKey();
   }, []);
 
   useEffect(() => {
     if (currentUrl) {
       setCustomUrl(currentUrl);
       setTestResult(null);
-      setProbeResult(null);
     }
   }, [currentUrl]);
 
@@ -118,43 +100,6 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
       if (res.ok) setDiagnostics(await res.json());
     } catch (e) {
       console.error(e);
-    }
-  };
-
-  const fetchSshKey = async () => {
-    try {
-      const res = await fetch('/api/auth/ssh-key');
-      if (res.ok) setSshKey(await res.json());
-    } catch (e) {
-      console.error(e);
-    }
-  };
-
-  const handleCopySshKey = () => {
-    if (sshKey?.publicKey) {
-      navigator.clipboard.writeText(sshKey.publicKey);
-      setCopiedKey(true);
-      setTimeout(() => setCopiedKey(false), 3000);
-    }
-  };
-
-  const handleProbeCurrentHost = async () => {
-    if (!remoteHost) return;
-    setProbingHost(true);
-    setProbeResult(null);
-    try {
-      const res = await fetch('/api/auth/probe-host', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ host: remoteHost, port: remotePort, user: 'git' })
-      });
-      if (res.ok) {
-        setProbeResult(await res.json());
-      }
-    } catch (err: any) {
-      setProbeResult({ success: false, message: err.message || 'Host probe failed' });
-    } finally {
-      setProbingHost(false);
     }
   };
 
@@ -173,12 +118,8 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         success: data.success,
         message: data.message,
         rawError: data.rawError,
-        detectedProvider: data.detectedProvider,
-        sshProbe: data.sshProbe
+        detectedProvider: data.detectedProvider
       });
-      if (data.sshProbe) {
-        setProbeResult(data.sshProbe);
-      }
     } catch (err: any) {
       setTestResult({
         remote: remoteName,
@@ -441,85 +382,37 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
               <div className="flex items-center gap-2">
                 <Server className="w-4 h-4 text-[var(--accent-violet)]" />
                 <span className="font-semibold text-xs text-[var(--text-primary)]">
-                  Gitea Authentication ({remoteHost || 'Self-Hosted'}:{remotePort})
+                  Gitea / Self-Hosted Server ({remoteHost || 'Self-Hosted'}:{remotePort})
                 </span>
               </div>
-              <button
-                onClick={handleProbeCurrentHost}
-                disabled={probingHost}
-                className="text-[10px] text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1 cursor-pointer"
-              >
-                <RefreshCw className={`w-2.5 h-2.5 ${probingHost ? 'animate-spin' : ''}`} />
-                <span>Verify SSH on this host</span>
-              </button>
             </div>
 
-            {/* Host Probe Result */}
-            {probeResult && (
-              <div className={`p-2.5 rounded-lg border text-[11px] font-mono flex items-center gap-2 ${
-                probeResult.success
-                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
-                  : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
-              }`}>
-                {probeResult.success ? (
-                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
-                ) : (
-                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
-                )}
-                <span>{probeResult.message}</span>
-              </div>
-            )}
-
-            {/* Step-by-Step Gitea Guide */}
+            {/* Methods */}
             <div className="space-y-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
               <div className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
                 <Key className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
-                <span>Method 1: SSH Key (Recommended)</span>
+                <span>SSH Remote</span>
               </div>
-              <p>
-                Gitea requires your Mac&apos;s public key to authorize SSH pushes. Follow these 2 simple steps:
+              <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
+                When using an SSH remote URL, Git automatically authenticates using your macOS SSH agent and system keys.
               </p>
-              
-              <ol className="list-decimal list-inside space-y-1 pl-1 text-[var(--text-muted)] font-mono text-[10px]">
-                <li>Copy your public SSH key below.</li>
-                <li>In Gitea web interface: go to <strong>Settings &rarr; SSH / GPG Keys &rarr; Add Key</strong>, and paste it.</li>
-              </ol>
-
-              {/* Public Key Display & 1-Click Copy */}
-              {sshKey?.hasKey && sshKey.publicKey && (
-                <div className="pt-1">
-                  <div className="flex items-center justify-between pb-1 text-[10px] font-mono text-[var(--text-muted)]">
-                    <span>Mac Public Key ({sshKey.keyType || 'ED25519'} &bull; ~/.ssh/{sshKey.keyFile || 'id_ed25519.pub'})</span>
-                    <button
-                      onClick={handleCopySshKey}
-                      className="px-2 py-0.5 rounded-[50px] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold flex items-center gap-1 cursor-pointer transition"
-                    >
-                      {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
-                      <span>{copiedKey ? 'Copied to Clipboard!' : 'Copy Public Key'}</span>
-                    </button>
-                  </div>
-                  <div className="p-2.5 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-lg font-mono text-[10px] break-all text-[var(--text-muted)] select-all max-h-16 overflow-y-auto">
-                    {sshKey.publicKey}
-                  </div>
-                </div>
-              )}
             </div>
 
             {/* Method 2: HTTP / Gitea Token */}
             <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2">
               <div className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5 text-[11px]">
                 <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
-                <span>Method 2: Personal Access Token (HTTP)</span>
+                <span>Personal Access Token or Password</span>
               </div>
               <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-                In Gitea, go to <strong>Settings &rarr; Applications &rarr; Generate New Token</strong> (select <code>repo</code> scope) and paste it below:
+                For HTTP/HTTPS remotes, enter your Personal Access Token or password to authorize this repository:
               </p>
               <div className="flex items-center gap-2">
                 <input
                   type="password"
                   value={personalToken}
                   onChange={e => setPersonalToken(e.target.value)}
-                  placeholder="Gitea token or password..."
+                  placeholder="Personal Access Token or password..."
                   className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
                 />
                 <button

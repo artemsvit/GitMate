@@ -25,9 +25,7 @@ import {
   checkout,
   setRemoteUrl,
   testRemoteConnection,
-  getAuthDiagnostics,
-  getPublicSshKey,
-  probeHostSsh
+  getAuthDiagnostics
 } from './gitService';
 import { detectLocalAI, generateCommitMessage } from './aiService';
 
@@ -298,27 +296,6 @@ app.post('/api/repos/remotes/test', async (req, res) => {
   }
 });
 
-// 11e. Get Mac Public SSH Key
-app.get('/api/auth/ssh-key', (_req, res) => {
-  try {
-    const keyInfo = getPublicSshKey();
-    res.json(keyInfo);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
-
-// 11f. Probe Host SSH
-app.post('/api/auth/probe-host', async (req, res) => {
-  try {
-    const { host, port = 22, user = 'git' } = req.body;
-    if (!host) return res.status(400).json({ error: 'host is required' });
-    const probe = await probeHostSsh(host, Number(port), user);
-    res.json(probe);
-  } catch (err: any) {
-    res.status(500).json({ error: err.message });
-  }
-});
 
 // 12. Local AI status
 app.get('/api/ai/status', async (req, res) => {
