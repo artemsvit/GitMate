@@ -287,15 +287,15 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         {updateNotice && (
           <div className={`p-3 rounded-xl border flex items-center gap-2 ${
             updateNotice.success
-              ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
-              : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
+              ? 'bg-[var(--alert-success-bg)] text-[var(--alert-success-text)] border-[var(--alert-success-border)]'
+              : 'bg-[var(--alert-error-bg)] text-[var(--alert-error-text)] border-[var(--alert-error-border)]'
           }`}>
             {updateNotice.success ? (
               <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
             ) : (
               <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
             )}
-            <span className="font-mono text-[11px] font-medium">{updateNotice.message}</span>
+            <span className="font-mono text-[11px] font-semibold">{updateNotice.message}</span>
           </div>
         )}
 
@@ -354,8 +354,8 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
           {testResult && (
             <div className={`p-3 rounded-xl border font-mono text-[11px] space-y-1.5 ${
               testResult.success
-                ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
-                : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
+                ? 'bg-[var(--alert-success-bg)] text-[var(--alert-success-text)] border-[var(--alert-success-border)]'
+                : 'bg-[var(--alert-error-bg)] text-[var(--alert-error-text)] border-[var(--alert-error-border)]'
             }`}>
               <div className="flex items-start gap-2">
                 {testResult.success ? (
@@ -363,7 +363,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                 ) : (
                   <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
                 )}
-                <div className="flex-1 font-medium leading-relaxed">
+                <div className="flex-1 font-semibold leading-relaxed">
                   {testResult.message}
                 </div>
               </div>
@@ -372,13 +372,13 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                 <div className="pt-1">
                   <button
                     onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
-                    className="text-[10px] text-rose-700 dark:text-rose-300 underline inline-flex items-center gap-1 cursor-pointer"
+                    className="text-[10px] text-[var(--alert-error-text)] underline inline-flex items-center gap-1 cursor-pointer font-medium"
                   >
                     <span>{showTechnicalDetails ? 'Hide technical details' : 'Show technical error output'}</span>
                     {showTechnicalDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
                   </button>
                   {showTechnicalDetails && (
-                    <div className="mt-2 p-2 bg-black/80 text-rose-300 rounded-lg text-[10px] font-mono overflow-x-auto whitespace-pre-wrap select-text border border-rose-500/30">
+                    <div className="mt-2 p-2.5 bg-black/90 text-rose-300 rounded-lg text-[10px] font-mono overflow-x-auto whitespace-pre-wrap select-text border border-rose-500/30">
                       {testResult.rawError}
                     </div>
                   )}

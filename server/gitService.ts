@@ -453,13 +453,13 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
       return { success: false, message: 'No remote configured for this repository.' };
     }
 
-    const remoteUrl = target.pushUrl || target.fetchUrl || '';
+    const remoteUrl = (target as any).refs?.push || (target as any).refs?.fetch || target.pushUrl || target.fetchUrl || '';
     let detectedProvider = 'generic';
     if (remoteUrl.includes('github.com')) {
       detectedProvider = 'github';
     } else if (remoteUrl.includes('gitlab.com')) {
       detectedProvider = 'gitlab';
-    } else if (remoteUrl.toLowerCase().includes('gitea') || remoteUrl.includes(':222') || remoteUrl.includes(':3000')) {
+    } else if (remoteUrl.toLowerCase().includes('gitea') || remoteUrl.includes(':222') || remoteUrl.includes(':3000') || remoteUrl.includes('192.168.')) {
       detectedProvider = 'gitea';
     }
 
@@ -474,11 +474,13 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
     let friendly = rawError;
 
     if (rawError.includes('Permission denied') || rawError.includes('publickey')) {
-      friendly = 'SSH key rejected by server. Please copy the Gitler public key below and add it to your Gitea account (Settings → SSH / GPG Keys → Add Key).';
+      friendly = 'SSH key rejected by server. Please verify the Gitler public key is added to your Gitea account (Settings → SSH / GPG Keys → Add Key).';
     } else if (rawError.includes('Host key verification failed')) {
       friendly = 'Host key verification failed. The remote server host key has changed or is unverified.';
-    } else if (rawError.includes('Connection refused') || rawError.includes('Operation timed out') || rawError.includes('No route to host')) {
-      friendly = 'Cannot connect to remote server (host offline, port closed, or network unreachable).';
+    } else if (rawError.includes('No route to host')) {
+      friendly = 'No route to host: Cannot reach the remote server (server temporarily offline or local network reconnected). Please verify connectivity and click Test Connection again.';
+    } else if (rawError.includes('Connection refused') || rawError.includes('Operation timed out')) {
+      friendly = 'Cannot connect to remote server: Port closed or network timed out.';
     } else if (rawError.includes('Authentication failed') || rawError.includes('401') || rawError.includes('403')) {
       friendly = 'Authentication failed. Please check your Personal Access Token or credentials.';
     }

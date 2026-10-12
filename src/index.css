@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   /* Dark Mode (Default Warp Obsidian) */
   --bg-canvas: #000000;
@@ -27,6 +29,14 @@
   --status-behind-bg: rgba(56, 189, 248, 0.15);
   --status-clean: #10b981;
   --status-clean-bg: rgba(16, 185, 129, 0.15);
+
+  /* High Contrast Alerts */
+  --alert-error-bg: #2d1214;
+  --alert-error-text: #fecdd3;
+  --alert-error-border: #7f1d1d;
+  --alert-success-bg: #0d2818;
+  --alert-success-text: #bbf7d0;
+  --alert-success-border: #166534;
 }
 
 html.light, .light {
@@ -56,6 +66,14 @@ html.light, .light {
   --status-behind-bg: rgba(2, 132, 199, 0.12);
   --status-clean: #059669;
   --status-clean-bg: rgba(5, 150, 105, 0.12);
+
+  /* High Contrast Alerts (Deep rich ink on soft tint) */
+  --alert-error-bg: #fef2f2;
+  --alert-error-text: #991b1b;
+  --alert-error-border: #f87171;
+  --alert-success-bg: #f0fdf4;
+  --alert-success-text: #166534;
+  --alert-success-border: #4ade80;
 }
 
 @layer base {

@@ -370,15 +370,15 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   {hostTestResult && (
                     <div className={`p-2.5 rounded-lg border text-[11px] font-mono flex items-center gap-2 ${
                       hostTestResult.success
-                        ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
-                        : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
+                        ? 'bg-[var(--alert-success-bg)] text-[var(--alert-success-text)] border-[var(--alert-success-border)]'
+                        : 'bg-[var(--alert-error-bg)] text-[var(--alert-error-text)] border-[var(--alert-error-border)]'
                     }`}>
                       {hostTestResult.success ? (
                         <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
                       ) : (
                         <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
                       )}
-                      <span>{hostTestResult.message}</span>
+                      <span className="font-semibold">{hostTestResult.message}</span>
                     </div>
                   )}
                 </div>
