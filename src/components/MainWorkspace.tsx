@@ -347,110 +347,127 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   return (
     <div className="flex-1 h-full flex flex-col bg-[var(--bg-canvas)] overflow-hidden transition-colors">
       {/* Top Workspace Header */}
-      <div className="h-12 px-5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0">
-        <div className="flex items-center gap-3 min-w-0">
+      <div className="h-12 px-4 sm:px-5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0 gap-2">
+        <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
           <div className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--border-interactive)] flex items-center justify-center text-[var(--accent-violet)] shrink-0">
             <FolderGit2 className="w-3.5 h-3.5" />
           </div>
-          <div className="min-w-0 flex items-center gap-2.5">
-            <h2 className="font-semibold text-xs text-[var(--text-primary)] tracking-tight truncate">{repoSummary.name}</h2>
-            
-            {/* Branch Switcher Pill */}
-            <div className="relative">
-              <button
-                onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
-                className="flex items-center gap-1.5 px-3 py-1 rounded-[33px] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-interactive)] text-[11px] font-mono text-[var(--text-primary)] transition"
-              >
-                <GitBranch className="w-3 h-3 text-[var(--accent-violet)]" />
-                <span className="max-w-[130px] truncate">{details?.currentBranch || repoSummary.currentBranch}</span>
-                <ChevronDown className="w-3 h-3 text-[var(--text-muted)]" />
-              </button>
 
-              {isBranchDropdownOpen && (
-                <div className="absolute top-full left-0 mt-1 z-50 w-64 bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl p-2 text-xs shadow-none">
-                  <div className="px-2 py-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)]">
-                    Branches ({details?.branches.local.length || 0})
-                  </div>
-                  <div className="max-h-48 overflow-y-auto space-y-0.5 my-1">
-                    {details?.branches.local.map(b => (
-                      <button
-                        key={b}
-                        onClick={() => handleSwitchBranch(b)}
-                        className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left font-mono text-[11px] transition ${
-                          b === details.currentBranch
-                            ? 'bg-[var(--bg-card)] text-[var(--text-primary)] font-semibold'
-                            : 'hover:bg-[var(--bg-card)] text-[var(--text-secondary)]'
-                        }`}
-                      >
-                        <span className="truncate">{b}</span>
-                        {b === details.currentBranch && <Check className="w-3 h-3 text-[var(--accent-violet)]" />}
-                      </button>
-                    ))}
-                  </div>
+          {/* Repo Name: protected shrink-0 with max-w */}
+          <h2
+            className="font-semibold text-xs text-[var(--text-primary)] tracking-tight shrink-0 max-w-[130px] sm:max-w-[200px] md:max-w-xs truncate select-text"
+            title={repoSummary.name}
+          >
+            {repoSummary.name}
+          </h2>
 
-                  <form onSubmit={handleCreateBranch} className="pt-2 border-t border-[var(--border-subtle)] flex gap-1">
-                    <input
-                      type="text"
-                      value={newBranchInput}
-                      onChange={e => setNewBranchInput(e.target.value)}
-                      placeholder="New branch name..."
-                      className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-[33px] px-2.5 py-1 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
-                    />
-                    <button
-                      type="submit"
-                      className="px-2.5 py-1 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-[33px] font-semibold text-xs"
-                    >
-                      <Plus className="w-3 h-3" />
-                    </button>
-                  </form>
+          {/* Branch Switcher Pill */}
+          <div className="relative shrink-0">
+            <button
+              onClick={() => setIsBranchDropdownOpen(!isBranchDropdownOpen)}
+              className="flex items-center gap-1.5 px-2.5 py-1 rounded-[33px] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-interactive)] text-[11px] font-mono text-[var(--text-primary)] transition cursor-pointer"
+            >
+              <GitBranch className="w-3 h-3 text-[var(--accent-violet)] shrink-0" />
+              <span className="max-w-[90px] sm:max-w-[130px] truncate">{details?.currentBranch || repoSummary.currentBranch}</span>
+              <ChevronDown className="w-3 h-3 text-[var(--text-muted)] shrink-0" />
+            </button>
+
+            {isBranchDropdownOpen && (
+              <div className="absolute top-full left-0 mt-1 z-50 w-64 bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl p-2 text-xs shadow-xl animate-in fade-in duration-150">
+                <div className="px-2 py-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono">
+                  Branches ({details?.branches.local.length || 0})
                 </div>
-              )}
-            </div>
+                <div className="max-h-48 overflow-y-auto space-y-0.5 my-1">
+                  {details?.branches.local.map(b => (
+                    <button
+                      key={b}
+                      onClick={() => handleSwitchBranch(b)}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left font-mono text-[11px] transition ${
+                        b === details.currentBranch
+                          ? 'bg-[var(--bg-card)] text-[var(--text-primary)] font-semibold'
+                          : 'hover:bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      <span className="truncate">{b}</span>
+                      {b === details.currentBranch && <Check className="w-3 h-3 text-[var(--accent-violet)]" />}
+                    </button>
+                  ))}
+                </div>
 
-            <span className="text-[11px] text-[var(--text-dim)] font-mono hidden md:inline truncate max-w-xs" title={repoSummary.path}>
-              {repoSummary.path}
-            </span>
+                <form onSubmit={handleCreateBranch} className="pt-2 border-t border-[var(--border-subtle)] flex gap-1">
+                  <input
+                    type="text"
+                    value={newBranchInput}
+                    onChange={e => setNewBranchInput(e.target.value)}
+                    placeholder="New branch name..."
+                    className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-[33px] px-2.5 py-1 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
+                  />
+                  <button
+                    type="submit"
+                    className="px-2.5 py-1 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-[33px] font-semibold text-xs cursor-pointer"
+                  >
+                    <Plus className="w-3 h-3" />
+                  </button>
+                </form>
+              </div>
+            )}
           </div>
+
+          <span className="text-[11px] text-[var(--text-dim)] font-mono hidden 2xl:inline truncate max-w-xs" title={repoSummary.path}>
+            {repoSummary.path}
+          </span>
         </div>
 
-        {/* Sync Controls (Pill Ghost Buttons) */}
-        <div className="flex items-center gap-1.5">
+        {/* Sync Controls (Pill Ghost Buttons with Responsive Labels) */}
+        <div className="flex items-center gap-1 shrink-0">
           <button
             onClick={handleFetch}
             disabled={isFetching}
             title="Fetch remote branches"
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-30"
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-30 cursor-pointer"
           >
             <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin' : ''}`} />
-            <span>Fetch</span>
+            <span className="hidden sm:inline text-xs">Fetch</span>
           </button>
 
           <button
             onClick={handlePull}
             disabled={isPulling}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-30"
+            title={repoSummary.behind > 0 ? `Pull ${repoSummary.behind} incoming commits` : 'Pull remote changes'}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-30 cursor-pointer"
           >
-            <ArrowDownRight className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-            <span>Pull {repoSummary.behind > 0 ? `(${repoSummary.behind})` : ''}</span>
+            <ArrowDownRight className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+            <span className="hidden sm:inline text-xs">Pull</span>
+            {repoSummary.behind > 0 && (
+              <span className="font-mono text-[10px] font-bold text-sky-400">
+                ({repoSummary.behind})
+              </span>
+            )}
           </button>
 
           <button
             onClick={handlePush}
             disabled={isPushing}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] text-xs font-semibold text-[var(--text-primary)] transition disabled:opacity-30"
+            title={repoSummary.ahead > 0 ? `Push ${repoSummary.ahead} local commits` : 'Push to remote'}
+            className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] text-xs font-semibold text-[var(--text-primary)] transition disabled:opacity-30 cursor-pointer"
           >
-            <ArrowUpRight className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
-            <span>Push {repoSummary.ahead > 0 ? `(${repoSummary.ahead})` : ''}</span>
+            <ArrowUpRight className="w-3.5 h-3.5 text-[var(--accent-violet)] shrink-0" />
+            <span className="hidden sm:inline text-xs">Push</span>
+            {repoSummary.ahead > 0 && (
+              <span className="font-mono text-[10px] font-bold text-[var(--accent-violet)]">
+                ({repoSummary.ahead})
+              </span>
+            )}
           </button>
 
           {onOpenRemoteAuth && (
             <button
               onClick={onOpenRemoteAuth}
               title="Remote & Authentication Settings"
-              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+              className="flex items-center gap-1.5 px-2 sm:px-2.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition cursor-pointer"
             >
-              <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
-              <span className="hidden xl:inline text-[11px]">Remote</span>
+              <Globe className="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+              <span className="hidden md:inline text-[11px]">Remote</span>
             </button>
           )}
         </div>

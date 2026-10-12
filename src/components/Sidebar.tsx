@@ -10,7 +10,9 @@ import {
   Terminal,
   Sun,
   Moon,
-  AlertCircle
+  AlertCircle,
+  Filter,
+  Check
 } from 'lucide-react';
 import { RepoSummary } from '../types';
 
@@ -70,6 +72,23 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const aheadCount = repositories.filter(r => r.ahead > 0).length;
   const behindCount = repositories.filter(r => r.behind > 0).length;
   const cleanCount = repositories.filter(r => r.isClean).length;
+
+  const [isFilterDropdownOpen, setIsFilterDropdownOpen] = useState(false);
+
+  const filterOptions: {
+    key: 'all' | 'dirty' | 'ahead' | 'behind' | 'clean';
+    label: string;
+    count: number;
+    dotColor?: string;
+  }[] = [
+    { key: 'all', label: 'All', count: repositories.length },
+    { key: 'dirty', label: 'Dirty', count: dirtyCount, dotColor: 'bg-[var(--status-dirty)]' },
+    { key: 'ahead', label: 'Ahead', count: aheadCount, dotColor: 'bg-[var(--status-ahead)]' },
+    { key: 'behind', label: 'Behind', count: behindCount, dotColor: 'bg-[var(--status-behind)]' },
+    { key: 'clean', label: 'Clean', count: cleanCount, dotColor: 'bg-[var(--status-clean)]' }
+  ];
+
+  const currentFilterOption = filterOptions.find(o => o.key === filter) || filterOptions[0];
 
   const currentFolderLabel =
     presets.find(p => p.path === currentPath)?.name ||
@@ -230,66 +249,72 @@ export const Sidebar: React.FC<SidebarProps> = ({
         </div>
       </div>
 
-      {/* Filter Pill Tags */}
-      <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex items-center gap-1.5 overflow-x-auto scrollbar-none bg-[var(--bg-canvas)]">
-        <button
-          onClick={() => setFilter('all')}
-          className={`px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
-            filter === 'all'
-              ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
-              : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
-          }`}
-        >
-          All ({repositories.length})
-        </button>
+      {/* Filter Drop List Row */}
+      <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-canvas)]">
+        <div className="relative">
+          <button
+            onClick={() => setIsFilterDropdownOpen(!isFilterDropdownOpen)}
+            className="flex items-center gap-2 px-3 py-1.5 rounded-[33px] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-xs text-[var(--text-primary)] transition cursor-pointer select-none"
+          >
+            <Filter className="w-3.5 h-3.5 text-[var(--accent-violet)] shrink-0" />
+            <div className="flex items-center gap-1.5 font-mono text-[11px]">
+              {currentFilterOption.dotColor && (
+                <span className={`w-1.5 h-1.5 rounded-full ${currentFilterOption.dotColor} shrink-0`} />
+              )}
+              <span className="font-semibold capitalize">{currentFilterOption.label}</span>
+              <span className="text-[10px] text-[var(--text-muted)]">({currentFilterOption.count})</span>
+            </div>
+            <ChevronDown className={`w-3.5 h-3.5 text-[var(--text-muted)] transition-transform duration-150 ${isFilterDropdownOpen ? 'rotate-180' : ''}`} />
+          </button>
 
-        <button
-          onClick={() => setFilter('dirty')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
-            filter === 'dirty'
-              ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
-              : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-dirty)]" />
-          Dirty ({dirtyCount})
-        </button>
+          {/* Drop List Popover */}
+          {isFilterDropdownOpen && (
+            <>
+              <div
+                className="fixed inset-0 z-40"
+                onClick={() => setIsFilterDropdownOpen(false)}
+              />
+              <div className="absolute top-full left-0 mt-1.5 z-50 w-52 bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl p-1.5 text-xs shadow-xl animate-in fade-in duration-150">
+                <div className="px-2.5 py-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono">
+                  Filter by Status
+                </div>
+                <div className="space-y-0.5 my-1">
+                  {filterOptions.map(opt => (
+                    <button
+                      key={opt.key}
+                      onClick={() => {
+                        setFilter(opt.key);
+                        setIsFilterDropdownOpen(false);
+                      }}
+                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left text-xs transition cursor-pointer ${
+                        filter === opt.key
+                          ? 'bg-[var(--bg-card)] text-[var(--text-primary)] font-semibold'
+                          : 'hover:bg-[var(--bg-card)] text-[var(--text-secondary)]'
+                      }`}
+                    >
+                      <div className="flex items-center gap-2">
+                        {opt.dotColor ? (
+                          <span className={`w-2 h-2 rounded-full ${opt.dotColor} shrink-0`} />
+                        ) : (
+                          <span className="w-2 h-2 rounded-full border border-[var(--border-interactive)] shrink-0" />
+                        )}
+                        <span className="capitalize font-mono text-[11px]">{opt.label}</span>
+                      </div>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-[10px] text-[var(--text-muted)] font-mono">({opt.count})</span>
+                        {filter === opt.key && <Check className="w-3 h-3 text-[var(--accent-violet)]" />}
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </>
+          )}
+        </div>
 
-        <button
-          onClick={() => setFilter('ahead')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
-            filter === 'ahead'
-              ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
-              : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-ahead)]" />
-          Ahead ({aheadCount})
-        </button>
-
-        <button
-          onClick={() => setFilter('behind')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
-            filter === 'behind'
-              ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
-              : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-behind)]" />
-          Behind ({behindCount})
-        </button>
-
-        <button
-          onClick={() => setFilter('clean')}
-          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
-            filter === 'clean'
-              ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
-              : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
-          }`}
-        >
-          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-clean)]" />
-          Clean ({cleanCount})
-        </button>
+        <span className="text-[10px] text-[var(--text-muted)] font-mono select-none">
+          {filteredRepos.length} of {repositories.length} repos
+        </span>
       </div>
 
       {/* Repository Items List */}
