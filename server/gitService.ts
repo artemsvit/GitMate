@@ -1,6 +1,7 @@
 import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 
 export interface RepoSummary {
   name: string;
@@ -56,6 +57,17 @@ function cleanStaleIndexLock(repoPath: string) {
   } catch {}
 }
 
+export function getGitSshCommand(): string {
+  try {
+    const home = os.homedir();
+    const keyPath = path.join(home, '.ssh', 'gitler_ed25519');
+    if (fs.existsSync(keyPath)) {
+      return `ssh -i "${keyPath}" -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15`;
+    }
+  } catch {}
+  return 'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15';
+}
+
 export function getGit(repoPath: string): SimpleGit {
   cleanStaleIndexLock(repoPath);
   return simpleGit({
@@ -64,7 +76,7 @@ export function getGit(repoPath: string): SimpleGit {
     spawnOptions: {
       env: {
         ...process.env,
-        GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15'
+        GIT_SSH_COMMAND: getGitSshCommand()
       }
     }
   });
@@ -379,6 +391,54 @@ export async function setRemoteUrl(repoPath: string, remoteName: string, newUrl:
   return `Updated remote "${remoteName}" to ${newUrl}`;
 }
 
+export async function getOrCreateGitlerSshKey(regenerate = false): Promise<{
+  hasKey: boolean;
+  publicKey: string;
+  keyPath: string;
+}> {
+  const home = os.homedir();
+  const sshDir = path.join(home, '.ssh');
+  const keyPath = path.join(sshDir, 'gitler_ed25519');
+  const pubPath = `${keyPath}.pub`;
+
+  if (!fs.existsSync(sshDir)) {
+    try {
+      fs.mkdirSync(sshDir, { mode: 0o700, recursive: true });
+    } catch {}
+  }
+
+  if (regenerate) {
+    try {
+      if (fs.existsSync(keyPath)) fs.unlinkSync(keyPath);
+      if (fs.existsSync(pubPath)) fs.unlinkSync(pubPath);
+    } catch {}
+  }
+
+  if (fs.existsSync(pubPath)) {
+    try {
+      const content = fs.readFileSync(pubPath, 'utf8').trim();
+      if (content) {
+        return { hasKey: true, publicKey: content, keyPath };
+      }
+    } catch {}
+  }
+
+  const { exec } = await import('child_process');
+  await new Promise<void>((resolve, reject) => {
+    exec(`ssh-keygen -t ed25519 -N "" -C "gitler-app" -f "${keyPath}"`, (err) => {
+      if (err) return reject(err);
+      try {
+        fs.chmodSync(keyPath, 0o600);
+        fs.chmodSync(pubPath, 0o644);
+      } catch {}
+      resolve();
+    });
+  });
+
+  const content = fs.readFileSync(pubPath, 'utf8').trim();
+  return { hasKey: true, publicKey: content, keyPath };
+}
+
 export async function testRemoteConnection(repoPath: string, remoteName = 'origin'): Promise<{
   success: boolean;
   message: string;
@@ -406,7 +466,7 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
     await git.listRemote([target.name]);
     return {
       success: true,
-      message: `Connected to "${target.name}" (${detectedProvider.toUpperCase()}) successfully!`,
+      message: `Connected to "${target.name}" (${detectedProvider.toUpperCase()}) successfully! SSH authorization verified.`,
       detectedProvider
     };
   } catch (err: any) {
@@ -414,7 +474,7 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
     let friendly = rawError;
 
     if (rawError.includes('Permission denied') || rawError.includes('publickey')) {
-      friendly = 'Authentication failed. Please verify your credentials or SSH access permissions on your git host.';
+      friendly = 'SSH key rejected by server. Please copy the Gitler public key below and add it to your Gitea account (Settings → SSH / GPG Keys → Add Key).';
     } else if (rawError.includes('Host key verification failed')) {
       friendly = 'Host key verification failed. The remote server host key has changed or is unverified.';
     } else if (rawError.includes('Connection refused') || rawError.includes('Operation timed out') || rawError.includes('No route to host')) {

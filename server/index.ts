@@ -25,7 +25,8 @@ import {
   checkout,
   setRemoteUrl,
   testRemoteConnection,
-  getAuthDiagnostics
+  getAuthDiagnostics,
+  getOrCreateGitlerSshKey
 } from './gitService';
 import { detectLocalAI, generateCommitMessage } from './aiService';
 
@@ -296,6 +297,25 @@ app.post('/api/repos/remotes/test', async (req, res) => {
   }
 });
 
+// 11e. Get or create dedicated Gitler SSH Key
+app.get('/api/auth/gitler-key', async (_req, res) => {
+  try {
+    const keyInfo = await getOrCreateGitlerSshKey(false);
+    res.json(keyInfo);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 11f. Regenerate dedicated Gitler SSH Key
+app.post('/api/auth/gitler-key/regenerate', async (_req, res) => {
+  try {
+    const keyInfo = await getOrCreateGitlerSshKey(true);
+    res.json(keyInfo);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
 
 // 12. Local AI status
 app.get('/api/ai/status', async (req, res) => {
