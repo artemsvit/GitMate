@@ -49,6 +49,7 @@ mac:
 dmg:
   title: "Install ${productName}"
   background: build/background.png
+  iconSize: 80
   contents:
     - x: 130
       y: 190

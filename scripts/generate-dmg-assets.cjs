@@ -5,6 +5,9 @@ const path = require('path');
 app.dock && app.dock.hide();
 
 app.whenReady().then(async () => {
+  const iconPath = path.join(__dirname, '../build/icon.png');
+  const iconBase64 = fs.readFileSync(iconPath).toString('base64');
+
   const htmlContent = `
   <!DOCTYPE html>
   <html>
@@ -23,7 +26,7 @@ app.whenReady().then(async () => {
         flex-direction: column;
         align-items: center;
         justify-content: space-between;
-        padding: 26px 24px 22px;
+        padding: 26px 24px 20px;
         overflow: hidden;
         user-select: none;
         position: relative;
@@ -43,12 +46,12 @@ app.whenReady().then(async () => {
         position: absolute;
         top: 190px;
         transform: translate(-50%, -50%);
-        width: 144px;
-        height: 144px;
-        border-radius: 28px;
-        background: rgba(255, 255, 255, 0.7);
-        border: 1.5px dashed rgba(168, 85, 247, 0.25);
-        box-shadow: 0 4px 20px rgba(0, 0, 0, 0.04);
+        width: 114px;
+        height: 114px;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.65);
+        border: 1.5px dashed rgba(168, 85, 247, 0.3);
+        box-shadow: 0 4px 16px rgba(0, 0, 0, 0.03);
         pointer-events: none;
       }
       .drop-target-left { left: 130px; }
@@ -63,21 +66,13 @@ app.whenReady().then(async () => {
       .brand-row {
         display: flex;
         align-items: center;
-        gap: 8px;
+        gap: 9px;
       }
-      .logo-box {
-        width: 26px;
-        height: 26px;
-        border-radius: 7px;
-        background: linear-gradient(135deg, #7c3aed 0%, #6d28d9 100%);
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        box-shadow: 0 3px 10px rgba(124, 58, 237, 0.35);
-      }
-      .logo-svg {
-        width: 15px;
-        height: 15px;
+      .logo-img {
+        width: 28px;
+        height: 28px;
+        border-radius: 6px;
+        filter: drop-shadow(0 3px 8px rgba(0, 0, 0, 0.18));
       }
       .brand-name {
         font-size: 17px;
@@ -103,7 +98,7 @@ app.whenReady().then(async () => {
       .arrow-container {
         position: absolute;
         top: 190px;
-        left: 50%;
+        left: 270px;
         transform: translate(-50%, -50%);
         display: flex;
         flex-direction: column;
@@ -112,9 +107,9 @@ app.whenReady().then(async () => {
         z-index: 10;
       }
       .arrow-svg {
-        width: 84px;
-        height: 40px;
-        filter: drop-shadow(0 2px 10px rgba(124, 58, 237, 0.3));
+        width: 76px;
+        height: 36px;
+        filter: drop-shadow(0 2px 8px rgba(124, 58, 237, 0.25));
       }
       .drag-label {
         font-size: 9px;
@@ -145,12 +140,7 @@ app.whenReady().then(async () => {
 
     <div class="header">
       <div class="brand-row">
-        <div class="logo-box">
-          <svg class="logo-svg" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
-            <polyline points="4 17 10 11 4 5" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"/>
-            <line x1="12" y1="19" x2="20" y2="19" stroke="#ffffff" stroke-width="2.4" stroke-linecap="round"/>
-          </svg>
-        </div>
+        <img class="logo-img" src="data:image/png;base64,${iconBase64}" alt="Gitler" />
         <span class="brand-name">Gitler</span>
         <span class="version-tag">v1.0.0</span>
       </div>
@@ -176,7 +166,7 @@ app.whenReady().then(async () => {
   </html>
   `;
 
-  // Render 1x (540x380)
+  // Render in offscreen window
   const win = new BrowserWindow({
     width: 540,
     height: 380,
@@ -187,45 +177,31 @@ app.whenReady().then(async () => {
   });
 
   await win.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(htmlContent));
-  await new Promise(r => setTimeout(r, 400));
-  const image = await win.webContents.capturePage();
-  fs.writeFileSync(path.join(__dirname, '../build/background.png'), image.toPNG());
+  await new Promise(r => setTimeout(r, 600));
+  const rawImage = await win.webContents.capturePage();
+  const rawSize = rawImage.getSize();
 
-  // Render 2x (1080x760)
-  const win2x = new BrowserWindow({
-    width: 1080,
-    height: 760,
-    show: false,
-    frame: false,
-    webPreferences: { offscreen: true }
-  });
+  // Ensure exact pixel sizes: 1x = 540x380, 2x = 1080x760
+  let image1x;
+  let image2x;
 
-  const html2x = htmlContent
-    .replace('width: 540px;', 'width: 1080px;')
-    .replace('height: 380px;', 'height: 760px;')
-    .replace('padding: 26px 24px 22px;', 'padding: 52px 48px 44px;')
-    .replace('width: 144px;\n        height: 144px;\n        border-radius: 28px;', 'width: 288px;\n        height: 288px;\n        border-radius: 56px;')
-    .replace('left: 130px;', 'left: 260px;')
-    .replace('left: 410px;', 'left: 820px;')
-    .replace('top: 190px;', 'top: 380px;')
-    .replace('top: 190px;', 'top: 380px;')
-    .replace('width: 26px;\n        height: 26px;\n        border-radius: 7px;', 'width: 52px;\n        height: 52px;\n        border-radius: 14px;')
-    .replace('width: 15px;\n        height: 15px;', 'width: 30px;\n        height: 30px;')
-    .replace('font-size: 17px;', 'font-size: 34px;')
-    .replace('font-size: 10px;', 'font-size: 20px;')
-    .replace('font-size: 11px;', 'font-size: 22px;')
-    .replace('width: 84px;\n        height: 40px;', 'width: 168px;\n        height: 80px;')
-    .replace('stroke-width="3.5"', 'stroke-width="7"')
-    .replace('stroke-width="3.5"', 'stroke-width="7"')
-    .replace('font-size: 9px;', 'font-size: 18px;')
-    .replace('padding: 2px 8px;', 'padding: 4px 16px;')
-    .replace('font-size: 10px;', 'font-size: 20px;');
+  if (rawSize.width === 1080) {
+    image2x = rawImage;
+    image1x = rawImage.resize({ width: 540, height: 380, quality: 'best' });
+  } else if (rawSize.width === 540) {
+    image1x = rawImage;
+    image2x = rawImage.resize({ width: 1080, height: 760, quality: 'best' });
+  } else {
+    image1x = rawImage.resize({ width: 540, height: 380, quality: 'best' });
+    image2x = rawImage.resize({ width: 1080, height: 760, quality: 'best' });
+  }
 
-  await win2x.loadURL('data:text/html;charset=utf-8,' + encodeURIComponent(html2x));
-  await new Promise(r => setTimeout(r, 400));
-  const image2x = await win2x.webContents.capturePage();
-  fs.writeFileSync(path.join(__dirname, '../build/background@2x.png'), image2x.toPNG());
+  const bgPath = path.join(__dirname, '../build/background.png');
+  const bg2xPath = path.join(__dirname, '../build/background@2x.png');
 
-  console.log('DMG light background generated successfully!');
+  fs.writeFileSync(bgPath, image1x.toPNG());
+  fs.writeFileSync(bg2xPath, image2x.toPNG());
+
+  console.log(`Generated DMG background: 1x (${image1x.getSize().width}x${image1x.getSize().height}) and 2x (${image2x.getSize().width}x${image2x.getSize().height})`);
   app.quit();
 });
