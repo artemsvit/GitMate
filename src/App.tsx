@@ -28,17 +28,17 @@ export function App() {
     return (localStorage.getItem('gitler_theme') as 'dark' | 'light') || 'dark';
   });
 
-  // Panel Widths (Draggable & Persisted, default +32px wider)
+  // Panel Widths (Draggable & Persisted, default 380px)
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = localStorage.getItem('gitler_sidebar_width');
-    if (!saved || saved === '280') return 312;
-    return Math.max(200, Math.min(520, Number(saved)));
+    if (!saved || saved === '280' || saved === '312') return 380;
+    return Math.max(200, Math.min(600, Number(saved)));
   });
 
   const [copilotWidth, setCopilotWidth] = useState<number>(() => {
     const saved = localStorage.getItem('gitler_copilot_width');
-    if (!saved || saved === '340') return 372;
-    return Math.max(260, Math.min(600, Number(saved)));
+    if (!saved || saved === '340' || saved === '372') return 380;
+    return Math.max(260, Math.min(650, Number(saved)));
   });
 
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
@@ -70,7 +70,7 @@ export function App() {
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const delta = moveEvent.clientX - startX;
-      const nextWidth = Math.max(200, Math.min(520, startWidth + delta));
+      const nextWidth = Math.max(200, Math.min(600, startWidth + delta));
       setSidebarWidth(nextWidth);
       localStorage.setItem('gitler_sidebar_width', String(nextWidth));
     };
@@ -98,7 +98,7 @@ export function App() {
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const delta = moveEvent.clientX - startX;
-      const nextWidth = Math.max(260, Math.min(600, startWidth - delta));
+      const nextWidth = Math.max(260, Math.min(650, startWidth - delta));
       setCopilotWidth(nextWidth);
       localStorage.setItem('gitler_copilot_width', String(nextWidth));
     };
@@ -266,8 +266,8 @@ export function App() {
         <div
           onMouseDown={handleSidebarMouseDown}
           onDoubleClick={() => {
-            setSidebarWidth(312);
-            localStorage.setItem('gitler_sidebar_width', '312');
+            setSidebarWidth(380);
+            localStorage.setItem('gitler_sidebar_width', '380');
           }}
           title="Drag to resize repositories sidebar (Double-click to reset)"
           className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
@@ -288,8 +288,8 @@ export function App() {
           <div
             onMouseDown={handleCopilotMouseDown}
             onDoubleClick={() => {
-              setCopilotWidth(372);
-              localStorage.setItem('gitler_copilot_width', '372');
+              setCopilotWidth(380);
+              localStorage.setItem('gitler_copilot_width', '380');
             }}
             title="Drag to resize AI Copilot panel (Double-click to reset)"
             className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${

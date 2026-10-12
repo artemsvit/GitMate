@@ -27,7 +27,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   aiStatus,
   onOpenSettings,
   onCommitSuccess,
-  width = 372
+  width = 380
 }) => {
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
