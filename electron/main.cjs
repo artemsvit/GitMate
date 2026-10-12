@@ -32,15 +32,21 @@ const PORT = process.env.PORT || 3001;
 function startBackendServer() {
   if (isDev) return;
   try {
-    // When running inside packaged .app, start the Express backend
-    const serverScript = path.join(__dirname, '../server/index.cjs');
-    serverProcess = fork(serverScript, [], {
-      env: { ...process.env, PORT: String(PORT) },
-      silent: false
-    });
-    serverProcess.on('error', err => console.error('Backend server error:', err));
+    // When running inside packaged .app, start the Express backend in-process
+    require('../server/index.cjs');
+    console.log(`Gitler backend server initialized on port ${PORT}`);
   } catch (err) {
-    console.error('Failed to spawn backend server:', err);
+    console.error('Failed to start backend server in-process:', err);
+    try {
+      const serverScript = path.join(__dirname, '../server/index.cjs').replace('app.asar', 'app.asar.unpacked');
+      serverProcess = fork(serverScript, [], {
+        env: { ...process.env, PORT: String(PORT) },
+        silent: false
+      });
+      serverProcess.on('error', e => console.error('Fork server error:', e));
+    } catch (forkErr) {
+      console.error('Failed to fork backend server:', forkErr);
+    }
   }
 }
 
