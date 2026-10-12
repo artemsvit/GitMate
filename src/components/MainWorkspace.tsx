@@ -14,7 +14,8 @@ import {
   Check,
   Plus,
   ChevronDown,
-  AlertCircle
+  AlertCircle,
+  Globe
 } from 'lucide-react';
 import { RepoDetails, RepoSummary } from '../types';
 import { DiffViewer } from './DiffViewer';
@@ -26,6 +27,7 @@ interface MainWorkspaceProps {
   onSelectFile: (file: string, isStaged: boolean) => void;
   selectedDiffStaged: boolean;
   onDetailsUpdated: (details: RepoDetails) => void;
+  onOpenRemoteAuth?: () => void;
 }
 
 export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
@@ -34,7 +36,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   selectedFile,
   onSelectFile,
   selectedDiffStaged,
-  onDetailsUpdated
+  onDetailsUpdated,
+  onOpenRemoteAuth
 }) => {
   const [details, setDetails] = useState<RepoDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'changes' | 'history' | 'branches'>('changes');
@@ -439,6 +442,17 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
             <ArrowUpRight className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
             <span>Push {repoSummary.ahead > 0 ? `(${repoSummary.ahead})` : ''}</span>
           </button>
+
+          {onOpenRemoteAuth && (
+            <button
+              onClick={onOpenRemoteAuth}
+              title="Remote & Authentication Settings"
+              className="flex items-center gap-1.5 px-2.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+            >
+              <Globe className="w-3.5 h-3.5 text-[var(--text-muted)]" />
+              <span className="hidden xl:inline text-[11px]">Remote</span>
+            </button>
+          )}
         </div>
       </div>
 
@@ -449,20 +463,33 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
             ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-300'
             : 'bg-rose-500/10 border-rose-500/25 text-rose-300'
         }`}>
-          <div className="flex items-center gap-2 min-w-0">
+          <div className="flex items-start gap-2 min-w-0 flex-1 mr-3">
             {syncNotice.type === 'success' ? (
-              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0" />
+              <Check className="w-3.5 h-3.5 text-emerald-400 shrink-0 mt-0.5" />
             ) : (
-              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0" />
+              <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
             )}
-            <span className="font-mono text-[11px] truncate">{syncNotice.message}</span>
+            <div className="flex-1 min-w-0">
+              <span className="font-mono text-[11px] break-words leading-relaxed">{syncNotice.message}</span>
+            </div>
           </div>
-          <button
-            onClick={() => setSyncNotice(null)}
-            className="text-xs opacity-60 hover:opacity-100 transition px-2 py-0.5 rounded hover:bg-white/10"
-          >
-            ✕
-          </button>
+          <div className="flex items-center gap-2 shrink-0">
+            {syncNotice.type === 'error' && onOpenRemoteAuth && (
+              <button
+                onClick={onOpenRemoteAuth}
+                className="px-2.5 py-1 rounded-[33px] bg-rose-500/20 hover:bg-rose-500/30 text-rose-200 border border-rose-500/30 font-sans text-[10px] font-semibold flex items-center gap-1.5 transition"
+              >
+                <Globe className="w-3 h-3" />
+                <span>Configure Remote / Auth</span>
+              </button>
+            )}
+            <button
+              onClick={() => setSyncNotice(null)}
+              className="text-xs opacity-60 hover:opacity-100 transition px-2 py-0.5 rounded hover:bg-white/10"
+            >
+              ✕
+            </button>
+          </div>
         </div>
       )}
 

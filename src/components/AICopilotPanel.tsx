@@ -10,7 +10,8 @@ import {
   Zap,
   Tag,
   PanelRightClose,
-  PanelRightOpen
+  PanelRightOpen,
+  Globe
 } from 'lucide-react';
 import { RepoDetails, RepoSummary, LocalAIStatus, AICommitResult } from '../types';
 
@@ -20,6 +21,7 @@ interface AICopilotPanelProps {
   aiStatus: LocalAIStatus | null;
   onOpenSettings: () => void;
   onCommitSuccess: () => void;
+  onOpenRemoteAuth?: () => void;
   width?: number;
   isCollapsed?: boolean;
   onToggleCollapse?: () => void;
@@ -31,6 +33,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   aiStatus,
   onOpenSettings,
   onCommitSuccess,
+  onOpenRemoteAuth,
   width = 380,
   isCollapsed = false,
   onToggleCollapse
@@ -314,18 +317,42 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         {/* Status Toast */}
         {statusMessage && (
           <div
-            className={`p-3 rounded-xl border text-xs font-mono flex items-center gap-2 ${
+            className={`p-3 rounded-xl border text-xs font-mono space-y-2 ${
               statusMessage.type === 'success'
                 ? 'bg-[var(--bg-surface)] border-emerald-500/40 text-emerald-500'
                 : 'bg-[var(--bg-surface)] border-rose-500/40 text-rose-500'
             }`}
           >
-            {statusMessage.type === 'success' ? (
-              <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0" />
-            ) : (
-              <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0" />
-            )}
-            <span className="truncate text-[11px]">{statusMessage.text}</span>
+            <div className="flex items-start gap-2">
+              {statusMessage.type === 'success' ? (
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+              ) : (
+                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+              )}
+              <div className="text-[11px] leading-relaxed break-words font-mono flex-1">
+                {statusMessage.text}
+              </div>
+            </div>
+
+            {/* Quick action button for Push / Authentication failures */}
+            {statusMessage.type === 'error' &&
+              onOpenRemoteAuth &&
+              (statusMessage.text.includes('Push failed') ||
+                statusMessage.text.toLowerCase().includes('auth') ||
+                statusMessage.text.toLowerCase().includes('remote') ||
+                statusMessage.text.toLowerCase().includes('permission') ||
+                statusMessage.text.toLowerCase().includes('ssh') ||
+                statusMessage.text.toLowerCase().includes('token')) && (
+                <div className="pt-1 flex items-center justify-end">
+                  <button
+                    onClick={onOpenRemoteAuth}
+                    className="px-2.5 py-1 rounded-[33px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-sans font-semibold flex items-center gap-1.5 transition"
+                  >
+                    <Globe className="w-3 h-3" />
+                    <span>Configure Remote / Auth</span>
+                  </button>
+                </div>
+              )}
           </div>
         )}
       </div>

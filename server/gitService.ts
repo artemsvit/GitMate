@@ -346,3 +346,87 @@ export async function checkout(repoPath: string, branchName: string, createNew =
   }
   return `Switched to ${branchName}`;
 }
+
+export async function setRemoteUrl(repoPath: string, remoteName: string, newUrl: string): Promise<string> {
+  const git = getGit(repoPath);
+  await git.remote(['set-url', remoteName, newUrl]);
+  return `Updated remote "${remoteName}" to ${newUrl}`;
+}
+
+export async function testRemoteConnection(repoPath: string, remoteName = 'origin'): Promise<{ success: boolean; message: string }> {
+  const git = getGit(repoPath);
+  try {
+    const remotes = await git.getRemotes(true);
+    const target = remotes.find(r => r.name === remoteName) || remotes[0];
+    if (!target) {
+      return { success: false, message: 'No remote configured for this repository.' };
+    }
+    await git.listRemote([target.name]);
+    return { success: true, message: `Connected to "${target.name}" successfully!` };
+  } catch (err: any) {
+    const msg = err.message || String(err);
+    if (msg.includes('Permission denied') || msg.includes('publickey') || msg.includes('Authentication failed') || msg.includes('Could not read from remote')) {
+      return {
+        success: false,
+        message: 'Authentication failed. Check your SSH keys or HTTPS personal access token.'
+      };
+    }
+    return { success: false, message: msg };
+  }
+}
+
+export async function getAuthDiagnostics(): Promise<{
+  sshConnected: boolean;
+  sshUser: string | null;
+  ghCliInstalled: boolean;
+  ghCliUser: string | null;
+  credentialHelper: string | null;
+}> {
+  const { exec } = await import('child_process');
+  const execPromise = (cmd: string): Promise<{ stdout: string; stderr: string; error?: any }> => {
+    return new Promise(resolve => {
+      exec(cmd, { timeout: 4000 }, (error, stdout, stderr) => {
+        resolve({ stdout: stdout || '', stderr: stderr || '', error });
+      });
+    });
+  };
+
+  // 1. Check SSH to GitHub
+  let sshConnected = false;
+  let sshUser: string | null = null;
+  try {
+    const res = await execPromise('ssh -o BatchMode=yes -o ConnectTimeout=4 -T git@github.com');
+    const combined = res.stdout + ' ' + res.stderr;
+    if (combined.includes('successfully authenticated')) {
+      sshConnected = true;
+      const match = combined.match(/Hi\s+([a-zA-Z0-9_-]+)!/);
+      if (match) sshUser = match[1];
+    }
+  } catch {}
+
+  // 2. Check GitHub CLI
+  let ghCliInstalled = false;
+  let ghCliUser: string | null = null;
+  try {
+    const res = await execPromise('/opt/homebrew/bin/gh auth status || gh auth status');
+    ghCliInstalled = !res.error || res.stdout.includes('github.com') || res.stderr.includes('github.com');
+    const combined = res.stdout + ' ' + res.stderr;
+    const match = combined.match(/account\s+([a-zA-Z0-9_-]+)/i) || combined.match(/Logged in to [^ ]+ account ([a-zA-Z0-9_-]+)/i);
+    if (match) ghCliUser = match[1];
+  } catch {}
+
+  // 3. Credential helper
+  let credentialHelper: string | null = null;
+  try {
+    const res = await execPromise('git config --global credential.helper');
+    credentialHelper = res.stdout.trim() || null;
+  } catch {}
+
+  return {
+    sshConnected,
+    sshUser,
+    ghCliInstalled,
+    ghCliUser,
+    credentialHelper
+  };
+}

@@ -4,6 +4,7 @@ import { MainWorkspace } from './components/MainWorkspace';
 import { AICopilotPanel } from './components/AICopilotPanel';
 import { StatusBar } from './components/StatusBar';
 import { AISettingsModal } from './components/AISettingsModal';
+import { RemoteAuthModal } from './components/RemoteAuthModal';
 import { RepoSummary, RepoDetails, LocalAIStatus } from './types';
 import { FolderGit2, FolderOpen, ShieldAlert } from 'lucide-react';
 
@@ -14,6 +15,7 @@ export function App() {
   const [selectedRepo, setSelectedRepo] = useState<RepoSummary | null>(null);
   const [selectedRepoDetails, setSelectedRepoDetails] = useState<RepoDetails | null>(null);
   const [permissionPromptFolder, setPermissionPromptFolder] = useState<string | null>(null);
+  const [authModalRepo, setAuthModalRepo] = useState<RepoSummary | null>(null);
   
   // Selected file for diff
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -289,6 +291,7 @@ export function App() {
         aiStatus={aiStatus}
         onOpenSettings={() => setAISettingsOpen(true)}
         onCommitSuccess={() => handleScan(currentPath)}
+        onOpenRemoteAuth={() => setAuthModalRepo(selectedRepo)}
         width={copilotWidth}
         isCollapsed={isCopilotCollapsed}
         onToggleCollapse={handleToggleCopilotCollapse}
@@ -309,6 +312,7 @@ export function App() {
         }}
         selectedDiffStaged={selectedDiffStaged}
         onDetailsUpdated={details => setSelectedRepoDetails(details)}
+        onOpenRemoteAuth={() => setAuthModalRepo(selectedRepo)}
       />
     ) : scanError ? (
       <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg-canvas)] text-[var(--text-muted)] p-8 text-center font-mono transition-colors">
@@ -406,6 +410,17 @@ export function App() {
           aiStatus={aiStatus}
           onClose={() => setAISettingsOpen(false)}
           onRefreshStatus={refreshAIStatus}
+        />
+      )}
+
+      {/* Remote & Authentication Modal */}
+      {authModalRepo && (
+        <RemoteAuthModal
+          repo={authModalRepo}
+          onClose={() => setAuthModalRepo(null)}
+          onUpdated={() => {
+            handleScan(currentPath);
+          }}
         />
       )}
 

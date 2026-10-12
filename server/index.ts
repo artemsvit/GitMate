@@ -22,7 +22,10 @@ import {
   push,
   pull,
   fetchAll,
-  checkout
+  checkout,
+  setRemoteUrl,
+  testRemoteConnection,
+  getAuthDiagnostics
 } from './gitService';
 import { detectLocalAI, generateCommitMessage } from './aiService';
 
@@ -253,6 +256,43 @@ app.post('/api/repos/checkout', async (req, res) => {
     res.json({ success: true, output, updated });
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Checkout failed' });
+  }
+});
+
+// 11b. Remote Auth Diagnostics (SSH, GitHub CLI, Credentials)
+app.get('/api/auth/diagnostics', async (_req, res) => {
+  try {
+    const diag = await getAuthDiagnostics();
+    res.json(diag);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// 11c. Update Remote URL (e.g. switch between HTTPS and SSH)
+app.post('/api/repos/remotes/update-url', async (req, res) => {
+  try {
+    const { path: repoPath, remoteName = 'origin', newUrl } = req.body;
+    if (!repoPath || !newUrl) {
+      return res.status(400).json({ error: 'path and newUrl are required' });
+    }
+    const output = await setRemoteUrl(repoPath, remoteName, newUrl);
+    const updated = await getRepoDetails(repoPath);
+    res.json({ success: true, output, updated });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Failed to update remote URL' });
+  }
+});
+
+// 11d. Test Remote Connection
+app.post('/api/repos/remotes/test', async (req, res) => {
+  try {
+    const { path: repoPath, remoteName = 'origin' } = req.body;
+    if (!repoPath) return res.status(400).json({ error: 'path is required' });
+    const result = await testRemoteConnection(repoPath, remoteName);
+    res.json(result);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message || 'Test connection failed' });
   }
 });
 
