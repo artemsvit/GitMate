@@ -93,31 +93,33 @@
   <!-- Interactive Mockup Section -->
   <section id="mockup" class="mockup-section">
     <div class="mockup-frame">
-      <!-- Window Titlebar -->
-      <div class="mockup-titlebar">
-        <div class="window-controls">
-          <span class="control-dot close"></span>
-          <span class="control-dot minimize"></span>
-          <span class="control-dot maximize"></span>
-        </div>
-        <div class="mockup-title">Gitler — /Users/asvit/Desktop/Gitler</div>
-        <div class="mockup-badge">Metal GPU Active</div>
-      </div>
-
-      <!-- App Interface Container -->
-      <div class="mockup-app">
-        <!-- Sidebar -->
-        <aside class="mockup-sidebar">
-          <div class="sidebar-header">
-            <span class="folder-pill">
-              <span class="folder-icon" style="display:inline-flex; align-items:center;">
-                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
-                </svg>
-              </span>
-              Desktop (16)
+      <!-- Top Window Header (Unified 3-panel titlebar) -->
+      <div class="mockup-topbar">
+        <!-- Sidebar Header (Left) -->
+        <div class="topbar-sidebar">
+          <div class="window-controls">
+            <span class="control-dot close"></span>
+            <span class="control-dot minimize"></span>
+            <span class="control-dot maximize"></span>
+          </div>
+          <div class="app-brand">
+            <div class="brand-icon-box">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="4 17 10 11 4 5"></polyline>
+                <line x1="12" y1="19" x2="20" y2="19"></line>
+              </svg>
+            </div>
+            <span class="app-brand-name">Gitler</span>
+            <span class="app-brand-badge">v1.0.0</span>
+          </div>
+          <div class="topbar-actions">
+            <span class="icon-btn" title="Settings">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="3"></circle>
+                <path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"></path>
+              </svg>
             </span>
-            <span class="theme-icon" style="display:inline-flex; align-items:center;">
+            <span class="icon-btn" title="Toggle Theme">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                 <circle cx="12" cy="12" r="5"></circle>
                 <line x1="12" y1="1" x2="12" y2="3"></line>
@@ -130,56 +132,169 @@
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
               </svg>
             </span>
+            <span class="icon-btn" title="Rescan">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 2v6h-6"></path>
+                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
+                <path d="M3 22v-6h6"></path>
+                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
+              </svg>
+            </span>
+          </div>
+        </div>
+
+        <!-- Workspace Header (Center) -->
+        <div class="topbar-workspace">
+          <div class="workspace-title-group">
+            <div class="repo-icon-box">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M4 20h16a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.93a2 2 0 0 1-1.66-.9l-.82-1.2A2 2 0 0 0 7.93 3H4a2 2 0 0 0-2 2v13c0 1.1.9 2 2 2Z"></path>
+                <circle cx="12" cy="13" r="2"></circle>
+                <path d="M12 15v3"></path>
+              </svg>
+            </div>
+            <span class="active-repo-name">Gitler</span>
+            <div class="branch-pill">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <line x1="6" y1="3" x2="6" y2="15"></line>
+                <circle cx="18" cy="6" r="3"></circle>
+                <circle cx="6" cy="18" r="3"></circle>
+                <path d="M18 9a9 9 0 0 1-9 9"></path>
+              </svg>
+              <span>master</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <span class="active-repo-path">/Users/artsvit/Develop/Gitler</span>
           </div>
 
-          <div class="sidebar-filters">
-            <span class="filter-pill active">All (16)</span>
-            <span class="filter-pill"><span class="dot amber"></span>Dirty (4)</span>
-            <span class="filter-pill"><span class="dot violet"></span>Ahead (2)</span>
-            <span class="filter-pill"><span class="dot emerald"></span>Clean (10)</span>
+          <div class="topbar-sync-actions">
+            <span class="pill-btn">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12a9 9 0 0 0-9-9 9.75 9.75 0 0 0-6.74 2.74L3 8"/><path d="M3 3v5h5"/></svg>
+              <span>Fetch</span>
+            </span>
+            <span class="pill-btn">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 7 10 10"/><path d="M17 7v10H7"/></svg>
+              <span>Pull</span>
+            </span>
+            <span class="pill-btn highlight">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m7 17 10-10"/><path d="M7 7h10v10"/></svg>
+              <span>Push</span>
+            </span>
+          </div>
+        </div>
+
+        <!-- Copilot Header (Right) -->
+        <div class="topbar-copilot">
+          <div class="copilot-brand">
+            <div class="copilot-icon-box">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/>
+              </svg>
+            </div>
+            <span class="copilot-brand-title">AI Copilot</span>
+          </div>
+          <span class="icon-btn" title="Collapse Panel">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/><path d="m8 9 3 3-3 3"/></svg>
+          </span>
+        </div>
+      </div>
+
+      <!-- App Interface Container -->
+      <div class="mockup-app">
+        <!-- Sidebar -->
+        <aside class="mockup-sidebar">
+          <!-- Folder select row -->
+          <div class="sidebar-folder-row">
+            <div class="folder-select-box">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 8 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+              <span>Desktop (16)</span>
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <span class="icon-btn" title="Browse in Finder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>
+            </span>
           </div>
 
+          <!-- Search & Filter row -->
+          <div class="sidebar-filter-row">
+            <div class="filter-dropdown-btn">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              <span>All 16</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <div class="search-input-box">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
+              <span>Search (⌘F)...</span>
+            </div>
+          </div>
+
+          <!-- Repositories List -->
           <div class="repo-list">
-            <div class="repo-item selected">
-              <span class="status-dot amber"></span>
-              <div class="repo-info">
+            <div class="repo-card selected">
+              <span class="status-dot-indicator amber"></span>
+              <div class="repo-card-content">
                 <div class="repo-title-row">
-                  <span class="repo-name">Gitler</span>
+                  <span class="repo-card-name">Gitler</span>
                   <span class="repo-badge amber">3</span>
                 </div>
-                <span class="repo-branch">⌥ master</span>
+                <div class="repo-meta-row">
+                  <span class="branch-tag">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+                    master
+                  </span>
+                  <span class="time-tag">12m ago</span>
+                </div>
               </div>
             </div>
 
-            <div class="repo-item">
-              <span class="status-dot violet"></span>
-              <div class="repo-info">
+            <div class="repo-card">
+              <span class="status-dot-indicator violet"></span>
+              <div class="repo-card-content">
                 <div class="repo-title-row">
-                  <span class="repo-name">BarBoss</span>
+                  <span class="repo-card-name">BarBoss</span>
                   <span class="repo-badge violet">+2</span>
                 </div>
-                <span class="repo-branch">⌥ main</span>
-              </div>
-            </div>
-
-            <div class="repo-item">
-              <span class="status-dot emerald"></span>
-              <div class="repo-info">
-                <div class="repo-title-row">
-                  <span class="repo-name">Paletteo</span>
+                <div class="repo-meta-row">
+                  <span class="branch-tag">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+                    main
+                  </span>
+                  <span class="time-tag">1h ago</span>
                 </div>
-                <span class="repo-branch">⌥ release/v1.2</span>
               </div>
             </div>
 
-            <div class="repo-item">
-              <span class="status-dot sky"></span>
-              <div class="repo-info">
+            <div class="repo-card">
+              <span class="status-dot-indicator emerald"></span>
+              <div class="repo-card-content">
                 <div class="repo-title-row">
-                  <span class="repo-name">EVUS</span>
+                  <span class="repo-card-name">Paletteo</span>
+                  <span class="repo-badge-clean">clean</span>
+                </div>
+                <div class="repo-meta-row">
+                  <span class="branch-tag">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+                    release/v1.2
+                  </span>
+                  <span class="time-tag">yesterday</span>
+                </div>
+              </div>
+            </div>
+
+            <div class="repo-card">
+              <span class="status-dot-indicator sky"></span>
+              <div class="repo-card-content">
+                <div class="repo-title-row">
+                  <span class="repo-card-name">EVUS</span>
                   <span class="repo-badge sky">-1</span>
                 </div>
-                <span class="repo-branch">⌥ dev</span>
+                <div class="repo-meta-row">
+                  <span class="branch-tag">
+                    <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+                    dev
+                  </span>
+                  <span class="time-tag">3h ago</span>
+                </div>
               </div>
             </div>
           </div>
@@ -187,95 +302,179 @@
 
         <!-- Main Workspace -->
         <main class="mockup-workspace">
-          <div class="workspace-header">
-            <div class="workspace-tabs">
-              <span class="tab active">Changes (3)</span>
-              <span class="tab">History</span>
-              <span class="tab">Remotes</span>
+          <!-- Workspace Tabs (Underline) -->
+          <div class="workspace-tabs-bar">
+            <div class="tab-item active">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
+              <span>Changes</span>
+              <span class="tab-badge">3</span>
             </div>
-            <div class="workspace-actions">
-              <span class="btn-micro">Stage All</span>
-              <span class="btn-micro primary">Sync</span>
+            <div class="tab-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+              <span>History</span>
+            </div>
+            <div class="tab-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
+              <span>Branches</span>
             </div>
           </div>
 
-          <div class="diff-area">
-            <div class="file-list">
-              <div class="file-item active">
-                <span class="file-status m">M</span>
-                <span class="file-path">src/App.tsx</span>
+          <!-- Working Tree & Diff Split View -->
+          <div class="workspace-split">
+            <!-- Working Tree Column -->
+            <div class="working-tree-pane">
+              <div class="wt-header">
+                <span class="wt-title">Working Tree</span>
+                <div class="wt-actions">
+                  <span class="wt-btn">Stage All</span>
+                  <span class="wt-sep">|</span>
+                  <span class="wt-btn">Unstage</span>
+                </div>
               </div>
-              <div class="file-item">
-                <span class="file-status m">M</span>
-                <span class="file-path">src/components/Sidebar.tsx</span>
+
+              <!-- Staged section -->
+              <div class="wt-section-label">Staged (1)</div>
+              <div class="wt-file selected">
+                <div class="wt-file-left">
+                  <svg class="checkbox-icon checked" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                  <span class="wt-filename" title="src/App.tsx">src/App.tsx</span>
+                </div>
+                <span class="file-tag m">M</span>
               </div>
-              <div class="file-item">
-                <span class="file-status a">A</span>
-                <span class="file-path">landing/index.html</span>
+
+              <!-- Unstaged section -->
+              <div class="wt-section-label">Changes (2)</div>
+              <div class="wt-file">
+                <div class="wt-file-left">
+                  <svg class="checkbox-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                  <span class="wt-filename" title="src/components/Sidebar.tsx">src/components/Sidebar.tsx</span>
+                </div>
+                <span class="file-tag m">M</span>
+              </div>
+              <div class="wt-file">
+                <div class="wt-file-left">
+                  <svg class="checkbox-icon" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/></svg>
+                  <span class="wt-filename" title="landing/index.html">landing/index.html</span>
+                </div>
+                <span class="file-tag a">A</span>
               </div>
             </div>
 
-            <div class="diff-viewer">
-              <div class="diff-header">
-                <code>src/App.tsx</code>
-                <span class="diff-stats">+14 -2</span>
+            <!-- Diff Viewer -->
+            <div class="diff-viewer-pane">
+              <div class="diff-header-bar">
+                <div class="diff-file-title">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+                  <code>src/App.tsx</code>
+                </div>
+                <div class="diff-header-controls">
+                  <span class="diff-pill-btn active">
+                    <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="15" y2="12"/><path d="M21 12v4a2 2 0 0 1-2 2H3"/><polyline points="7 22 3 18 7 14"/></svg>
+                    <span>Wrap</span>
+                  </span>
+                  <span class="diff-scope-badge">Staged</span>
+                </div>
               </div>
-              <pre class="diff-code"><code><span class="diff-del">- const defaultSidebarWidth = 280;</span>
-<span class="diff-add">+ const defaultSidebarWidth = 380;</span>
-<span class="diff-add">+ const defaultCopilotWidth = 380;</span>
-  
-  // Smooth draggable panels with localStorage sync
-  const handleDragResize = (e: MouseEvent) => { ... };</code></pre>
+
+              <div class="diff-content-body font-mono">
+                <div class="diff-line hunk">@@ -52,7 +52,8 @@ export function App() {</div>
+                <div class="diff-line del">
+                  <span class="sign">-</span>
+                  <span>const defaultSidebarWidth = 280;</span>
+                </div>
+                <div class="diff-line add">
+                  <span class="sign">+</span>
+                  <span>const defaultSidebarWidth = 380;</span>
+                </div>
+                <div class="diff-line add">
+                  <span class="sign">+</span>
+                  <span>const defaultCopilotWidth = 380;</span>
+                </div>
+                <div class="diff-line ctx">
+                  <span class="sign"> </span>
+                  <span>// Smooth draggable panels with localStorage sync</span>
+                </div>
+                <div class="diff-line ctx">
+                  <span class="sign"> </span>
+                  <span>const handleDragResize = (e: MouseEvent) =&gt; { ... };</span>
+                </div>
+              </div>
             </div>
           </div>
         </main>
 
-        <!-- AI Copilot -->
+        <!-- AI Copilot Panel -->
         <aside class="mockup-copilot">
-          <div class="copilot-header">
-            <div class="copilot-title">
-              <span class="sparkle">✦</span>
-              AI Copilot
+          <!-- Working Tree Stat Box -->
+          <div class="copilot-stat-card">
+            <div class="stat-left">
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="m3 15 2 2 4-4"/></svg>
+              <span>Working Tree</span>
             </div>
-            <span class="model-badge">qwen3.5:0.8b-mlx</span>
+            <span class="stat-count">3 changed files</span>
           </div>
 
-          <div class="copilot-box">
-            <div class="chip-row">
-              <span class="chip">feat</span>
-              <span class="chip active">ui</span>
-              <span class="chip">fix</span>
-              <span class="chip">refactor</span>
-            </div>
+          <!-- Primary Generate Button -->
+          <button class="copilot-generate-btn">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+            <span>Generate Commit Message</span>
+          </button>
 
-            <div class="generated-commit">
-              <div class="commit-header">Generated Conventional Commit</div>
-              <p class="commit-text">feat(ui): set 380px default widths for sidebar and copilot panels with drag resize</p>
-              <div class="commit-bullets">
-                • Increased sidebar and copilot default width to 380px<br/>
-                • Added high-contrast status dot color coding
+          <!-- Types Row -->
+          <div class="copilot-types-group">
+            <div class="types-label">
+              <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 2H2v10l9.29 9.29c.94.94 2.48.94 3.42 0l6.58-6.58c.94-.94.94-2.48 0-3.42L12 2Z"/><circle cx="7" cy="7" r=".5" fill="currentColor"/></svg>
+              <span>Types</span>
+            </div>
+            <div class="types-chips">
+              <span class="type-chip">feat</span>
+              <span class="type-chip active">ui</span>
+              <span class="type-chip">fix</span>
+              <span class="type-chip">refactor</span>
+              <span class="type-chip">chore</span>
+            </div>
+          </div>
+
+          <!-- Commit Message Box -->
+          <div class="copilot-msg-card">
+            <div class="msg-header">
+              <div class="msg-label">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/></svg>
+                <span>Message</span>
               </div>
+              <span class="msg-chars">58/72</span>
             </div>
+            <div class="msg-textarea font-mono">feat(ui): set 380px default widths for sidebar and copilot panels</div>
+            <div class="msg-footer">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+              <span>Generated with Gitler Embedded (Metal GPU)</span>
+            </div>
+          </div>
 
-            <button class="btn-commit">
-              Commit & Push to origin
-            </button>
+          <!-- Commit Actions -->
+          <div class="copilot-commit-actions">
+            <span class="commit-btn ghost">Commit</span>
+            <span class="commit-btn primary">Commit &amp; Push</span>
           </div>
         </aside>
       </div>
 
-      <!-- Status Bar -->
+      <!-- Bottom Status Bar -->
       <div class="mockup-statusbar">
         <div class="status-left">
           <span class="dot-live"></span>
-          <span>Apple Silicon Neural Engine Active (MLX 8B)</span>
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
+          <span class="status-highlight">Gitler Commit Suggestions (Metal)</span>
           <span class="sep">|</span>
-          <span>~/Desktop/Gitler</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 8 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
+          <span>/Users/artsvit/Develop/Gitler</span>
         </div>
         <div class="status-right">
-          <span>Gitler (master)</span>
+          <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="6" y1="3" x2="6" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>
+          <span class="status-highlight">Gitler</span>
+          <span class="status-dim">(master)</span>
           <span class="sep">|</span>
-          <span>16 repositories detected</span>
+          <span>16 repositories</span>
         </div>
       </div>
     </div>
@@ -442,7 +641,7 @@
       </div>
 
       <div class="security-note">
-        <span>✓ Apple Notarized</span> • <span>✓ Gatekeeper Compliant</span> • <span>✓ Sparkle Update Protocol</span>
+        <span>Apple Notarized</span> • <span>Gatekeeper Compliant</span> • <span>Sparkle Update Protocol</span>
       </div>
     </div>
   </section>
