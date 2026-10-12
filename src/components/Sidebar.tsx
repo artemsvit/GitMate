@@ -21,7 +21,7 @@ interface SidebarProps {
   currentPath: string;
   presets: { name: string; path: string }[];
   onScan: (path: string, depth: number) => void;
-  onBrowseFolder: () => void;
+  onBrowseFolder: (defaultPath?: string) => void;
   scanError?: string | null;
   isScanning: boolean;
   theme: 'dark' | 'light';
@@ -295,11 +295,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
               {scanError}
             </p>
             <button
-              onClick={onBrowseFolder}
+              onClick={() => onBrowseFolder(currentPath)}
               className="w-full py-2 px-3 rounded-[33px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs flex items-center justify-center gap-2 transition hover:opacity-90"
             >
               <FolderOpen className="w-3.5 h-3.5" />
-              <span>Open in Mac Finder</span>
+              <span>Grant Access in Mac Finder</span>
             </button>
           </div>
         ) : filteredRepos.length === 0 ? (
@@ -314,7 +314,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
               </p>
             </div>
             <button
-              onClick={onBrowseFolder}
+              onClick={() => onBrowseFolder(currentPath)}
               className="py-1.5 px-4 rounded-[33px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold inline-flex items-center gap-1.5 transition hover:opacity-90"
             >
               <FolderOpen className="w-3.5 h-3.5" />

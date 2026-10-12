@@ -180,7 +180,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
               <span className="truncate max-w-[100px]">
                 {localStorage.getItem('gitler_ai_mode') === 'external' && aiStatus?.externalActiveModel
                   ? aiStatus.externalActiveModel
-                  : 'Embedded AI'}
+                  : 'Gitler Neural Engine'}
               </span>
             </button>
           </div>

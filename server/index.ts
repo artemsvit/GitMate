@@ -64,12 +64,14 @@ app.get('/api/system/folders', (req, res) => {
 });
 
 // 1b. Browse folder via native macOS Finder dialog
-app.post('/api/system/browse-folder', async (_req, res) => {
+app.post('/api/system/browse-folder', async (req, res) => {
+  const defaultPath = req.body?.defaultPath;
   if (process.platform === 'darwin') {
     try {
       const { exec } = await import('child_process');
+      const defaultClause = defaultPath ? ` default location POSIX file "${defaultPath.replace(/"/g, '\\"')}"` : '';
       exec(
-        `osascript -e 'POSIX path of (choose folder with prompt "Select folder containing Git repositories:")'`,
+        `osascript -e 'POSIX path of (choose folder with prompt "Select folder containing Git repositories:"${defaultClause})'`,
         (error, stdout) => {
           if (error) {
             return res.json({ canceled: true, path: null });

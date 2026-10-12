@@ -5,7 +5,7 @@ import { AICopilotPanel } from './components/AICopilotPanel';
 import { StatusBar } from './components/StatusBar';
 import { AISettingsModal } from './components/AISettingsModal';
 import { RepoSummary, RepoDetails, LocalAIStatus } from './types';
-import { FolderGit2 } from 'lucide-react';
+import { FolderGit2, FolderOpen, ShieldAlert } from 'lucide-react';
 
 export function App() {
   const [currentPath, setCurrentPath] = useState('');
@@ -13,6 +13,7 @@ export function App() {
   const [repositories, setRepositories] = useState<RepoSummary[]>([]);
   const [selectedRepo, setSelectedRepo] = useState<RepoSummary | null>(null);
   const [selectedRepoDetails, setSelectedRepoDetails] = useState<RepoDetails | null>(null);
+  const [permissionPromptFolder, setPermissionPromptFolder] = useState<string | null>(null);
   
   // Selected file for diff
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
@@ -178,6 +179,9 @@ export function App() {
 
         if (data.error) {
           setScanError(data.error);
+          setPermissionPromptFolder(path);
+        } else {
+          setPermissionPromptFolder(null);
         }
 
         // Keep or select first repository
@@ -202,22 +206,29 @@ export function App() {
     }
   };
 
-  const handleBrowseFolder = async () => {
+  const handleBrowseFolder = async (defaultPath?: string) => {
     try {
+      const targetDefault = defaultPath || currentPath;
       // 1. Electron Native macOS Open Dialog
       if ((window as any).electronAPI?.selectFolder) {
-        const selected = await (window as any).electronAPI.selectFolder();
+        const selected = await (window as any).electronAPI.selectFolder(targetDefault);
         if (selected) {
+          setPermissionPromptFolder(null);
           handleScan(selected, 3);
           return;
         }
       }
 
       // 2. Web browser fallback via server
-      const res = await fetch('/api/system/browse-folder', { method: 'POST' });
+      const res = await fetch('/api/system/browse-folder', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ defaultPath: targetDefault })
+      });
       if (res.ok) {
         const data = await res.json();
         if (!data.canceled && data.path) {
+          setPermissionPromptFolder(null);
           handleScan(data.path, 3);
         }
       }
@@ -285,6 +296,23 @@ export function App() {
         selectedDiffStaged={selectedDiffStaged}
         onDetailsUpdated={details => setSelectedRepoDetails(details)}
       />
+    ) : scanError ? (
+      <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg-canvas)] text-[var(--text-muted)] p-8 text-center font-mono transition-colors">
+        <div className="w-14 h-14 rounded-2xl bg-[var(--accent-violet)]/10 border border-[var(--accent-violet)]/30 flex items-center justify-center text-[var(--accent-violet)] mb-4">
+          <FolderOpen className="w-7 h-7" />
+        </div>
+        <h3 className="font-semibold text-[var(--text-primary)] text-sm">macOS Permission Required</h3>
+        <p className="text-xs text-[var(--text-muted)] mt-1.5 max-w-md leading-relaxed font-sans">
+          {scanError}
+        </p>
+        <button
+          onClick={() => handleBrowseFolder(currentPath)}
+          className="mt-5 px-5 py-2.5 rounded-[33px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs flex items-center gap-2 transition hover:opacity-90 font-sans shadow-lg shadow-purple-950/20"
+        >
+          <FolderOpen className="w-4 h-4" />
+          <span>Grant Access in Mac Finder</span>
+        </button>
+      </div>
     ) : (
       <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg-canvas)] text-[var(--text-muted)] p-8 text-center font-mono transition-colors">
         <div className="w-12 h-12 rounded-xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-violet)] mb-3">
@@ -365,6 +393,43 @@ export function App() {
           onClose={() => setAISettingsOpen(false)}
           onRefreshStatus={refreshAIStatus}
         />
+      )}
+
+      {/* macOS Folder Permission Modal */}
+      {permissionPromptFolder && (
+        <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
+          <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-md w-full p-6 shadow-2xl space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-[var(--accent-violet)]/10 border border-[var(--accent-violet)]/20 flex items-center justify-center text-[var(--accent-violet)] shrink-0">
+                <ShieldAlert className="w-5 h-5" />
+              </div>
+              <div>
+                <h3 className="text-sm font-semibold text-[var(--text-primary)]">macOS Folder Permission</h3>
+                <p className="text-xs text-[var(--text-muted)]">
+                  Access to {permissionPromptFolder.split('/').pop() || 'folder'}
+                </p>
+              </div>
+            </div>
+            <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-sans">
+              macOS protects folders such as <strong>Desktop</strong> and <strong>Documents</strong>. To let Gitler scan and display your repositories, please grant access by selecting this folder in the native Mac Finder dialog.
+            </p>
+            <div className="flex items-center justify-end gap-2 pt-2">
+              <button
+                onClick={() => setPermissionPromptFolder(null)}
+                className="px-4 py-2 rounded-[33px] border border-[var(--border-interactive)] text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => handleBrowseFolder(permissionPromptFolder)}
+                className="px-4 py-2 rounded-[33px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold flex items-center gap-1.5 transition hover:opacity-90 shadow-sm"
+              >
+                <FolderOpen className="w-3.5 h-3.5" />
+                <span>Grant Access in Finder</span>
+              </button>
+            </div>
+          </div>
+        </div>
       )}
     </div>
   );

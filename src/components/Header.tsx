@@ -50,8 +50,14 @@ export const Header: React.FC<HeaderProps> = ({
                 <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
                 <Cpu className="w-3.5 h-3.5" />
                 <span>
-                  {aiStatus.provider === 'ollama' ? 'Ollama' : 'LM Studio'}:{' '}
-                  <span className="font-semibold">{aiStatus.activeModel || 'Active'}</span>
+                  {aiStatus.provider === 'embedded' ? (
+                    <span className="font-semibold">Gitler Embedded Neural Engine</span>
+                  ) : (
+                    <>
+                      {aiStatus.provider === 'ollama' ? 'Ollama' : 'LM Studio'}:{' '}
+                      <span className="font-semibold">{aiStatus.activeModel || 'Active'}</span>
+                    </>
+                  )}
                 </span>
               </>
             ) : (

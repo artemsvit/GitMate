@@ -7,13 +7,17 @@ const standardPaths = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bi
 const existingPaths = (process.env.PATH || '').split(':');
 process.env.PATH = Array.from(new Set([...standardPaths, ...existingPaths])).join(':');
 
-ipcMain.handle('select-folder', async () => {
-  if (!mainWindow) return null;
-  const result = await dialog.showOpenDialog(mainWindow, {
+ipcMain.handle('select-folder', async (_event, defaultPath) => {
+  const win = mainWindow || BrowserWindow.getFocusedWindow();
+  const options = {
     title: 'Select Folder with Git Repositories',
     properties: ['openDirectory', 'createDirectory'],
     buttonLabel: 'Select Folder'
-  });
+  };
+  if (defaultPath) {
+    options.defaultPath = defaultPath;
+  }
+  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
   if (result.canceled || !result.filePaths || !result.filePaths.length) {
     return null;
   }

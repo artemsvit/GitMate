@@ -32,6 +32,10 @@ mac:
   entitlementsInherit: build/entitlements.mac.inherit.plist
   darkModeSupport: true
   minimumSystemVersion: "12.0.0"
+  extendInfo:
+    NSDesktopFolderUsageDescription: "Gitler needs permission to access your Desktop to discover and manage local Git repositories."
+    NSDocumentsFolderUsageDescription: "Gitler needs permission to access your Documents to discover and manage local Git repositories."
+    NSDownloadsFolderUsageDescription: "Gitler needs permission to access your Downloads to discover and manage local Git repositories."
   notarize:
     teamId: "${APPLE_TEAM_ID}"
 
