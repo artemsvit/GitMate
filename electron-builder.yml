@@ -9,6 +9,7 @@ directories:
 files:
   - dist/**/*
   - server/**/*
+  - electron/**/*
   - landing/**/*
   - package.json
   - node_modules/**/*
@@ -36,6 +37,7 @@ mac:
 
 dmg:
   title: "Install ${productName}"
+  background: build/background.png
   contents:
     - x: 130
       y: 190
@@ -50,6 +52,6 @@ dmg:
 
 publish:
   provider: github
-  owner: artemsvitelskyi
+  owner: artemsvit
   repo: Gitler
   releaseType: release

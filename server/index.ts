@@ -275,13 +275,23 @@ app.post('/api/ai/generate-commit', async (req, res) => {
 });
 
 // Serve promotional landing page
-const landingPath = path.resolve('landing');
+const landingCandidates = [
+  path.join(__dirname, '../landing'),
+  path.join(__dirname, 'landing'),
+  path.resolve('landing')
+];
+const landingPath = landingCandidates.find(p => fs.existsSync(p)) || path.resolve('landing');
 if (fs.existsSync(landingPath)) {
   app.use('/landing', express.static(landingPath));
 }
 
 // Serve frontend static build if available
-const distPath = path.resolve('dist');
+const distCandidates = [
+  path.join(__dirname, '../dist'),
+  path.join(__dirname, 'dist'),
+  path.resolve('dist')
+];
+const distPath = distCandidates.find(p => fs.existsSync(p)) || path.resolve('dist');
 if (fs.existsSync(distPath)) {
   app.use(express.static(distPath, {
     setHeaders: (res, filePath) => {

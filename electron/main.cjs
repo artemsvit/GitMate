@@ -11,10 +11,10 @@ function startBackendServer() {
   if (isDev) return;
   try {
     // When running inside packaged .app, start the Express backend
-    const serverScript = path.join(__dirname, '../server/index.js');
+    const serverScript = path.join(__dirname, '../server/index.cjs');
     serverProcess = fork(serverScript, [], {
       env: { ...process.env, PORT: String(PORT) },
-      silent: true
+      silent: false
     });
     serverProcess.on('error', err => console.error('Backend server error:', err));
   } catch (err) {

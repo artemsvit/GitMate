@@ -8,4 +8,5 @@ dist
 *.key
 *.pem
 release
+server/index.cjs
 build/*.p12

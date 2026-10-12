@@ -9,7 +9,9 @@
     "server": "tsx server/index.ts",
     "client": "vite",
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,magenta\" \"npm run server\" \"npm run client\"",
-    "build": "vite build",
+    "build:client": "vite build",
+    "build:server": "esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --outfile=server/index.cjs",
+    "build": "npm run build:client && npm run build:server",
     "dist:mac": "npm run build && electron-builder --mac dmg zip",
     "dist:dir": "npm run build && electron-builder --mac dir"
   },
