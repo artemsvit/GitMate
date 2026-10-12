@@ -19,6 +19,14 @@
   --scrollbar-thumb: #1e1e1d;
   --selection-bg: #cbb0f7;
   --selection-text: #000000;
+  --status-dirty: #f59e0b;
+  --status-dirty-bg: rgba(245, 158, 11, 0.15);
+  --status-ahead: #cbb0f7;
+  --status-ahead-bg: rgba(203, 176, 247, 0.15);
+  --status-behind: #38bdf8;
+  --status-behind-bg: rgba(56, 189, 248, 0.15);
+  --status-clean: #10b981;
+  --status-clean-bg: rgba(16, 185, 129, 0.15);
 }
 
 html.light, .light {
@@ -40,6 +48,14 @@ html.light, .light {
   --scrollbar-thumb: #dcdbd7;
   --selection-bg: #cbb0f7;
   --selection-text: #000000;
+  --status-dirty: #d97706;
+  --status-dirty-bg: rgba(217, 119, 6, 0.12);
+  --status-ahead: #6e3ad6;
+  --status-ahead-bg: rgba(110, 58, 214, 0.12);
+  --status-behind: #0284c7;
+  --status-behind-bg: rgba(2, 132, 199, 0.12);
+  --status-clean: #059669;
+  --status-clean-bg: rgba(5, 150, 105, 0.12);
 }
 
 @layer base {

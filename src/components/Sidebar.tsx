@@ -209,34 +209,37 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
         <button
           onClick={() => setFilter('dirty')}
-          className={`px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
             filter === 'dirty'
               ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
               : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
           }`}
         >
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-dirty)]" />
           Dirty ({dirtyCount})
         </button>
 
         <button
           onClick={() => setFilter('ahead')}
-          className={`px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
             filter === 'ahead'
               ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
               : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
           }`}
         >
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-ahead)]" />
           Ahead ({aheadCount})
         </button>
 
         <button
           onClick={() => setFilter('clean')}
-          className={`px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
+          className={`flex items-center gap-1.5 px-2.5 py-1 rounded-[50px] text-[10px] font-mono uppercase tracking-wider transition ${
             filter === 'clean'
               ? 'bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold'
               : 'border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:border-[var(--text-muted)]'
           }`}
         >
+          <span className="w-1.5 h-1.5 rounded-full bg-[var(--status-clean)]" />
           Clean ({cleanCount})
         </button>
       </div>
@@ -261,22 +264,34 @@ export const Sidebar: React.FC<SidebarProps> = ({
               <div
                 key={repo.path}
                 onClick={() => onSelectRepo(repo)}
-                className={`group flex items-start gap-2.5 px-3 py-2 rounded-xl cursor-pointer transition border ${
+                className={`group flex items-start gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition border ${
                   isSelected
                     ? 'bg-[var(--bg-card)] border-[var(--border-interactive)] text-[var(--text-primary)]'
                     : 'border-transparent hover:bg-[var(--bg-surface)] text-[var(--text-secondary)]'
                 }`}
               >
-                {/* Status Dot */}
-                <div className="mt-1.5 shrink-0">
+                {/* Status Dot with Distinct Warp Colors */}
+                <div className="mt-1 shrink-0">
                   {!repo.isClean ? (
-                    <span className="block w-2 h-2 rounded-full bg-[var(--text-primary)] ring-2 ring-[var(--border-interactive)]" title="Uncommitted changes" />
+                    <span
+                      className="block w-2.5 h-2.5 rounded-full bg-[var(--status-dirty)] shadow-[0_0_8px_var(--status-dirty-bg)] ring-1 ring-[var(--status-dirty)]/40"
+                      title="Uncommitted changes (Working tree modified)"
+                    />
                   ) : repo.ahead > 0 ? (
-                    <span className="block w-2 h-2 rounded-full bg-[var(--accent-violet)]" title="Ahead of remote" />
+                    <span
+                      className="block w-2.5 h-2.5 rounded-full bg-[var(--status-ahead)] shadow-[0_0_8px_var(--status-ahead-bg)] ring-1 ring-[var(--status-ahead)]/40"
+                      title="Ahead of remote (Commits pending push)"
+                    />
                   ) : repo.behind > 0 ? (
-                    <span className="block w-2 h-2 rounded-full bg-[var(--text-muted)]" title="Behind remote" />
+                    <span
+                      className="block w-2.5 h-2.5 rounded-full bg-[var(--status-behind)] shadow-[0_0_8px_var(--status-behind-bg)] ring-1 ring-[var(--status-behind)]/40"
+                      title="Behind remote (Updates pending pull)"
+                    />
                   ) : (
-                    <span className="block w-2 h-2 rounded-full bg-[var(--border-interactive)]" title="Clean" />
+                    <span
+                      className="block w-2.5 h-2.5 rounded-full bg-[var(--status-clean)] shadow-[0_0_8px_var(--status-clean-bg)] ring-1 ring-[var(--status-clean)]/40"
+                      title="Clean and in sync"
+                    />
                   )}
                 </div>
 
@@ -287,12 +302,25 @@ export const Sidebar: React.FC<SidebarProps> = ({
                       {repo.name}
                     </span>
                     {changes > 0 ? (
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[50px] border border-[var(--border-interactive)] bg-[var(--bg-canvas)] text-[var(--text-primary)]">
+                      <span
+                        className="text-[10px] font-mono px-2 py-0.5 rounded-[50px] border border-[var(--status-dirty)]/30 bg-[var(--status-dirty-bg)] text-[var(--status-dirty)] font-semibold"
+                        title={`${changes} modified/uncommitted files`}
+                      >
                         {changes}
                       </span>
                     ) : repo.ahead > 0 ? (
-                      <span className="text-[10px] font-mono px-1.5 py-0.2 rounded-[50px] border border-[var(--border-interactive)] bg-[var(--bg-canvas)] text-[var(--accent-violet)]">
+                      <span
+                        className="text-[10px] font-mono px-2 py-0.5 rounded-[50px] border border-[var(--status-ahead)]/30 bg-[var(--status-ahead-bg)] text-[var(--status-ahead)] font-semibold"
+                        title={`${repo.ahead} commit(s) ahead of remote`}
+                      >
                         +{repo.ahead}
+                      </span>
+                    ) : repo.behind > 0 ? (
+                      <span
+                        className="text-[10px] font-mono px-2 py-0.5 rounded-[50px] border border-[var(--status-behind)]/30 bg-[var(--status-behind-bg)] text-[var(--status-behind)] font-semibold"
+                        title={`${repo.behind} commit(s) behind remote`}
+                      >
+                        -{repo.behind}
                       </span>
                     ) : null}
                   </div>
