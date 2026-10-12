@@ -7,6 +7,18 @@ const standardPaths = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bi
 const existingPaths = (process.env.PATH || '').split(':');
 process.env.PATH = Array.from(new Set([...standardPaths, ...existingPaths])).join(':');
 
+// Ensure SSH agent and non-interactive host key handling for packaged macOS app
+if (!process.env.SSH_AUTH_SOCK) {
+  try {
+    const { execSync } = require('child_process');
+    const sock = execSync('launchctl getenv SSH_AUTH_SOCK', { encoding: 'utf8' }).trim();
+    if (sock) process.env.SSH_AUTH_SOCK = sock;
+  } catch {}
+}
+if (!process.env.GIT_SSH_COMMAND) {
+  process.env.GIT_SSH_COMMAND = 'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15';
+}
+
 ipcMain.handle('select-folder', async (_event, defaultPath) => {
   const win = mainWindow || BrowserWindow.getFocusedWindow();
   const options = {

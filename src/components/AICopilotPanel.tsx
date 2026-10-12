@@ -319,17 +319,17 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
           <div
             className={`p-3 rounded-xl border text-xs font-mono space-y-2 ${
               statusMessage.type === 'success'
-                ? 'bg-[var(--bg-surface)] border-emerald-500/40 text-emerald-500'
-                : 'bg-[var(--bg-surface)] border-rose-500/40 text-rose-500'
+                ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
+                : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
             }`}
           >
             <div className="flex items-start gap-2">
               {statusMessage.type === 'success' ? (
-                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-500 shrink-0 mt-0.5" />
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
               ) : (
-                <AlertCircle className="w-3.5 h-3.5 text-rose-500 shrink-0 mt-0.5" />
+                <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               )}
-              <div className="text-[11px] leading-relaxed break-words font-mono flex-1">
+              <div className="text-[11px] leading-relaxed break-words font-mono flex-1 font-medium">
                 {statusMessage.text}
               </div>
             </div>
@@ -346,9 +346,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
                 <div className="pt-1 flex items-center justify-end">
                   <button
                     onClick={onOpenRemoteAuth}
-                    className="px-2.5 py-1 rounded-[33px] bg-rose-500/10 hover:bg-rose-500/20 text-rose-400 border border-rose-500/30 text-[10px] font-sans font-semibold flex items-center gap-1.5 transition"
+                    className="px-2.5 py-1 rounded-[33px] bg-rose-100 hover:bg-rose-200 text-rose-900 border border-rose-300 dark:bg-rose-500/20 dark:hover:bg-rose-500/30 dark:text-rose-200 dark:border-rose-500/30 text-[10px] font-sans font-semibold flex items-center gap-1.5 transition cursor-pointer"
                   >
-                    <Globe className="w-3 h-3" />
+                    <Globe className="w-3 h-3 text-rose-700 dark:text-rose-300" />
                     <span>Configure Remote / Auth</span>
                   </button>
                 </div>

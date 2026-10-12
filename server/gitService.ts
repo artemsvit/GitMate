@@ -1,5 +1,7 @@
 import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
 import path from 'path';
+import fs from 'fs';
+import os from 'os';
 
 export interface RepoSummary {
   name: string;
@@ -43,8 +45,30 @@ export interface RepoDetails extends RepoSummary {
   }[];
 }
 
+function cleanStaleIndexLock(repoPath: string) {
+  try {
+    const lockFile = path.join(repoPath, '.git', 'index.lock');
+    if (fs.existsSync(lockFile)) {
+      const stat = fs.statSync(lockFile);
+      if (Date.now() - stat.mtimeMs > 10000) {
+        fs.unlinkSync(lockFile);
+      }
+    }
+  } catch {}
+}
+
 export function getGit(repoPath: string): SimpleGit {
-  return simpleGit({ baseDir: repoPath, maxConcurrentProcesses: 4 });
+  cleanStaleIndexLock(repoPath);
+  return simpleGit({
+    baseDir: repoPath,
+    maxConcurrentProcesses: 4,
+    spawnOptions: {
+      env: {
+        ...process.env,
+        GIT_SSH_COMMAND: 'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15'
+      }
+    }
+  });
 }
 
 export async function getRepoSummary(repoPath: string): Promise<RepoSummary> {
@@ -309,11 +333,17 @@ export async function pull(repoPath: string, remote?: string, branch?: string): 
     return `Pulled successfully (${changes} changes, +${insertions}/-${deletions})`;
   } catch (err: any) {
     const msg = err.message || String(err);
+    if (msg.includes('divergent branches') || msg.includes('Need to specify how to reconcile')) {
+      throw new Error(`Branches have diverged (${status.ahead} local, ${status.behind} remote). Please reconcile with "git pull --rebase" or stash and merge.`);
+    }
     if (msg.includes('overwritten by merge') || msg.includes('local changes')) {
       throw new Error('Cannot pull: you have uncommitted local changes that would be overwritten. Please commit or stash them first.');
     }
-    if (msg.includes('Permission denied') || msg.includes('publickey') || msg.includes('Authentication failed') || msg.includes('Could not read from remote')) {
-      throw new Error(`Authentication failed for ${targetRemote}. Check your SSH keys or remote credentials.`);
+    if (msg.includes('Permission denied') || msg.includes('publickey')) {
+      throw new Error(`SSH authentication failed for "${targetRemote}". The remote server rejected your SSH key.`);
+    }
+    if (msg.includes('Authentication failed') || msg.includes('HTTP 401') || msg.includes('HTTP 403')) {
+      throw new Error(`Authentication failed for "${targetRemote}". Please check your Personal Access Token or credentials.`);
     }
     if (msg.includes('no tracking information') || msg.includes('Please specify which branch')) {
       try {
@@ -323,9 +353,6 @@ export async function pull(repoPath: string, remote?: string, branch?: string): 
       } catch (fallbackErr: any) {
         throw new Error(`No tracking information found for branch "${currentBranch}". Run "git branch --set-upstream-to=${targetRemote}/${currentBranch}".`);
       }
-    }
-    if (msg.includes('divergent branches') || msg.includes('Need to specify how to reconcile')) {
-      throw new Error('Branches have diverged. Please configure pull reconciliation (rebase or merge).');
     }
     throw new Error(msg);
   }
@@ -353,7 +380,140 @@ export async function setRemoteUrl(repoPath: string, remoteName: string, newUrl:
   return `Updated remote "${remoteName}" to ${newUrl}`;
 }
 
-export async function testRemoteConnection(repoPath: string, remoteName = 'origin'): Promise<{ success: boolean; message: string }> {
+export function getPublicSshKey(): {
+  hasKey: boolean;
+  publicKey?: string;
+  keyType?: string;
+  keyFile?: string;
+} {
+  const home = os.homedir();
+  const sshDir = path.join(home, '.ssh');
+  const candidates = [
+    { file: 'id_ed25519.pub', type: 'ED25519' },
+    { file: 'id_rsa.pub', type: 'RSA' },
+    { file: 'id_ecdsa.pub', type: 'ECDSA' }
+  ];
+
+  for (const c of candidates) {
+    const fullPath = path.join(sshDir, c.file);
+    if (fs.existsSync(fullPath)) {
+      try {
+        const content = fs.readFileSync(fullPath, 'utf8').trim();
+        if (content) {
+          return {
+            hasKey: true,
+            publicKey: content,
+            keyType: c.type,
+            keyFile: c.file
+          };
+        }
+      } catch {}
+    }
+  }
+  return { hasKey: false };
+}
+
+export async function probeHostSsh(host: string, port = 22, user = 'git'): Promise<{
+  success: boolean;
+  authenticated: boolean;
+  provider: 'gitea' | 'github' | 'gitlab' | 'generic';
+  user?: string;
+  keyName?: string;
+  message: string;
+  raw: string;
+}> {
+  const { exec } = await import('child_process');
+  const cmd = `ssh -o BatchMode=yes -o StrictHostKeyChecking=accept-new -o ConnectTimeout=5 -p ${port} -T ${user}@${host}`;
+
+  return new Promise(resolve => {
+    exec(cmd, { timeout: 6000 }, (_error, stdout, stderr) => {
+      const raw = ((stdout || '') + ' ' + (stderr || '')).trim();
+
+      // Gitea detection: "Hi there, artsvit! You've successfully authenticated with the SSH key named mbp16work."
+      if (raw.includes('successfully authenticated') && (raw.includes('Gitea') || raw.includes('gitea'))) {
+        const userMatch = raw.match(/Hi there,\s+([a-zA-Z0-9_-]+)!/);
+        const keyMatch = raw.match(/SSH key named\s+([a-zA-Z0-9_.-]+)/);
+        return resolve({
+          success: true,
+          authenticated: true,
+          provider: 'gitea',
+          user: userMatch ? userMatch[1] : undefined,
+          keyName: keyMatch ? keyMatch[1] : undefined,
+          message: `Gitea authentication verified for user "${userMatch ? userMatch[1] : 'user'}" (Key: ${keyMatch ? keyMatch[1] : 'active'})`,
+          raw
+        });
+      }
+
+      // GitHub detection
+      if (raw.includes('successfully authenticated') && raw.includes('github.com')) {
+        const userMatch = raw.match(/Hi\s+([a-zA-Z0-9_-]+)!/);
+        return resolve({
+          success: true,
+          authenticated: true,
+          provider: 'github',
+          user: userMatch ? userMatch[1] : undefined,
+          message: `GitHub authentication verified for user "${userMatch ? userMatch[1] : 'user'}"`,
+          raw
+        });
+      }
+
+      // GitLab detection
+      if (raw.includes('Welcome to GitLab')) {
+        const userMatch = raw.match(/@([a-zA-Z0-9_-]+)!/);
+        return resolve({
+          success: true,
+          authenticated: true,
+          provider: 'gitlab',
+          user: userMatch ? userMatch[1] : undefined,
+          message: `GitLab authentication verified for user "${userMatch ? userMatch[1] : 'user'}"`,
+          raw
+        });
+      }
+
+      // Permission denied
+      if (raw.includes('Permission denied') || raw.includes('publickey')) {
+        const isSelfHosted = !host.includes('github.com') && !host.includes('gitlab.com');
+        return resolve({
+          success: false,
+          authenticated: false,
+          provider: isSelfHosted ? 'gitea' : host.includes('github') ? 'github' : 'gitlab',
+          message: `SSH key rejected by ${host}:${port}. Please add your public SSH key to your ${isSelfHosted ? 'Gitea' : 'git'} profile settings.`,
+          raw
+        });
+      }
+
+      // Host unreachable or connection failed
+      if (raw.includes('Operation timed out') || raw.includes('Connection refused') || raw.includes('No route to host')) {
+        return resolve({
+          success: false,
+          authenticated: false,
+          provider: 'generic',
+          message: `Cannot connect to ${host}:${port} (${raw.split('\n')[0] || 'timed out'}). Check if the server is online.`,
+          raw
+        });
+      }
+
+      const isAuth = raw.includes('authenticated');
+      resolve({
+        success: isAuth,
+        authenticated: isAuth,
+        provider: 'generic',
+        message: raw || 'SSH probe finished',
+        raw
+      });
+    });
+  });
+}
+
+export async function testRemoteConnection(repoPath: string, remoteName = 'origin'): Promise<{
+  success: boolean;
+  message: string;
+  rawError?: string;
+  detectedProvider?: string;
+  host?: string;
+  port?: number;
+  sshProbe?: any;
+}> {
   const git = getGit(repoPath);
   try {
     const remotes = await git.getRemotes(true);
@@ -361,17 +521,56 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
     if (!target) {
       return { success: false, message: 'No remote configured for this repository.' };
     }
-    await git.listRemote([target.name]);
-    return { success: true, message: `Connected to "${target.name}" successfully!` };
-  } catch (err: any) {
-    const msg = err.message || String(err);
-    if (msg.includes('Permission denied') || msg.includes('publickey') || msg.includes('Authentication failed') || msg.includes('Could not read from remote')) {
-      return {
-        success: false,
-        message: 'Authentication failed. Check your SSH keys or HTTPS personal access token.'
-      };
+
+    const remoteUrl = target.pushUrl || target.fetchUrl || '';
+    let sshProbe: any = null;
+    let detectedProvider = 'generic';
+    let host: string | undefined;
+    let port: number | undefined;
+
+    // Detect SSH host & port: e.g. ssh://git@192.168.0.102:222/artsvit/Open-Pi.git or git@github.com:artemsvit/Gitler.git
+    const sshMatch = remoteUrl.match(/^(?:ssh:\/\/)?(?:[a-zA-Z0-9_.-]+@)?([a-zA-Z0-9_.-]+)(?::(\d+))?(?:\/|:)(.*)$/);
+    if (sshMatch && (remoteUrl.startsWith('git@') || remoteUrl.startsWith('ssh://'))) {
+      host = sshMatch[1];
+      port = sshMatch[2] ? parseInt(sshMatch[2], 10) : 22;
+      sshProbe = await probeHostSsh(host, port);
+      detectedProvider = sshProbe.provider;
+    } else if (remoteUrl.includes('github.com')) {
+      detectedProvider = 'github';
+    } else if (remoteUrl.includes('gitlab.com')) {
+      detectedProvider = 'gitlab';
+    } else if (remoteUrl.startsWith('http://') || remoteUrl.startsWith('https://')) {
+      detectedProvider = 'gitea';
     }
-    return { success: false, message: msg };
+
+    await git.listRemote([target.name]);
+    return {
+      success: true,
+      message: `Connected to "${target.name}" (${detectedProvider.toUpperCase()}) successfully!`,
+      detectedProvider,
+      host,
+      port,
+      sshProbe
+    };
+  } catch (err: any) {
+    const rawError = err.message || String(err);
+    let friendly = rawError;
+
+    if (rawError.includes('Permission denied') || rawError.includes('publickey')) {
+      friendly = 'SSH key rejected. Please copy your Mac public SSH key and add it to your remote account.';
+    } else if (rawError.includes('Host key verification failed')) {
+      friendly = 'Host key verification failed. The remote server host key has changed or is unverified.';
+    } else if (rawError.includes('Connection refused') || rawError.includes('Operation timed out') || rawError.includes('No route to host')) {
+      friendly = 'Cannot connect to remote server (host offline, port closed, or network unreachable).';
+    } else if (rawError.includes('Authentication failed') || rawError.includes('401') || rawError.includes('403')) {
+      friendly = 'Authentication failed. Please check your Personal Access Token or credentials.';
+    }
+
+    return {
+      success: false,
+      message: friendly,
+      rawError
+    };
   }
 }
 

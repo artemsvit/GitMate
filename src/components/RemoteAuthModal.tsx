@@ -10,8 +10,12 @@ import {
   ArrowRightLeft,
   ExternalLink,
   Lock,
-  Terminal,
-  CheckCircle2
+  Copy,
+  ChevronDown,
+  ChevronUp,
+  Server,
+  CheckCircle2,
+  HelpCircle
 } from 'lucide-react';
 import { RepoSummary } from '../types';
 
@@ -27,12 +31,37 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   onUpdated
 }) => {
   const [remotes, setRemotes] = useState(repo.remotes || []);
-  const [testingRemote, setTestingRemote] = useState<string | null>(null);
-  const [testResult, setTestResult] = useState<{ remote: string; success: boolean; message: string } | null>(null);
+  const [selectedRemoteName, setSelectedRemoteName] = useState(remotes[0]?.name || 'origin');
+  const [customUrl, setCustomUrl] = useState('');
   const [isUpdating, setIsUpdating] = useState(false);
   const [updateNotice, setUpdateNotice] = useState<{ success: boolean; message: string } | null>(null);
 
-  // Diagnostics
+  // Testing connection state
+  const [testingRemote, setTestingRemote] = useState<string | null>(null);
+  const [testResult, setTestResult] = useState<{
+    remote: string;
+    success: boolean;
+    message: string;
+    rawError?: string;
+    detectedProvider?: string;
+    sshProbe?: any;
+  } | null>(null);
+  const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
+
+  // Public SSH key
+  const [sshKey, setSshKey] = useState<{
+    hasKey: boolean;
+    publicKey?: string;
+    keyType?: string;
+    keyFile?: string;
+  } | null>(null);
+  const [copiedKey, setCopiedKey] = useState(false);
+
+  // Host probe
+  const [probingHost, setProbingHost] = useState(false);
+  const [probeResult, setProbeResult] = useState<any>(null);
+
+  // System Diagnostics
   const [diagnostics, setDiagnostics] = useState<{
     sshConnected: boolean;
     sshUser: string | null;
@@ -40,39 +69,92 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     ghCliUser: string | null;
     credentialHelper: string | null;
   } | null>(null);
-  const [loadingDiag, setLoadingDiag] = useState(true);
 
-  // HTTPS Token Input
+  // Token input for HTTP/HTTPS
   const [personalToken, setPersonalToken] = useState('');
-  const [customUrl, setCustomUrl] = useState('');
-  const [selectedRemoteName, setSelectedRemoteName] = useState(remotes[0]?.name || 'origin');
 
   const currentRemote = remotes.find(r => r.name === selectedRemoteName) || remotes[0];
   const currentUrl = currentRemote?.pushUrl || currentRemote?.fetchUrl || '';
   const isHttps = currentUrl.startsWith('https://') || currentUrl.startsWith('http://');
   const isSsh = currentUrl.startsWith('git@') || currentUrl.startsWith('ssh://');
 
+  // Detect Host Provider
+  const isGitHub = currentUrl.includes('github.com');
+  const isGitLab = currentUrl.includes('gitlab.com');
+  const isGiteaOrSelfHosted =
+    !isGitHub &&
+    !isGitLab &&
+    (currentUrl.includes('192.168.') ||
+      currentUrl.includes('10.') ||
+      currentUrl.includes('127.0.0.1') ||
+      currentUrl.includes('localhost') ||
+      currentUrl.includes(':222') ||
+      currentUrl.includes(':3000') ||
+      currentUrl.toLowerCase().includes('gitea') ||
+      currentUrl.toLowerCase().includes('forgejo'));
+
+  // Extract host & port for display
+  const sshHostMatch = currentUrl.match(/^(?:ssh:\/\/)?(?:[a-zA-Z0-9_.-]+@)?([a-zA-Z0-9_.-]+)(?::(\d+))?/);
+  const httpHostMatch = currentUrl.match(/^https?:\/\/([^/:]+)(?::(\d+))?/);
+  const remoteHost = (sshHostMatch && sshHostMatch[1]) || (httpHostMatch && httpHostMatch[1]) || '';
+  const remotePort = (sshHostMatch && sshHostMatch[2]) || (httpHostMatch && httpHostMatch[2]) || (isSsh ? '22' : '443');
+
   useEffect(() => {
     fetchDiagnostics();
+    fetchSshKey();
   }, []);
 
   useEffect(() => {
     if (currentUrl) {
       setCustomUrl(currentUrl);
+      setTestResult(null);
+      setProbeResult(null);
     }
   }, [currentUrl]);
 
   const fetchDiagnostics = async () => {
-    setLoadingDiag(true);
     try {
       const res = await fetch('/api/auth/diagnostics');
-      if (res.ok) {
-        setDiagnostics(await res.json());
-      }
+      if (res.ok) setDiagnostics(await res.json());
     } catch (e) {
       console.error(e);
+    }
+  };
+
+  const fetchSshKey = async () => {
+    try {
+      const res = await fetch('/api/auth/ssh-key');
+      if (res.ok) setSshKey(await res.json());
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
+  const handleCopySshKey = () => {
+    if (sshKey?.publicKey) {
+      navigator.clipboard.writeText(sshKey.publicKey);
+      setCopiedKey(true);
+      setTimeout(() => setCopiedKey(false), 3000);
+    }
+  };
+
+  const handleProbeCurrentHost = async () => {
+    if (!remoteHost) return;
+    setProbingHost(true);
+    setProbeResult(null);
+    try {
+      const res = await fetch('/api/auth/probe-host', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ host: remoteHost, port: remotePort, user: 'git' })
+      });
+      if (res.ok) {
+        setProbeResult(await res.json());
+      }
+    } catch (err: any) {
+      setProbeResult({ success: false, message: err.message || 'Host probe failed' });
     } finally {
-      setLoadingDiag(false);
+      setProbingHost(false);
     }
   };
 
@@ -89,8 +171,14 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
       setTestResult({
         remote: remoteName,
         success: data.success,
-        message: data.message
+        message: data.message,
+        rawError: data.rawError,
+        detectedProvider: data.detectedProvider,
+        sshProbe: data.sshProbe
       });
+      if (data.sshProbe) {
+        setProbeResult(data.sshProbe);
+      }
     } catch (err: any) {
       setTestResult({
         remote: remoteName,
@@ -107,20 +195,37 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     let targetUrl = currentUrl;
 
     if (isHttps) {
-      // Convert https://github.com/owner/repo.git -> git@github.com:owner/repo.git
-      const match = currentUrl.match(/https?:\/\/([^/]+)\/(.+)/);
-      if (match) {
-        const host = match[1].replace(/.*@/, '');
-        const repoPath = match[2].endsWith('.git') ? match[2] : match[2] + '.git';
-        targetUrl = `git@${host}:${repoPath}`;
-      }
-    } else if (isSsh) {
-      // Convert git@github.com:owner/repo.git -> https://github.com/owner/repo.git
-      const match = currentUrl.match(/git@([^:]+):(.+)/);
+      // Convert HTTP/HTTPS -> SSH
+      // e.g. http://192.168.0.102:3000/artsvit/Open-Pi.git -> ssh://git@192.168.0.102:222/artsvit/Open-Pi.git
+      const match = currentUrl.match(/https?:\/\/(?:[^@]+@)?([^/:]+)(?::\d+)?\/(.+)/);
       if (match) {
         const host = match[1];
         const repoPath = match[2].endsWith('.git') ? match[2] : match[2] + '.git';
-        targetUrl = `https://${host}/${repoPath}`;
+        if (host === 'github.com') {
+          targetUrl = `git@github.com:${repoPath}`;
+        } else if (host === 'gitlab.com') {
+          targetUrl = `git@gitlab.com:${repoPath}`;
+        } else {
+          // Self-hosted / local Gitea: use standard ssh protocol with port 222 or 22
+          targetUrl = `ssh://git@${host}:222/${repoPath}`;
+        }
+      }
+    } else if (isSsh) {
+      // Convert SSH -> HTTP/HTTPS
+      // e.g. ssh://git@192.168.0.102:222/artsvit/Open-Pi.git -> http://192.168.0.102:3000/artsvit/Open-Pi.git
+      // e.g. git@github.com:artemsvit/Gitler.git -> https://github.com/artemsvit/Gitler.git
+      const match = currentUrl.match(/^(?:ssh:\/\/)?(?:[a-zA-Z0-9_.-]+@)?([^/:]+)(?::\d+)?(?:\/|:)(.*)$/);
+      if (match) {
+        const host = match[1];
+        const repoPath = match[2].endsWith('.git') ? match[2] : match[2] + '.git';
+        if (host === 'github.com') {
+          targetUrl = `https://github.com/${repoPath}`;
+        } else if (host === 'gitlab.com') {
+          targetUrl = `https://gitlab.com/${repoPath}`;
+        } else {
+          // Gitea standard web port is 3000
+          targetUrl = `http://${host}:3000/${repoPath}`;
+        }
       }
     }
 
@@ -163,9 +268,9 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   const handleApplyToken = async () => {
     if (!personalToken.trim() || !currentUrl) return;
     try {
-      // Embed token into HTTPS URL: https://TOKEN@github.com/owner/repo.git
+      const isHttpProto = currentUrl.startsWith('http://');
       const cleanUrl = currentUrl.replace(/https?:\/\/([^@]+@)?/, '');
-      const tokenUrl = `https://${encodeURIComponent(personalToken.trim())}@${cleanUrl}`;
+      const tokenUrl = `${isHttpProto ? 'http://' : 'https://'}${encodeURIComponent(personalToken.trim())}@${cleanUrl}`;
       await applyNewUrl(tokenUrl);
       setPersonalToken('');
     } catch (err: any) {
@@ -175,7 +280,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
 
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 animate-in fade-in duration-200">
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-5 text-xs">
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-xl w-full p-6 shadow-2xl space-y-4 text-xs max-h-[90vh] overflow-y-auto">
         
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
@@ -185,42 +290,62 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
             </div>
             <div>
               <h3 className="font-semibold text-sm text-[var(--text-primary)]">Remote &amp; Authentication</h3>
-              <p className="text-[11px] text-[var(--text-muted)] font-mono">{repo.name} ({currentRemote?.name || 'origin'})</p>
+              <p className="text-[11px] text-[var(--text-muted)] font-mono">
+                {repo.name} &bull; Remote: <span className="text-[var(--text-primary)] font-semibold">{currentRemote?.name || 'origin'}</span>
+              </p>
             </div>
           </div>
           <button
             onClick={onClose}
-            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
+            className="p-1 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition cursor-pointer"
           >
             <X className="w-4 h-4" />
           </button>
         </div>
 
-        {/* Notice Banner */}
+        {/* Update Notice Banner */}
         {updateNotice && (
           <div className={`p-3 rounded-xl border flex items-center gap-2 ${
             updateNotice.success
-              ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-              : 'bg-rose-500/10 border-rose-500/25 text-rose-400'
+              ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
+              : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
           }`}>
-            {updateNotice.success ? <Check className="w-4 h-4 shrink-0" /> : <AlertCircle className="w-4 h-4 shrink-0" />}
-            <span className="font-mono text-[11px]">{updateNotice.message}</span>
+            {updateNotice.success ? (
+              <Check className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0" />
+            ) : (
+              <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0" />
+            )}
+            <span className="font-mono text-[11px] font-medium">{updateNotice.message}</span>
           </div>
         )}
 
-        {/* Section 1: Current Remote Configuration */}
+        {/* Section 1: Active Remote URL & Protocol Configuration */}
         <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] space-y-3">
           <div className="flex items-center justify-between">
             <span className="font-semibold text-[11px] text-[var(--text-primary)] uppercase tracking-wider font-mono">
               Active Remote URL
             </span>
-            <span className={`px-2 py-0.5 rounded-[50px] font-mono text-[10px] font-bold ${
-              isSsh
-                ? 'bg-purple-500/10 text-purple-400 border border-purple-500/25'
-                : 'bg-blue-500/10 text-blue-400 border border-blue-500/25'
-            }`}>
-              {isSsh ? 'SSH Protocol' : isHttps ? 'HTTPS Protocol' : 'Local / Custom'}
-            </span>
+            <div className="flex items-center gap-1.5">
+              {/* Provider Badge */}
+              <span className={`px-2 py-0.5 rounded-[50px] font-mono text-[10px] font-bold border ${
+                isGitHub
+                  ? 'bg-purple-100 text-purple-900 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-500/30'
+                  : isGiteaOrSelfHosted
+                  ? 'bg-amber-100 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:text-amber-300 dark:border-amber-500/30'
+                  : 'bg-blue-100 text-blue-900 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-500/30'
+              }`}>
+                {isGitHub ? 'GitHub' : isGiteaOrSelfHosted ? 'Gitea / Self-Hosted' : 'Git Server'}
+              </span>
+
+              {/* Protocol Badge */}
+              <span className={`px-2 py-0.5 rounded-[50px] font-mono text-[10px] font-bold border ${
+                isSsh
+                  ? 'bg-purple-100 text-purple-900 border-purple-200 dark:bg-purple-950/40 dark:text-purple-300 dark:border-purple-500/30'
+                  : 'bg-blue-100 text-blue-900 border-blue-200 dark:bg-blue-950/40 dark:text-blue-300 dark:border-blue-500/30'
+              }`}>
+                {isSsh ? 'SSH Protocol' : 'HTTP/S Protocol'}
+              </span>
+            </div>
           </div>
 
           <div className="flex items-center gap-2">
@@ -228,21 +353,21 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
               type="text"
               value={customUrl}
               onChange={e => setCustomUrl(e.target.value)}
-              placeholder="e.g. git@github.com:user/repo.git"
+              placeholder="e.g. ssh://git@192.168.0.102:222/user/repo.git"
               className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 font-mono text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
             />
             {customUrl !== currentUrl && (
               <button
                 onClick={() => applyNewUrl(customUrl)}
                 disabled={isUpdating}
-                className="px-3 py-2 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs whitespace-nowrap"
+                className="px-3 py-2 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs whitespace-nowrap cursor-pointer hover:opacity-90"
               >
-                Save
+                Save URL
               </button>
             )}
           </div>
 
-          {/* 1-Click Protocol Conversion CTA */}
+          {/* Quick Actions Bar */}
           <div className="flex items-center justify-between pt-1">
             <button
               onClick={handleSwitchProtocol}
@@ -252,7 +377,11 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
               <ArrowRightLeft className="w-3.5 h-3.5" />
               <span>
                 {isHttps
-                  ? 'Switch to SSH (Recommended: uses your Mac SSH key)'
+                  ? isGiteaOrSelfHosted
+                    ? 'Switch to SSH (Recommended for Gitea)'
+                    : 'Switch to SSH (Recommended: uses Mac SSH key)'
+                  : isGiteaOrSelfHosted
+                  ? 'Switch to HTTP (Port 3000 Token Auth)'
                   : 'Switch to HTTPS (uses Personal Access Token)'}
               </span>
             </button>
@@ -260,109 +389,232 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
             <button
               onClick={() => handleTestConnection(currentRemote?.name || 'origin')}
               disabled={testingRemote !== null}
-              className="px-3 py-1.5 rounded-lg border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-medium text-[11px] flex items-center gap-1.5 transition"
+              className="px-3 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-medium text-[11px] flex items-center gap-1.5 transition cursor-pointer"
             >
               <RefreshCw className={`w-3 h-3 ${testingRemote ? 'animate-spin' : ''}`} />
               <span>Test Connection</span>
             </button>
           </div>
 
-          {/* Test Result Display */}
+          {/* Test Result Display (High Contrast) */}
           {testResult && (
-            <div className={`p-2.5 rounded-lg border font-mono text-[11px] flex items-center gap-2 ${
+            <div className={`p-3 rounded-xl border font-mono text-[11px] space-y-1.5 ${
               testResult.success
-                ? 'bg-emerald-500/10 border-emerald-500/25 text-emerald-400'
-                : 'bg-rose-500/10 border-rose-500/25 text-rose-400'
+                ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
+                : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
             }`}>
-              {testResult.success ? <CheckCircle2 className="w-3.5 h-3.5 shrink-0" /> : <AlertCircle className="w-3.5 h-3.5 shrink-0" />}
-              <span>{testResult.message}</span>
+              <div className="flex items-start gap-2">
+                {testResult.success ? (
+                  <CheckCircle2 className="w-4 h-4 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
+                ) : (
+                  <AlertCircle className="w-4 h-4 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
+                )}
+                <div className="flex-1 font-medium leading-relaxed">
+                  {testResult.message}
+                </div>
+              </div>
+
+              {testResult.rawError && (
+                <div className="pt-1">
+                  <button
+                    onClick={() => setShowTechnicalDetails(!showTechnicalDetails)}
+                    className="text-[10px] text-rose-700 dark:text-rose-300 underline inline-flex items-center gap-1 cursor-pointer"
+                  >
+                    <span>{showTechnicalDetails ? 'Hide technical details' : 'Show technical error output'}</span>
+                    {showTechnicalDetails ? <ChevronUp className="w-3 h-3" /> : <ChevronDown className="w-3 h-3" />}
+                  </button>
+                  {showTechnicalDetails && (
+                    <div className="mt-2 p-2 bg-black/80 text-rose-300 rounded-lg text-[10px] font-mono overflow-x-auto whitespace-pre-wrap select-text border border-rose-500/30">
+                      {testResult.rawError}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
         </div>
 
-        {/* Section 2: Machine Authentication Diagnostics */}
-        <div className="space-y-2">
-          <span className="font-semibold text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-mono">
-            macOS System Authentication Status
-          </span>
-          <div className="grid grid-cols-2 gap-2">
-            
-            {/* SSH Status */}
-            <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] flex items-start gap-2.5">
-              <Key className="w-4 h-4 text-[var(--accent-violet)] shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-[11px] text-[var(--text-primary)]">GitHub SSH Key</div>
-                <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  {diagnostics?.sshConnected
-                    ? `✓ Active for "${diagnostics.sshUser || 'user'}"`
-                    : 'Not authenticated or key password needed'}
-                </div>
+        {/* Section 2: Gitea / Self-Hosted Server Authentication Guide */}
+        {isGiteaOrSelfHosted && (
+          <div className="p-4 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-surface)] space-y-3.5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Server className="w-4 h-4 text-[var(--accent-violet)]" />
+                <span className="font-semibold text-xs text-[var(--text-primary)]">
+                  Gitea Authentication ({remoteHost || 'Self-Hosted'}:{remotePort})
+                </span>
               </div>
+              <button
+                onClick={handleProbeCurrentHost}
+                disabled={probingHost}
+                className="text-[10px] text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1 cursor-pointer"
+              >
+                <RefreshCw className={`w-2.5 h-2.5 ${probingHost ? 'animate-spin' : ''}`} />
+                <span>Verify SSH on this host</span>
+              </button>
             </div>
 
-            {/* Keychain Helper */}
-            <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] flex items-start gap-2.5">
-              <Lock className="w-4 h-4 text-emerald-400 shrink-0 mt-0.5" />
-              <div>
-                <div className="font-semibold text-[11px] text-[var(--text-primary)]">macOS Keychain</div>
-                <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
-                  {diagnostics?.credentialHelper === 'osxkeychain'
-                    ? '✓ osxkeychain active'
-                    : 'System credentials enabled'}
+            {/* Host Probe Result */}
+            {probeResult && (
+              <div className={`p-2.5 rounded-lg border text-[11px] font-mono flex items-center gap-2 ${
+                probeResult.success
+                  ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
+                  : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
+              }`}>
+                {probeResult.success ? (
+                  <Check className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0" />
+                ) : (
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0" />
+                )}
+                <span>{probeResult.message}</span>
+              </div>
+            )}
+
+            {/* Step-by-Step Gitea Guide */}
+            <div className="space-y-2 text-[11px] text-[var(--text-secondary)] leading-relaxed">
+              <div className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5">
+                <Key className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
+                <span>Method 1: SSH Key (Recommended)</span>
+              </div>
+              <p>
+                Gitea requires your Mac&apos;s public key to authorize SSH pushes. Follow these 2 simple steps:
+              </p>
+              
+              <ol className="list-decimal list-inside space-y-1 pl-1 text-[var(--text-muted)] font-mono text-[10px]">
+                <li>Copy your public SSH key below.</li>
+                <li>In Gitea web interface: go to <strong>Settings &rarr; SSH / GPG Keys &rarr; Add Key</strong>, and paste it.</li>
+              </ol>
+
+              {/* Public Key Display & 1-Click Copy */}
+              {sshKey?.hasKey && sshKey.publicKey && (
+                <div className="pt-1">
+                  <div className="flex items-center justify-between pb-1 text-[10px] font-mono text-[var(--text-muted)]">
+                    <span>Mac Public Key ({sshKey.keyType || 'ED25519'} &bull; ~/.ssh/{sshKey.keyFile || 'id_ed25519.pub'})</span>
+                    <button
+                      onClick={handleCopySshKey}
+                      className="px-2 py-0.5 rounded-[50px] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] border border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold flex items-center gap-1 cursor-pointer transition"
+                    >
+                      {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
+                      <span>{copiedKey ? 'Copied to Clipboard!' : 'Copy Public Key'}</span>
+                    </button>
+                  </div>
+                  <div className="p-2.5 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-lg font-mono text-[10px] break-all text-[var(--text-muted)] select-all max-h-16 overflow-y-auto">
+                    {sshKey.publicKey}
+                  </div>
                 </div>
+              )}
+            </div>
+
+            {/* Method 2: HTTP / Gitea Token */}
+            <div className="pt-2 border-t border-[var(--border-subtle)] space-y-2">
+              <div className="font-semibold text-[var(--text-primary)] flex items-center gap-1.5 text-[11px]">
+                <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
+                <span>Method 2: Personal Access Token (HTTP)</span>
+              </div>
+              <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
+                In Gitea, go to <strong>Settings &rarr; Applications &rarr; Generate New Token</strong> (select <code>repo</code> scope) and paste it below:
+              </p>
+              <div className="flex items-center gap-2">
+                <input
+                  type="password"
+                  value={personalToken}
+                  onChange={e => setPersonalToken(e.target.value)}
+                  placeholder="Gitea token or password..."
+                  className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
+                />
+                <button
+                  onClick={handleApplyToken}
+                  disabled={!personalToken.trim()}
+                  className="px-3 py-1.5 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs transition disabled:opacity-40 cursor-pointer"
+                >
+                  Save Token
+                </button>
               </div>
             </div>
           </div>
-        </div>
+        )}
 
-        {/* Section 3: If HTTPS is used, Personal Access Token Helper */}
-        {isHttps && (
-          <div className="p-3.5 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-surface)] space-y-2.5">
-            <div className="flex items-center justify-between">
-              <span className="font-semibold text-[11px] text-[var(--text-primary)] flex items-center gap-1.5">
-                <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
-                <span>GitHub Personal Access Token (PAT)</span>
-              </span>
-              <a
-                href="https://github.com/settings/tokens/new?scopes=repo&description=Gitler%20macOS"
-                target="_blank"
-                rel="noreferrer"
-                className="text-[10px] text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1"
-              >
-                <span>Generate Token</span>
-                <ExternalLink className="w-2.5 h-2.5" />
-              </a>
+        {/* Section 3: GitHub Specific Authentication */}
+        {isGitHub && (
+          <div className="space-y-3">
+            <span className="font-semibold text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-mono">
+              macOS System Authentication Status
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {/* SSH Status */}
+              <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] flex items-start gap-2.5">
+                <Key className="w-4 h-4 text-[var(--accent-violet)] shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-[11px] text-[var(--text-primary)]">GitHub SSH Key</div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    {diagnostics?.sshConnected
+                      ? `✓ Active for "${diagnostics.sshUser || 'user'}"`
+                      : 'Not authenticated or key password needed'}
+                  </div>
+                </div>
+              </div>
+
+              {/* Keychain Helper */}
+              <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] flex items-start gap-2.5">
+                <Lock className="w-4 h-4 text-emerald-500 shrink-0 mt-0.5" />
+                <div>
+                  <div className="font-semibold text-[11px] text-[var(--text-primary)]">macOS Keychain</div>
+                  <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
+                    {diagnostics?.credentialHelper === 'osxkeychain'
+                      ? '✓ osxkeychain active'
+                      : 'System credentials enabled'}
+                  </div>
+                </div>
+              </div>
             </div>
-            <p className="text-[11px] text-[var(--text-muted)] leading-relaxed">
-              GitHub does not allow account passwords for Git push. Paste a Personal Access Token (`ghp_...`) with `repo` scope:
-            </p>
-            <div className="flex items-center gap-2">
-              <input
-                type="password"
-                value={personalToken}
-                onChange={e => setPersonalToken(e.target.value)}
-                placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
-                className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 font-mono text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
-              />
-              <button
-                onClick={handleApplyToken}
-                disabled={!personalToken.trim()}
-                className="px-3.5 py-2 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs transition disabled:opacity-40"
-              >
-                Authorize
-              </button>
-            </div>
+
+            {/* HTTPS GitHub Token */}
+            {isHttps && (
+              <div className="p-3.5 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-surface)] space-y-2.5">
+                <div className="flex items-center justify-between">
+                  <span className="font-semibold text-[11px] text-[var(--text-primary)] flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
+                    <span>GitHub Personal Access Token (PAT)</span>
+                  </span>
+                  <a
+                    href="https://github.com/settings/tokens/new?scopes=repo&description=Gitler%20macOS"
+                    target="_blank"
+                    rel="noreferrer"
+                    className="text-[10px] text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1"
+                  >
+                    <span>Generate Token</span>
+                    <ExternalLink className="w-2.5 h-2.5" />
+                  </a>
+                </div>
+                <div className="flex items-center gap-2">
+                  <input
+                    type="password"
+                    value={personalToken}
+                    onChange={e => setPersonalToken(e.target.value)}
+                    placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
+                    className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 font-mono text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
+                  />
+                  <button
+                    onClick={handleApplyToken}
+                    disabled={!personalToken.trim()}
+                    className="px-3.5 py-2 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs transition disabled:opacity-40 cursor-pointer"
+                  >
+                    Authorize
+                  </button>
+                </div>
+              </div>
+            )}
           </div>
         )}
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
-          <span className="text-[10px] text-[var(--text-dim)] font-mono">
-            {isSsh ? 'Pushing via native SSH agent' : 'Pushing via HTTPS / Keychain'}
+          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+            {isSsh ? 'Pushing via macOS native SSH agent' : 'Pushing via HTTP / Token credentials'}
           </span>
           <button
             onClick={onClose}
-            className="px-4 py-2 rounded-[33px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold"
+            className="px-5 py-2 rounded-[33px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition cursor-pointer"
           >
             Done
           </button>
