@@ -393,12 +393,42 @@ export async function pull(repoPath: string, remote?: string, branch?: string): 
 
 export async function fetchAll(repoPath: string): Promise<string> {
   const git = getGit(repoPath);
-  try {
-    await git.fetch(['--all']);
-    return 'Fetched remotes';
-  } catch (err: any) {
-    throw formatRemoteError(err);
+  const remotes = await git.getRemotes(true);
+  if (!remotes || remotes.length === 0) {
+    return 'No remotes configured.';
   }
+
+  if (remotes.length === 1) {
+    try {
+      await git.fetch(remotes[0].name);
+      return `Fetched ${remotes[0].name}`;
+    } catch (err: any) {
+      throw formatRemoteError(err, remotes[0].name);
+    }
+  }
+
+  const succeeded: string[] = [];
+  const failed: { name: string; message: string }[] = [];
+
+  for (const r of remotes) {
+    try {
+      await git.fetch(r.name);
+      succeeded.push(r.name);
+    } catch (err: any) {
+      const formatted = formatRemoteError(err, r.name);
+      failed.push({ name: r.name, message: formatted.message });
+    }
+  }
+
+  if (failed.length === remotes.length) {
+    throw new Error(`Failed to fetch remotes:\n${failed.map(f => `${f.name}: ${f.message}`).join('\n')}`);
+  }
+
+  if (failed.length > 0) {
+    return `Fetched ${succeeded.join(', ')} (Unreachable: ${failed.map(f => f.name).join(', ')})`;
+  }
+
+  return `Fetched ${succeeded.join(', ')}`;
 }
 
 export async function checkout(repoPath: string, branchName: string, createNew = false): Promise<string> {
