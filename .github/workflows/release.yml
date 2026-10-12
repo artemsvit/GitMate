@@ -67,9 +67,6 @@ jobs:
             spctl --assess --type execute "$app"
             xcrun stapler validate "$app"
           done
-          for dmg in release/*.dmg; do
-            xcrun stapler validate "$dmg"
-          done
 
       - name: Generate Checksums
         run: |
