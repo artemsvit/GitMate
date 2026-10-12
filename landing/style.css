@@ -778,8 +778,26 @@ a {
 }
 
 .feature-icon {
-  font-size: 26px;
+  width: 42px;
+  height: 42px;
+  border-radius: 10px;
+  background: var(--bg-surface);
+  border: 1px solid var(--border-carbon);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--accent-violet);
   margin-bottom: 16px;
+}
+
+.feature-icon svg {
+  width: 20px;
+  height: 20px;
+}
+
+.feature-card.highlight .feature-icon {
+  background: rgba(203, 176, 247, 0.15);
+  border-color: rgba(203, 176, 247, 0.3);
 }
 
 .feature-card h3 {

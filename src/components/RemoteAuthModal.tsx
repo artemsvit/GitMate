@@ -1,3 +1,4 @@
+import { apiFetch } from '../api';
 import React, { useState, useEffect } from 'react';
 import {
   X,
@@ -51,8 +52,10 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     hasKey: boolean;
     publicKey: string;
     keyPath: string;
+    keyType?: 'ed25519' | 'rsa';
   } | null>(null);
   const [copiedKey, setCopiedKey] = useState(false);
+  const [copiedTitle, setCopiedTitle] = useState(false);
   const [isRegeneratingKey, setIsRegeneratingKey] = useState(false);
 
   // System Diagnostics
@@ -107,7 +110,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
 
   const fetchDiagnostics = async () => {
     try {
-      const res = await fetch('/api/auth/diagnostics');
+      const res = await apiFetch('/api/auth/diagnostics');
       if (res.ok) setDiagnostics(await res.json());
     } catch (e) {
       console.error(e);
@@ -116,7 +119,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
 
   const fetchGitlerKey = async () => {
     try {
-      const res = await fetch('/api/auth/gitler-key');
+      const res = await apiFetch('/api/auth/gitler-key');
       if (res.ok) {
         setGitlerKey(await res.json());
       }
@@ -133,10 +136,20 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     }
   };
 
+  const handleCopyTitle = () => {
+    navigator.clipboard.writeText('gitler-app');
+    setCopiedTitle(true);
+    setTimeout(() => setCopiedTitle(false), 2500);
+  };
+
   const handleRegenerateKey = async () => {
     setIsRegeneratingKey(true);
     try {
-      const res = await fetch('/api/auth/gitler-key/regenerate', { method: 'POST' });
+      const res = await apiFetch('/api/auth/gitler-key/regenerate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ keyType: gitlerKey?.keyType || 'ed25519' })
+      });
       if (res.ok) {
         setGitlerKey(await res.json());
       }
@@ -151,7 +164,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     setTestingRemote(remoteName);
     setTestResult(null);
     try {
-      const res = await fetch('/api/repos/remotes/test', {
+      const res = await apiFetch('/api/repos/remotes/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repo.path, remoteName })
@@ -217,7 +230,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     setIsUpdating(true);
     setUpdateNotice(null);
     try {
-      const res = await fetch('/api/repos/remotes/update-url', {
+      const res = await apiFetch('/api/repos/remotes/update-url', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -415,14 +428,24 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
             {/* Public Key Display Box with 1-Click Copy */}
             <div className="rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-3 space-y-2">
               <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
-                <span>Dedicated Gitler Key &bull; <strong className="text-[var(--text-primary)]">ed25519 (gitler-app)</strong></span>
-                <button
-                  onClick={handleCopyKey}
-                  className="px-2.5 py-1 rounded-[50px] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
-                >
-                  {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
-                  <span>{copiedKey ? 'Copied to Clipboard!' : 'Copy Public Key'}</span>
-                </button>
+                <span>Dedicated Gitler Key &bull; <strong className="text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'} (gitler-app)</strong></span>
+                <div className="flex items-center gap-1.5">
+                  <button
+                    onClick={handleCopyTitle}
+                    className="px-2 py-0.5 rounded-[50px] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold flex items-center gap-1 cursor-pointer transition shadow-xs text-[10px]"
+                    title="Copy key title for Gitea 'Key Name' field"
+                  >
+                    {copiedTitle ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5 text-[var(--accent-violet)]" />}
+                    <span>{copiedTitle ? 'Title Copied' : 'Copy Title'}</span>
+                  </button>
+                  <button
+                    onClick={handleCopyKey}
+                    className="px-2.5 py-1 rounded-[50px] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
+                  >
+                    {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
+                    <span>{copiedKey ? 'Copied to Clipboard!' : 'Copy Public Key'}</span>
+                  </button>
+                </div>
               </div>
 
               <div className="p-2.5 bg-black/5 dark:bg-black/30 rounded-lg font-mono text-[10px] break-all text-[var(--text-primary)] select-all leading-relaxed max-h-20 overflow-y-auto border border-[var(--border-subtle)]">
@@ -434,11 +457,11 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
             <div className="text-[11px] text-[var(--text-muted)] space-y-1.5 pt-0.5 font-mono">
               <div className="flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-                <span>Click <strong>Copy Public Key</strong> above.</span>
+                <span>In Gitea, open <strong>Settings &rarr; SSH / GPG Keys &rarr; Add Key</strong>.</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
-                <span>In Gitea, open <strong>Settings &rarr; SSH / GPG Keys &rarr; Add Key</strong> and paste it.</span>
+                <span>Set Key Name to <code className="text-[var(--accent-violet)]">gitler-app</code> and paste the copied key into Content.</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>

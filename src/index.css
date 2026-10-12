@@ -18,6 +18,14 @@
   --accent-violet-bg: rgba(203, 176, 247, 0.12);
   --btn-primary-bg: #ffffff;
   --btn-primary-text: #080808;
+  --btn-primary-hover: #e4e4e7;
+  --btn-accent-bg: #7c3aed;
+  --btn-accent-text: #ffffff;
+  --btn-accent-hover: #6d28d9;
+  --btn-secondary-bg: #222225;
+  --btn-secondary-border: #38383c;
+  --btn-secondary-text: #f4f4f5;
+  --btn-secondary-hover: #2c2c30;
   --scrollbar-thumb: #1e1e1d;
   --selection-bg: #cbb0f7;
   --selection-text: #000000;
@@ -53,8 +61,16 @@ html.light, .light {
   --text-dim: #999895;
   --accent-violet: #6e3ad6;
   --accent-violet-bg: rgba(110, 58, 214, 0.1);
-  --btn-primary-bg: #080808;
-  --btn-primary-text: #faf9f6;
+  --btn-primary-bg: #09090b;
+  --btn-primary-text: #ffffff;
+  --btn-primary-hover: #27272a;
+  --btn-accent-bg: #6d28d9;
+  --btn-accent-text: #ffffff;
+  --btn-accent-hover: #5b21b6;
+  --btn-secondary-bg: #f4f4f5;
+  --btn-secondary-border: #d4d4d8;
+  --btn-secondary-text: #18181b;
+  --btn-secondary-hover: #e4e4e7;
   --scrollbar-thumb: #dcdbd7;
   --selection-bg: #cbb0f7;
   --selection-text: #000000;
@@ -82,9 +98,43 @@ html.light, .light {
     background-color: var(--bg-canvas);
     color: var(--text-primary);
     letter-spacing: -0.01em;
+    user-select: none;
+    -webkit-user-select: none;
   }
   code, pre, .font-mono {
     font-family: 'Geist Mono', 'JetBrains Mono', monospace;
+  }
+
+  /* Prevent text selection across all buttons and interactive controls */
+  button,
+  [role="button"],
+  input[type="button"],
+  input[type="submit"],
+  input[type="reset"] {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
+  button *,
+  [role="button"] * {
+    user-select: none !important;
+    -webkit-user-select: none !important;
+  }
+
+  /* Explicitly allow text selection in inputs, textareas, and content zones */
+  input,
+  textarea,
+  [contenteditable="true"],
+  .select-text,
+  .select-text * {
+    user-select: text;
+    -webkit-user-select: text;
+  }
+
+  .select-all,
+  .select-all * {
+    user-select: all;
+    -webkit-user-select: all;
   }
 }
 
@@ -122,4 +172,10 @@ input::selection,
 textarea::selection {
   background-color: var(--selection-bg) !important;
   color: var(--selection-text) !important;
+}
+
+/* Keep keyboard focus visible on native buttons and panel separators. */
+button:focus-visible, [role="separator"]:focus-visible {
+  outline: 2px solid var(--accent-violet);
+  outline-offset: 2px;
 }

@@ -90,10 +90,26 @@
         <aside class="mockup-sidebar">
           <div class="sidebar-header">
             <span class="folder-pill">
-              <span class="folder-icon">📁</span>
+              <span class="folder-icon" style="display:inline-flex; align-items:center;">
+                <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                  <path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path>
+                </svg>
+              </span>
               Desktop (16)
             </span>
-            <span class="theme-icon">☀️</span>
+            <span class="theme-icon" style="display:inline-flex; align-items:center;">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <circle cx="12" cy="12" r="5"></circle>
+                <line x1="12" y1="1" x2="12" y2="3"></line>
+                <line x1="12" y1="21" x2="12" y2="23"></line>
+                <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
+                <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
+                <line x1="1" y1="12" x2="3" y2="12"></line>
+                <line x1="21" y1="12" x2="23" y2="12"></line>
+                <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
+                <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
+              </svg>
+            </span>
           </div>
 
           <div class="sidebar-filters">
@@ -252,37 +268,96 @@
 
     <div class="grid-features">
       <div class="feature-card">
-        <div class="feature-icon">⚡️</div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"></polygon>
+          </svg>
+        </div>
         <h3>Instant Local Discovery</h3>
         <p>Point Gitler at your Desktop, Developer, or Projects folder. It scans recursively in milliseconds, identifying uncommitted changes, branches, and remote sync states.</p>
       </div>
 
       <div class="feature-card highlight">
-        <div class="feature-icon">🧠</div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+            <line x1="9" y1="1" x2="9" y2="4"></line>
+            <line x1="15" y1="1" x2="15" y2="4"></line>
+            <line x1="9" y1="20" x2="9" y2="23"></line>
+            <line x1="15" y1="20" x2="15" y2="23"></line>
+            <line x1="20" y1="9" x2="23" y2="9"></line>
+            <line x1="20" y1="14" x2="23" y2="14"></line>
+            <line x1="1" y1="9" x2="4" y2="9"></line>
+            <line x1="1" y1="14" x2="4" y2="14"></line>
+          </svg>
+        </div>
         <h3>100% On-Device AI Commits</h3>
         <p>Embedded MLX and Ollama integration on Apple Silicon. Generates concise, accurate Conventional Commit messages from your staged diffs. No OpenAI keys, no monthly fees, no data leaves your Mac.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">🎨</div>
-        <h3>Warp Dev Tools Aesthetic</h3>
-        <p>Flat Obsidian palettes, Phosphor Violet accents, pill buttons, and draggable panel dividers. Seamlessly switches between Dark and Paper Light themes.</p>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
+            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
+            <line x1="6" y1="6" x2="6.01" y2="6"></line>
+            <line x1="6" y1="18" x2="6.01" y2="18"></line>
+          </svg>
+        </div>
+        <h3>Self-Hosted & Local Network Git</h3>
+        <p>Seamless support for Gitea, Forgejo, GitLab, and GitHub. Includes dedicated auto-generated SSH keys, auto-sync, and native macOS Local Network Privacy compliance.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">🔒</div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="4" y1="21" x2="4" y2="14"></line>
+            <line x1="4" y1="10" x2="4" y2="3"></line>
+            <line x1="12" y1="21" x2="12" y2="12"></line>
+            <line x1="12" y1="8" x2="12" y2="3"></line>
+            <line x1="20" y1="21" x2="20" y2="16"></line>
+            <line x1="20" y1="12" x2="20" y2="3"></line>
+            <line x1="1" y1="14" x2="7" y2="14"></line>
+            <line x1="9" y1="8" x2="15" y2="8"></line>
+            <line x1="17" y1="16" x2="23" y2="16"></line>
+          </svg>
+        </div>
+        <h3>Warp Dev Tools Aesthetic</h3>
+        <p>Flat Obsidian palettes, high-contrast typography, pill buttons, and draggable panel dividers. Seamlessly switches between Dark and Paper Light themes.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
         <h3>Zero Cloud Telemetry</h3>
         <p>Gitler does not connect to any analytics or cloud databases. Your code, secrets, commit history, and diffs remain strictly on your local disk.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">📦</div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
+            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
+            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
+            <line x1="12" y1="22.08" x2="12" y2="12"></line>
+          </svg>
+        </div>
         <h3>Single Standalone macOS .dmg</h3>
-        <p>Packaged into an all-in-one native Mac application. Universal binary with Apple Notarization and built-in Sparkle auto-updates.</p>
+        <p>Packaged into an all-in-one native Mac application. Universal binary with Apple Notarization, hardened runtime, and Gatekeeper compliance.</p>
       </div>
 
       <div class="feature-card">
-        <div class="feature-icon">☕️</div>
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        </div>
         <h3>100% Free & Open Source</h3>
         <p>Built for the open source community under the MIT license. Fork it, customize the AI prompt templates, or contribute features on GitHub.</p>
       </div>
@@ -360,6 +435,8 @@
         <span class="footer-copy">© 2026 Artem Svitelskyi. Open source under the MIT License.</span>
       </div>
       <div class="footer-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
         <a href="https://github.com/artemsvit/Gitler" target="_blank" rel="noreferrer">GitHub</a>
         <a href="https://github.com/artemsvit/Gitler/releases" target="_blank" rel="noreferrer">Releases</a>
         <a href="https://github.com/artemsvit/Gitler/issues" target="_blank" rel="noreferrer">Issues</a>

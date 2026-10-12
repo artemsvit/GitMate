@@ -39,8 +39,12 @@ mac:
     NSDesktopFolderUsageDescription: "Gitler needs permission to access your Desktop to discover and manage local Git repositories."
     NSDocumentsFolderUsageDescription: "Gitler needs permission to access your Documents to discover and manage local Git repositories."
     NSDownloadsFolderUsageDescription: "Gitler needs permission to access your Downloads to discover and manage local Git repositories."
-  notarize:
-    teamId: "${APPLE_TEAM_ID}"
+    NSLocalNetworkUsageDescription: "Gitler needs permission to access your local network to connect to self-hosted Git servers such as Gitea, Forgejo, and GitLab."
+  # Resource data is sealed by its containing bundle; it does not need a separate code signature.
+  signIgnore:
+    - '\.pak$'
+    - '/MainMenu\.nib($|/)'
+  notarize: true
 
 dmg:
   title: "Install ${productName}"

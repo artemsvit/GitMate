@@ -2,6 +2,11 @@ import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
+import { execFile } from 'node:child_process';
+import { promisify } from 'node:util';
+import { isIP } from 'node:net';
+import { validateFilePath } from './security';
+const runFile = promisify(execFile);
 
 export interface RepoSummary {
   name: string;
@@ -27,6 +32,8 @@ export interface FileChange {
   indexStatus: string;
   workingDirStatus: string;
   isStaged: boolean;
+  isUnstaged: boolean;
+  originalPath?: string;
 }
 
 export interface RepoDetails extends RepoSummary {
@@ -45,41 +52,53 @@ export interface RepoDetails extends RepoSummary {
   }[];
 }
 
-function cleanStaleIndexLock(repoPath: string) {
+export function getGitSshKeyPath(): string | null {
   try {
-    const lockFile = path.join(repoPath, '.git', 'index.lock');
-    if (fs.existsSync(lockFile)) {
-      const stat = fs.statSync(lockFile);
-      if (Date.now() - stat.mtimeMs > 10000) {
-        fs.unlinkSync(lockFile);
-      }
-    }
+    const home = os.homedir();
+    const edKey = path.join(home, '.ssh', 'gitler_ed25519');
+    if (fs.existsSync(edKey)) return edKey;
+    const rsaKey = path.join(home, '.ssh', 'gitler_rsa');
+    if (fs.existsSync(rsaKey)) return rsaKey;
   } catch {}
+  return null;
 }
 
 export function getGitSshCommand(): string {
   try {
-    const home = os.homedir();
-    const keyPath = path.join(home, '.ssh', 'gitler_ed25519');
-    if (fs.existsSync(keyPath)) {
-      return `ssh -i "${keyPath}" -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15`;
+    const keyPath = getGitSshKeyPath();
+    if (keyPath) {
+      return `ssh -i '${keyPath.replace(/'/g, "'\\''")}' -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15`;
     }
   } catch {}
   return 'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15';
 }
 
 export function getGit(repoPath: string): SimpleGit {
-  cleanStaleIndexLock(repoPath);
+  // The SSH command is assembled here from a fixed command and a shell-quoted local path.
   return simpleGit({
     baseDir: repoPath,
     maxConcurrentProcesses: 4,
-    spawnOptions: {
-      env: {
-        ...process.env,
-        GIT_SSH_COMMAND: getGitSshCommand()
-      }
-    }
+    unsafe: { allowUnsafeSshCommand: true },
+    allowEnvironment: ['GIT_SSH_COMMAND']
+  }).env({
+    PATH: process.env.PATH,
+    HOME: os.homedir(),
+    TMPDIR: process.env.TMPDIR,
+    SSH_AUTH_SOCK: process.env.SSH_AUTH_SOCK,
+    LANG: process.env.LANG,
+    GIT_SSH_COMMAND: getGitSshCommand()
   });
+}
+
+function statusFiles(status: StatusResult): FileChange[] {
+  return status.files.map(file => ({
+    path: file.path,
+    originalPath: file.from,
+    indexStatus: file.index,
+    workingDirStatus: file.working_dir,
+    isStaged: file.index !== ' ' && file.index !== '?' && !status.conflicted.includes(file.path),
+    isUnstaged: file.working_dir !== ' ' || file.index === '?'
+  }));
 }
 
 export async function getRepoSummary(repoPath: string): Promise<RepoSummary> {
@@ -105,8 +124,9 @@ export async function getRepoSummary(repoPath: string): Promise<RepoSummary> {
       // Empty repo with no commits yet
     }
 
-    const stagedCount = status.staged.length + status.created.filter(f => status.staged.includes(f)).length;
-    const unstagedCount = status.not_added.length + status.modified.filter(f => !status.staged.includes(f)).length + status.deleted.filter(f => !status.staged.includes(f)).length;
+    const files = statusFiles(status);
+    const stagedCount = files.filter(f => f.isStaged).length;
+    const unstagedCount = files.filter(f => f.isUnstaged).length;
 
     return {
       name: repoName,
@@ -146,57 +166,7 @@ export async function getRepoDetails(repoPath: string): Promise<RepoDetails> {
   const summary = await getRepoSummary(repoPath);
   const status = await git.status();
 
-  const fileMap = new Map<string, FileChange>();
-
-  // Process staged files
-  for (const f of status.staged) {
-    fileMap.set(f, {
-      path: f,
-      indexStatus: 'staged',
-      workingDirStatus: 'clean',
-      isStaged: true
-    });
-  }
-
-  // Process modified files
-  for (const f of status.modified) {
-    const existing = fileMap.get(f);
-    if (existing) {
-      existing.workingDirStatus = 'modified';
-    } else {
-      fileMap.set(f, {
-        path: f,
-        indexStatus: 'unmodified',
-        workingDirStatus: 'modified',
-        isStaged: false
-      });
-    }
-  }
-
-  // Untracked / newly created files
-  for (const f of status.not_added) {
-    fileMap.set(f, {
-      path: f,
-      indexStatus: 'untracked',
-      workingDirStatus: 'created',
-      isStaged: false
-    });
-  }
-
-  // Deleted files
-  for (const f of status.deleted) {
-    const existing = fileMap.get(f);
-    if (existing) {
-      existing.workingDirStatus = 'deleted';
-    } else {
-      fileMap.set(f, {
-        path: f,
-        indexStatus: 'unmodified',
-        workingDirStatus: 'deleted',
-        isStaged: false
-      });
-    }
-  }
+  const files = statusFiles(status);
 
   // Branches
   const branchSummary = await git.branch(['-a']);
@@ -227,7 +197,7 @@ export async function getRepoDetails(repoPath: string): Promise<RepoDetails> {
 
   return {
     ...summary,
-    files: Array.from(fileMap.values()),
+    files,
     branches: {
       all: branchSummary.all,
       current: branchSummary.current || summary.currentBranch,
@@ -238,43 +208,79 @@ export async function getRepoDetails(repoPath: string): Promise<RepoDetails> {
   };
 }
 
+const PREVIEW_LIMIT = 256 * 1024;
+
+async function untrackedPreview(repoPath: string, filepath: string): Promise<string> {
+  validateFilePath(repoPath, filepath);
+  const fullPath = path.join(repoPath, filepath);
+  const stat = await fs.promises.lstat(fullPath);
+  const header = `diff --git a/${filepath} b/${filepath}\nnew file mode ${stat.isSymbolicLink() ? '120000' : '100644'}\n--- /dev/null\n+++ b/${filepath}\n`;
+  if (stat.isSymbolicLink()) {
+    return header + `@@ -0,0 +1 @@\n+${await fs.promises.readlink(fullPath)}\n`;
+  }
+  // Resolve parents too, so a symlinked directory cannot expose files outside the repository.
+  const canonical = await fs.promises.realpath(fullPath);
+  validateFilePath(repoPath, path.relative(await fs.promises.realpath(repoPath), canonical));
+  if (!stat.isFile()) return header + 'Preview unavailable for this file type.\n';
+  const handle = await fs.promises.open(canonical, 'r');
+  let content: Buffer;
+  try {
+    const buffer = Buffer.alloc(PREVIEW_LIMIT + 1);
+    const { bytesRead } = await handle.read(buffer, 0, buffer.length, 0);
+    content = buffer.subarray(0, bytesRead);
+  } finally { await handle.close(); }
+  if (content.includes(0)) return header + 'Binary file: preview unavailable.\n';
+  if (content.length > PREVIEW_LIMIT) return header + 'File exceeds the 256 KiB preview limit.\n';
+  const text = content.toString('utf8');
+  const lines = text ? text.replace(/\n$/, '').split('\n') : [];
+  return header + `@@ -0,0 +1,${lines.length} @@\n` + lines.map(line => `+${line}\n`).join('') +
+    (text && !text.endsWith('\n') ? '\\ No newline at end of file\n' : '');
+}
+
 export async function getDiff(repoPath: string, filepath?: string, staged?: boolean): Promise<string> {
   const git = getGit(repoPath);
-  const options = [];
-  if (staged) {
-    options.push('--staged');
+  if (filepath) validateFilePath(repoPath, filepath);
+  if (!staged && filepath) {
+    const status = await git.status();
+    if (status.not_added.includes(filepath)) return untrackedPreview(repoPath, filepath);
   }
-  if (filepath) {
-    options.push('--', filepath);
-  }
-  return await git.diff(options);
+  return git.raw(['--literal-pathspecs', 'diff', ...(staged ? ['--staged'] : []), '--', ...(filepath ? [filepath] : [])]);
+}
+
+function validatedFiles(repoPath: string, files?: string[]): string[] {
+  if (files !== undefined && (!Array.isArray(files) || files.length > 10000)) throw new Error('files must be a list of paths.');
+  return (files?.length ? files : ['.']).map(file => validateFilePath(repoPath, file));
 }
 
 export async function stageFiles(repoPath: string, files?: string[]): Promise<void> {
-  const git = getGit(repoPath);
-  if (!files || files.length === 0 || (files.length === 1 && files[0] === '.')) {
-    await git.add('.');
-  } else {
-    await git.add(files);
-  }
+  await getGit(repoPath).raw(['--literal-pathspecs', 'add', '--', ...validatedFiles(repoPath, files)]);
 }
 
 export async function unstageFiles(repoPath: string, files?: string[]): Promise<void> {
   const git = getGit(repoPath);
-  if (!files || files.length === 0) {
-    await git.reset(['HEAD']);
-  } else {
-    await git.reset(['HEAD', '--', ...files]);
+  const selected = validatedFiles(repoPath, files);
+  let hasHead = true;
+  try { await git.raw(['rev-parse', '--verify', 'HEAD']); } catch { hasHead = false; }
+  if (hasHead) await git.raw(['--literal-pathspecs', 'reset', 'HEAD', '--', ...selected]);
+  else await git.raw(['--literal-pathspecs', 'rm', '--cached', '-r', '--ignore-unmatch', '--', ...selected]);
+}
+
+function validateArgument(value: unknown, name: string): asserts value is string {
+  if (typeof value !== 'string' || !value || value.startsWith('-') || /[\0\r\n]/.test(value)) {
+    throw new Error(`Invalid ${name}.`);
   }
 }
 
 export async function commit(repoPath: string, message: string): Promise<string> {
   const git = getGit(repoPath);
+  if (typeof message !== 'string' || !message.trim() || message.includes('\0')) throw new Error('A commit message is required.');
   const result = await git.commit(message);
   return result.commit;
 }
 
 export async function push(repoPath: string, remote?: string, branch?: string): Promise<string> {
+  if (remote !== undefined) validateArgument(remote, 'remote');
+  if (branch !== undefined) validateArgument(branch, 'branch');
   const git = getGit(repoPath);
   const status = await git.status();
   const currentBranch = branch || status.current;
@@ -314,6 +320,8 @@ export async function push(repoPath: string, remote?: string, branch?: string): 
 }
 
 export async function pull(repoPath: string, remote?: string, branch?: string): Promise<string> {
+  if (remote !== undefined) validateArgument(remote, 'remote');
+  if (branch !== undefined) validateArgument(branch, 'branch');
   const git = getGit(repoPath);
   const status = await git.status();
   const currentBranch = branch || status.current;
@@ -376,6 +384,8 @@ export async function fetchAll(repoPath: string): Promise<string> {
 }
 
 export async function checkout(repoPath: string, branchName: string, createNew = false): Promise<string> {
+  validateArgument(branchName, 'branch');
+  if (typeof createNew !== 'boolean') throw new Error('createNew must be a boolean.');
   const git = getGit(repoPath);
   if (createNew) {
     await git.checkoutLocalBranch(branchName);
@@ -386,20 +396,26 @@ export async function checkout(repoPath: string, branchName: string, createNew =
 }
 
 export async function setRemoteUrl(repoPath: string, remoteName: string, newUrl: string): Promise<string> {
+  validateArgument(remoteName, 'remote');
+  validateArgument(newUrl, 'remote URL');
   const git = getGit(repoPath);
   await git.remote(['set-url', remoteName, newUrl]);
   return `Updated remote "${remoteName}" to ${newUrl}`;
 }
 
-export async function getOrCreateGitlerSshKey(regenerate = false): Promise<{
+export async function getOrCreateGitlerSshKey(
+  regenerate = false,
+  keyType: 'ed25519' | 'rsa' = 'ed25519'
+): Promise<{
   hasKey: boolean;
   publicKey: string;
   keyPath: string;
+  keyType: 'ed25519' | 'rsa';
 }> {
   const home = os.homedir();
   const sshDir = path.join(home, '.ssh');
-  const keyPath = path.join(sshDir, 'gitler_ed25519');
-  const pubPath = `${keyPath}.pub`;
+  const edPath = path.join(sshDir, 'gitler_ed25519');
+  const rsaPath = path.join(sshDir, 'gitler_rsa');
 
   if (!fs.existsSync(sshDir)) {
     try {
@@ -409,34 +425,49 @@ export async function getOrCreateGitlerSshKey(regenerate = false): Promise<{
 
   if (regenerate) {
     try {
-      if (fs.existsSync(keyPath)) fs.unlinkSync(keyPath);
-      if (fs.existsSync(pubPath)) fs.unlinkSync(pubPath);
+      if (fs.existsSync(edPath)) fs.unlinkSync(edPath);
+      if (fs.existsSync(`${edPath}.pub`)) fs.unlinkSync(`${edPath}.pub`);
+      if (fs.existsSync(rsaPath)) fs.unlinkSync(rsaPath);
+      if (fs.existsSync(`${rsaPath}.pub`)) fs.unlinkSync(`${rsaPath}.pub`);
     } catch {}
-  }
-
-  if (fs.existsSync(pubPath)) {
-    try {
-      const content = fs.readFileSync(pubPath, 'utf8').trim();
-      if (content) {
-        return { hasKey: true, publicKey: content, keyPath };
+  } else {
+    // Look for existing key
+    const candidates = [
+      { path: edPath, type: 'ed25519' as const },
+      { path: rsaPath, type: 'rsa' as const }
+    ];
+    for (const c of candidates) {
+      const pubPath = `${c.path}.pub`;
+      if (fs.existsSync(pubPath)) {
+        try {
+          const content = fs.readFileSync(pubPath, 'utf8').trim();
+          if (content) {
+            return { hasKey: true, publicKey: content, keyPath: c.path, keyType: c.type };
+          }
+        } catch {}
       }
-    } catch {}
+    }
   }
 
-  const { exec } = await import('child_process');
+  const selectedPath = keyType === 'rsa' ? rsaPath : edPath;
+  const selectedPub = `${selectedPath}.pub`;
+  const keygenArgs = keyType === 'rsa'
+    ? ['-t', 'rsa', '-b', '4096', '-N', '', '-C', 'gitler-app', '-f', selectedPath]
+    : ['-t', 'ed25519', '-N', '', '-C', 'gitler-app', '-f', selectedPath];
+
   await new Promise<void>((resolve, reject) => {
-    exec(`ssh-keygen -t ed25519 -N "" -C "gitler-app" -f "${keyPath}"`, (err) => {
+    execFile('ssh-keygen', keygenArgs, (err) => {
       if (err) return reject(err);
       try {
-        fs.chmodSync(keyPath, 0o600);
-        fs.chmodSync(pubPath, 0o644);
+        fs.chmodSync(selectedPath, 0o600);
+        fs.chmodSync(selectedPub, 0o644);
       } catch {}
       resolve();
     });
   });
 
-  const content = fs.readFileSync(pubPath, 'utf8').trim();
-  return { hasKey: true, publicKey: content, keyPath };
+  const content = fs.readFileSync(selectedPub, 'utf8').trim();
+  return { hasKey: true, publicKey: content, keyPath: selectedPath, keyType };
 }
 
 export async function testRemoteConnection(repoPath: string, remoteName = 'origin'): Promise<{
@@ -445,6 +476,7 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
   rawError?: string;
   detectedProvider?: string;
 }> {
+  validateArgument(remoteName, 'remote');
   const git = getGit(repoPath);
   try {
     const remotes = await git.getRemotes(true);
@@ -453,7 +485,7 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
       return { success: false, message: 'No remote configured for this repository.' };
     }
 
-    const remoteUrl = (target as any).refs?.push || (target as any).refs?.fetch || target.pushUrl || target.fetchUrl || '';
+    const remoteUrl = target.refs.push || target.refs.fetch || '';
     let detectedProvider = 'generic';
     if (remoteUrl.includes('github.com')) {
       detectedProvider = 'github';
@@ -554,14 +586,12 @@ export async function getGlobalGitConfig(): Promise<{
   userEmail: string;
   defaultBranch: string;
 }> {
-  const { exec } = await import('child_process');
-  const execCmd = (cmd: string): Promise<string> =>
-    new Promise(res => exec(cmd, (_e, stdout) => res((stdout || '').trim())));
-
+  const read = async (key: string) => {
+    try { return (await runFile('git', ['config', '--global', '--get', key])).stdout.trim(); }
+    catch { return ''; }
+  };
   const [userName, userEmail, defaultBranch] = await Promise.all([
-    execCmd('git config --global user.name'),
-    execCmd('git config --global user.email'),
-    execCmd('git config --global init.defaultBranch')
+    read('user.name'), read('user.email'), read('init.defaultBranch')
   ]);
 
   return {
@@ -576,18 +606,14 @@ export async function updateGlobalGitConfig(config: {
   userEmail?: string;
   defaultBranch?: string;
 }): Promise<void> {
-  const { exec } = await import('child_process');
-  const execCmd = (cmd: string): Promise<void> =>
-    new Promise((resolve, reject) => exec(cmd, err => (err ? reject(err) : resolve())));
-
-  if (config.userName !== undefined) {
-    await execCmd(`git config --global user.name "${config.userName.replace(/"/g, '\\"')}"`);
-  }
-  if (config.userEmail !== undefined) {
-    await execCmd(`git config --global user.email "${config.userEmail.replace(/"/g, '\\"')}"`);
-  }
-  if (config.defaultBranch !== undefined) {
-    await execCmd(`git config --global init.defaultBranch "${config.defaultBranch.replace(/"/g, '\\"')}"`);
+  if (!config || typeof config !== 'object' || Array.isArray(config)) throw new Error('Invalid Git identity settings.');
+  const fields = { userName: 'user.name', userEmail: 'user.email', defaultBranch: 'init.defaultBranch' } as const;
+  for (const [field, key] of Object.entries(fields)) {
+    const value = config[field as keyof typeof fields];
+    if (value !== undefined) {
+      if (typeof value !== 'string' || /[\0\r\n]/.test(value) || value.length > 1024) throw new Error(`Invalid ${field}.`);
+      await runFile('git', ['config', '--global', '--', key, value]);
+    }
   }
 }
 
@@ -598,13 +624,14 @@ export async function testHostSsh(host: string, port = 22): Promise<{
   message: string;
   raw: string;
 }> {
-  const { exec } = await import('child_process');
-  const keyPath = path.join(os.homedir(), '.ssh', 'gitler_ed25519');
-  const keyFlag = fs.existsSync(keyPath) ? `-i "${keyPath}" ` : '';
-  const cmd = `ssh ${keyFlag}-p ${port} -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=5 -T git@${host}`;
-
+  if (typeof host !== 'string' || host.length > 253 ||
+      (!isIP(host) && !/^(?=.{1,253}$)[a-zA-Z0-9](?:[a-zA-Z0-9.-]*[a-zA-Z0-9])?$/.test(host)) ||
+      !Number.isInteger(port) || port < 1 || port > 65535) throw new Error('Invalid SSH host or port.');
+  const keyPath = getGitSshKeyPath();
+  const args = [...(keyPath ? ['-i', keyPath] : []), '-p', String(port),
+    '-o', 'StrictHostKeyChecking=accept-new', '-o', 'BatchMode=yes', '-o', 'ConnectTimeout=5', '-T', `git@${host}`];
   return new Promise(resolve => {
-    exec(cmd, { timeout: 6000 }, (_err, stdout, stderr) => {
+    execFile('ssh', args, { timeout: 6000 }, (_err, stdout, stderr) => {
       const raw = ((stdout || '') + ' ' + (stderr || '')).trim();
       let provider = 'generic';
       if (host.includes('github.com')) provider = 'github';

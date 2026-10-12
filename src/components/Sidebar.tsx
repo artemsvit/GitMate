@@ -239,7 +239,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
 
           {/* Quick Finder Action Button */}
           <button
-            onClick={onBrowseFolder}
+            onClick={() => onBrowseFolder(currentPath)}
             title="Open native Mac Finder to select folder"
             className="px-3 py-1.5 rounded-[33px] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-subtle)] hover:border-[var(--accent-violet)] text-[var(--text-primary)] text-xs flex items-center gap-1.5 transition shrink-0"
           >
@@ -255,6 +255,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             type="text"
             value={search}
             onChange={e => setSearch(e.target.value)}
+            aria-label="Search repositories"
             placeholder="Search projects..."
             className="w-full bg-[var(--bg-surface)] border border-[var(--border-subtle)] focus:border-[var(--border-interactive)] rounded-[33px] pl-8 pr-3 py-1.5 text-xs text-[var(--text-primary)] placeholder-[var(--text-muted)] focus:outline-none transition"
           />
@@ -378,10 +379,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const changes = repo.stagedCount + repo.unstagedCount;
 
             return (
-              <div
+              <button
+                type="button"
                 key={repo.path}
+                aria-pressed={isSelected}
+                aria-label={`Select repository ${repo.name}, branch ${repo.currentBranch}`}
                 onClick={() => onSelectRepo(repo)}
-                className={`group flex items-start gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition border ${
+                className={`group w-full text-left flex items-start gap-2.5 px-3 py-2.5 rounded-xl cursor-pointer transition border ${
                   isSelected
                     ? 'bg-[var(--bg-card)] border-[var(--border-interactive)] text-[var(--text-primary)]'
                     : 'border-transparent hover:bg-[var(--bg-surface)] text-[var(--text-secondary)]'
@@ -421,7 +425,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     {changes > 0 ? (
                       <span
                         className="text-[10px] font-mono px-2 py-0.5 rounded-[50px] border border-[var(--status-dirty)]/30 bg-[var(--status-dirty-bg)] text-[var(--status-dirty)] font-semibold"
-                        title={`${changes} modified/uncommitted files`}
+                        title={`${changes} staged and unstaged file changes`}
                       >
                         {changes}
                       </span>
@@ -447,7 +451,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
                     <span className="truncate">{repo.currentBranch}</span>
                   </div>
                 </div>
-              </div>
+              </button>
             );
           })
         )}

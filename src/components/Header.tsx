@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <Cpu className="w-3.5 h-3.5" />
                 <span>
                   {aiStatus.provider === 'embedded' ? (
-                    <span className="font-semibold">Gitler Embedded Neural Engine</span>
+                    <span className="font-semibold">Gitler Commit Suggestions</span>
                   ) : (
                     <>
                       {aiStatus.provider === 'ollama' ? 'Ollama' : 'LM Studio'}:{' '}

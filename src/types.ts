@@ -22,6 +22,8 @@ export interface FileChange {
   indexStatus: string;
   workingDirStatus: string;
   isStaged: boolean;
+  isUnstaged: boolean;
+  originalPath?: string;
 }
 
 export interface RepoDetails extends RepoSummary {
@@ -59,4 +61,21 @@ export interface AICommitResult {
   source: 'embedded' | 'local-ai' | 'smart-heuristic';
   provider: string;
   model: string;
+}
+
+export interface ProviderAccount {
+  connected: boolean;
+  username?: string;
+  displayName?: string;
+  avatarUrl?: string;
+  instanceUrl?: string;
+  authMethod?: 'token' | 'gh_cli' | 'ssh';
+  sshKeySynced?: boolean;
+  lastChecked?: string;
+}
+
+export interface ProvidersStatus {
+  github: ProviderAccount;
+  gitlab: ProviderAccount;
+  gitea: ProviderAccount;
 }

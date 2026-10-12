@@ -21,9 +21,9 @@
 * **Smooth Draggable Panels**: Resizable left sidebar and right Copilot drawer with persistent width saving.
 
 ### 🤖 On-Device AI Copilot & Semantic Commit Studio
-* **Conventional Commit Generation**: Analyzes staged diffs and crafts standardized commit messages (`feat:`, `fix:`, `refactor:`, `docs:`) in milliseconds.
+* **Conventional Commit Generation**: Analyzes staged diffs and drafts conventional commit messages (`feat:`, `fix:`, `refactor:`, `docs:`) for review.
 * **Dual-Engine Architecture**:
-  * **Embedded Neural Engine**: Fast, on-device semantic heuristic engine. Zero configuration required.
+  * **Built-in Commit Suggestions**: Local, deterministic rules that draft messages from staged changes. No neural model is loaded.
   * **External Daemon (Ollama / LM Studio)**: Connects directly to local models (`llama3`, `qwen2.5-coder`, `mistral`) on `http://127.0.0.1:11434`.
 * **Zero Telemetry**: No diffs, code tokens, or private credentials ever leave your machine.
 
@@ -43,7 +43,7 @@
 ## 🚀 Getting Started
 
 ### Prerequisites
-* **Node.js**: v18.0.0 or later (Node 20+ recommended)
+* **Node.js**: v22.12.0 or later (Node 24 recommended)
 * **npm**: v9.0.0 or later
 * **Git**: System Git installed (`git --version`)
 
@@ -65,15 +65,15 @@
    npm run dev
    ```
    * Runs the Express Git backend on `http://localhost:3001`
-   * Runs the Vite React frontend on `http://localhost:5173`
-   * You can open `http://localhost:5173` in your browser or launch via Electron.
+   * Runs the Vite React frontend on `http://localhost:3000`
+   * You can open `http://localhost:3000` in your browser or launch via Electron.
 
 ---
 
 ## 🛠️ Building & Packaging
 
 ### Production Build
-Compile both the frontend bundle and standalone backend executable:
+Compile both the frontend bundle and backend CommonJS bundle (with runtime npm dependencies):
 ```bash
 npm run build
 ```
@@ -140,3 +140,18 @@ Gitler/
 Distributed under the **MIT License**. See `LICENSE` for more information.
 
 Developed with ❤️ by **Artem Svitelskyi**.
+
+## Local checks and access
+
+```sh
+npm run check          # TypeScript and temporary Git fixture tests
+npm run dev:desktop    # Build and launch Electron
+npm run dist:dir       # Build a local macOS app without publishing
+npm run verify:package # Check runtime files and updater in the packaged app
+```
+
+The API binds to `127.0.0.1`. The interface obtains a per-process session token, and API requests require it. Host and Origin checks reject unrelated websites. Repository operations accept only canonical paths found during an authorized scan. The development interface uses port 3000 and stops if that port is occupied.
+
+Stage files before generating a message or committing. Partially staged files appear in both lists, with separate index and working-tree previews. Gitler leaves Git lock files in place. Untracked text previews stop at 256 KiB; binary files show a notice. External suggestions use the detected local Ollama or LM Studio endpoint and reject redirects.
+
+Local packaging does not prove signing, notarization, or update delivery. Those checks require the release credentials and a published release.

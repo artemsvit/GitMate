@@ -1,140 +1,98 @@
-const { app, BrowserWindow, shell, ipcMain, dialog } = require('electron');
-const path = require('path');
-const { fork } = require('child_process');
+const { app, BrowserWindow, shell, ipcMain, dialog, net } = require('electron');
+const path = require('node:path');
 
-// Ensure standard macOS paths for git and ssh tools in packaged app
+// Expose Electron's Chromium net.fetch to backend server to trigger native macOS Local Network prompt
+globalThis.__electronNetFetch = (url, options) => net.fetch(url, options);
+
 const standardPaths = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
-const existingPaths = (process.env.PATH || '').split(':');
-process.env.PATH = Array.from(new Set([...standardPaths, ...existingPaths])).join(':');
-
-// Ensure SSH agent and non-interactive host key handling for packaged macOS app
+process.env.PATH = Array.from(new Set([...standardPaths, ...(process.env.PATH || '').split(':')])).join(':');
 if (!process.env.SSH_AUTH_SOCK) {
   try {
-    const { execSync } = require('child_process');
-    const sock = execSync('launchctl getenv SSH_AUTH_SOCK', { encoding: 'utf8' }).trim();
-    if (sock) process.env.SSH_AUTH_SOCK = sock;
+    process.env.SSH_AUTH_SOCK = require('node:child_process').execFileSync('launchctl', ['getenv', 'SSH_AUTH_SOCK'], { encoding: 'utf8' }).trim();
   } catch {}
 }
-if (!process.env.GIT_SSH_COMMAND) {
-  process.env.GIT_SSH_COMMAND = 'ssh -o StrictHostKeyChecking=accept-new -o BatchMode=yes -o ConnectTimeout=15';
-}
-
-ipcMain.handle('select-folder', async (_event, defaultPath) => {
-  const win = mainWindow || BrowserWindow.getFocusedWindow();
-  const options = {
-    title: 'Select Folder with Git Repositories',
-    properties: ['openDirectory', 'createDirectory'],
-    buttonLabel: 'Select Folder'
-  };
-  if (defaultPath) {
-    options.defaultPath = defaultPath;
-  }
-  const result = win ? await dialog.showOpenDialog(win, options) : await dialog.showOpenDialog(options);
-  if (result.canceled || !result.filePaths || !result.filePaths.length) {
-    return null;
-  }
-  return result.filePaths[0];
-});
 
 let mainWindow = null;
-let serverProcess = null;
+let backendServer = null;
 const isDev = process.env.NODE_ENV === 'development';
-const PORT = process.env.PORT || 3001;
+const PORT = Number(process.env.PORT || 3001);
+const interfaceURL = isDev ? 'http://localhost:3000' : `http://localhost:${PORT}`;
 
-function startBackendServer() {
+function checkSender(event) {
+  if (!mainWindow || event.sender !== mainWindow.webContents || !event.senderFrame ||
+      new URL(event.senderFrame.url).origin !== interfaceURL) {
+    throw new Error('Only the Gitler window can use this action.');
+  }
+}
+
+ipcMain.handle('select-folder', async (event, defaultPath) => {
+  checkSender(event);
+  if (defaultPath !== undefined && (typeof defaultPath !== 'string' || !path.isAbsolute(defaultPath))) {
+    throw new Error('The default folder must be an absolute path.');
+  }
+  const result = await dialog.showOpenDialog(mainWindow, {
+    title: 'Select Folder with Git Repositories',
+    properties: ['openDirectory', 'createDirectory'],
+    buttonLabel: 'Select Folder',
+    ...(defaultPath ? { defaultPath } : {})
+  });
+  return result.canceled ? null : (result.filePaths[0] || null);
+});
+
+ipcMain.handle('check-updates', async event => {
+  checkSender(event);
+  if (!app.isPackaged) return { available: false, message: 'Update checks require a packaged app.' };
+  const { autoUpdater } = require('electron-updater');
+  const result = await autoUpdater.checkForUpdates();
+  return { available: Boolean(result && autoUpdater.currentVersion.compare(result.updateInfo.version) < 0), version: result?.updateInfo?.version };
+});
+
+async function startBackendServer() {
   if (isDev) return;
-  try {
-    // When running inside packaged .app, start the Express backend in-process
-    require('../server/index.cjs');
-    console.log(`Gitler backend server initialized on port ${PORT}`);
-  } catch (err) {
-    console.error('Failed to start backend server in-process:', err);
-    try {
-      const serverScript = path.join(__dirname, '../server/index.cjs').replace('app.asar', 'app.asar.unpacked');
-      serverProcess = fork(serverScript, [], {
-        env: { ...process.env, PORT: String(PORT) },
-        silent: false
-      });
-      serverProcess.on('error', e => console.error('Fork server error:', e));
-    } catch (forkErr) {
-      console.error('Failed to fork backend server:', forkErr);
-    }
+  backendServer = require('../server/index.cjs').server;
+  if (!backendServer.listening) {
+    await new Promise((resolve, reject) => {
+      backendServer.once('listening', resolve);
+      backendServer.once('error', reject);
+    });
   }
 }
 
 function createWindow() {
   mainWindow = new BrowserWindow({
-    width: 1280,
-    height: 820,
-    minWidth: 960,
-    minHeight: 600,
-    titleBarStyle: 'hiddenInset',
-    trafficLightPosition: { x: 16, y: 16 },
-    vibrancy: 'under-window',
-    visualEffectState: 'active',
-    backgroundColor: '#000000',
+    width: 1280, height: 820, minWidth: 960, minHeight: 600,
+    titleBarStyle: 'hiddenInset', trafficLightPosition: { x: 16, y: 16 },
+    vibrancy: 'under-window', visualEffectState: 'active', backgroundColor: '#000000',
     webPreferences: {
       preload: path.join(__dirname, 'preload.cjs'),
-      nodeIntegration: false,
-      contextIsolation: true,
-      sandbox: false
+      nodeIntegration: false, contextIsolation: true, sandbox: true
     }
   });
-
-  // Open external links in default browser
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
-    if (url.startsWith('http:') || url.startsWith('https:')) {
-      shell.openExternal(url);
-      return { action: 'deny' };
-    }
-    return { action: 'allow' };
+    if (url.startsWith('http:') || url.startsWith('https:')) shell.openExternal(url);
+    return { action: 'deny' };
   });
-
-  if (isDev) {
-    mainWindow.loadURL('http://localhost:3000');
-  } else {
-    // Wait briefly for server to bind if just started, then load
-    mainWindow.loadURL(`http://localhost:${PORT}`).catch(() => {
-      setTimeout(() => mainWindow && mainWindow.loadURL(`http://localhost:${PORT}`), 1000);
-    });
-  }
-
-  mainWindow.on('closed', () => {
-    mainWindow = null;
+  mainWindow.webContents.on('will-navigate', (event, url) => {
+    if (new URL(url).origin !== interfaceURL) event.preventDefault();
   });
-
-  // Check for updates via Sparkle / electron-updater in production
-  if (!isDev) {
-    try {
-      const { autoUpdater } = require('electron-updater');
-      autoUpdater.checkForUpdatesAndNotify().catch(err => {
-        console.log('Update check error:', err);
-      });
-    } catch {
-      // Updater not available in dev or unsigned builds
-    }
+  mainWindow.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+  mainWindow.loadURL(interfaceURL).catch(error => dialog.showErrorBox('Gitler could not load', error.message));
+  mainWindow.on('closed', () => { mainWindow = null; });
+  if (app.isPackaged) {
+    require('electron-updater').autoUpdater.checkForUpdatesAndNotify().catch(error => console.log('Update check:', error.message));
   }
 }
 
-app.whenReady().then(() => {
-  startBackendServer();
-  createWindow();
-
-  app.on('activate', () => {
-    if (BrowserWindow.getAllWindows().length === 0) {
-      createWindow();
-    }
+if (!app.requestSingleInstanceLock()) app.quit();
+else {
+  app.on('second-instance', () => {
+    if (mainWindow) { if (mainWindow.isMinimized()) mainWindow.restore(); mainWindow.focus(); }
   });
-});
-
-app.on('will-quit', () => {
-  if (serverProcess) {
-    serverProcess.kill();
-  }
-});
-
-app.on('window-all-closed', () => {
-  if (process.platform !== 'darwin') {
-    app.quit();
-  }
-});
+  app.whenReady().then(async () => {
+    try { await startBackendServer(); createWindow(); }
+    catch (error) { dialog.showErrorBox('Gitler could not start', error.message); app.quit(); }
+    app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
+  });
+}
+app.on('will-quit', () => backendServer?.close());
+app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });

@@ -1,5 +1,6 @@
 import express from 'express';
-import cors from 'cors';
+import { execFile } from 'node:child_process';
+import { installAccessControl, RepositoryAccess } from './security';
 import os from 'os';
 import path from 'path';
 import fs from 'fs';
@@ -32,12 +33,37 @@ import {
   testHostSsh
 } from './gitService';
 import { detectLocalAI, generateCommitMessage } from './aiService';
+import {
+  getProvidersStatus,
+  connectProvider,
+  disconnectProvider,
+  syncSshKeyToProvider
+} from './providerService';
 
-const app = express();
-const PORT = process.env.PORT || 3001;
-
-app.use(cors());
-app.use(express.json());
+export const app = express();
+const PORT = Number(process.env.PORT || 3001);
+if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port.');
+installAccessControl(app, PORT);
+app.use(express.json({ limit: '1mb' }));
+const access = new RepositoryAccess();
+app.use('/api', (req, res, next) => {
+  const isSuggestion = req.path === '/ai/generate-commit';
+  const supplied = req.method === 'GET' ? req.query.path : (isSuggestion ? req.body?.repoPath : req.body?.path);
+  if ((req.path.startsWith('/repos/') && req.path !== '/repos/scan') || req.path === '/ai/generate-commit') {
+    try {
+      const canonical = access.resolve(supplied);
+      if (req.method === 'GET') {
+        // Express 5 query is a getter; routes read the canonical value from locals.
+        res.locals.repoPath = canonical;
+      } else if (isSuggestion) req.body.repoPath = canonical;
+      else req.body.path = canonical;
+    } catch (error: any) {
+      res.status(403).json({ error: error.message });
+      return;
+    }
+  }
+  next();
+});
 
 // Prevent aggressive browser/proxy caching for HTML and development assets
 app.use((_req, res, next) => {
@@ -75,18 +101,16 @@ app.post('/api/system/browse-folder', async (req, res) => {
   const defaultPath = req.body?.defaultPath;
   if (process.platform === 'darwin') {
     try {
-      const { exec } = await import('child_process');
-      const defaultClause = defaultPath ? ` default location POSIX file "${defaultPath.replace(/"/g, '\\"')}"` : '';
-      exec(
-        `osascript -e 'POSIX path of (choose folder with prompt "Select folder containing Git repositories:"${defaultClause})'`,
-        (error, stdout) => {
-          if (error) {
-            return res.json({ canceled: true, path: null });
-          }
-          const selected = stdout.trim().replace(/\/$/, '');
-          res.json({ canceled: false, path: selected });
-        }
-      );
+      if (defaultPath !== undefined && (typeof defaultPath !== 'string' || !path.isAbsolute(defaultPath))) {
+        return res.status(400).json({ error: 'defaultPath must be an absolute path.' });
+      }
+      const script = 'on run argv\n' +
+        (defaultPath ? 'return POSIX path of (choose folder with prompt "Select folder containing Git repositories:" default location POSIX file (item 1 of argv))\n' :
+          'return POSIX path of (choose folder with prompt "Select folder containing Git repositories:")\n') + 'end run';
+      execFile('osascript', ['-e', script, ...(defaultPath ? [defaultPath] : [])], (error, stdout) => {
+        if (error) return res.json({ canceled: true, path: null });
+        res.json({ canceled: false, path: stdout.trim().replace(/\/$/, '') });
+      });
       return;
     } catch {
       // fallback
@@ -95,11 +119,30 @@ app.post('/api/system/browse-folder', async (req, res) => {
   res.json({ canceled: true, path: null });
 });
 
+// 1c. Open macOS Local Network Privacy pane
+app.post('/api/system/open-local-network-settings', (_req, res) => {
+  if (process.platform === 'darwin') {
+    execFile('open', ['x-apple.systempreferences:com.apple.preference.security?Privacy_LocalNetwork'], () => {});
+  }
+  res.json({ success: true });
+});
+
+// 1d. Request macOS Local Network permission prompt
+app.post('/api/system/request-local-network-permission', async (_req, res) => {
+  const electronNetFetch = (globalThis as any).__electronNetFetch;
+  if (typeof electronNetFetch === 'function') {
+    try {
+      await electronNetFetch('http://255.255.255.255:1/', { method: 'GET' });
+    } catch {}
+  }
+  res.json({ success: true });
+});
+
 // 2. Scan folder for git repositories
 app.post('/api/repos/scan', async (req, res) => {
   try {
     const { rootDir, maxDepth = 3 } = req.body;
-    if (!rootDir) {
+    if (typeof rootDir !== 'string' || !path.isAbsolute(rootDir) || !Number.isInteger(maxDepth) || maxDepth < 0 || maxDepth > 5) {
       return res.status(400).json({ error: 'rootDir is required' });
     }
 
@@ -109,7 +152,7 @@ app.post('/api/repos/scan', async (req, res) => {
     const summaries = await Promise.all(
       repoPaths.map(async p => {
         try {
-          return await getRepoSummary(p);
+          return await getRepoSummary(access.register(p));
         } catch {
           return null;
         }
@@ -131,7 +174,7 @@ app.post('/api/repos/scan', async (req, res) => {
 // 3. Get repository details
 app.get('/api/repos/details', async (req, res) => {
   try {
-    const repoPath = req.query.path as string;
+    const repoPath = res.locals.repoPath as string;
     if (!repoPath) {
       return res.status(400).json({ error: 'path is required' });
     }
@@ -146,7 +189,7 @@ app.get('/api/repos/details', async (req, res) => {
 // 4. Get diff for file or entire repo
 app.get('/api/repos/diff', async (req, res) => {
   try {
-    const repoPath = req.query.path as string;
+    const repoPath = res.locals.repoPath as string;
     const filepath = req.query.file as string | undefined;
     const staged = req.query.staged === 'true';
 
@@ -311,9 +354,10 @@ app.get('/api/auth/gitler-key', async (_req, res) => {
 });
 
 // 11f. Regenerate dedicated Gitler SSH Key
-app.post('/api/auth/gitler-key/regenerate', async (_req, res) => {
+app.post('/api/auth/gitler-key/regenerate', async (req, res) => {
   try {
-    const keyInfo = await getOrCreateGitlerSshKey(true);
+    const keyType = (req.body?.keyType === 'rsa' ? 'rsa' : 'ed25519') as 'ed25519' | 'rsa';
+    const keyInfo = await getOrCreateGitlerSshKey(true, keyType);
     res.json(keyInfo);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -353,6 +397,55 @@ app.post('/api/settings/test-host', async (req, res) => {
   }
 });
 
+// 11j. Providers management (GitHub, GitLab, Gitea)
+app.get('/api/auth/providers', async (_req, res) => {
+  try {
+    const status = await getProvidersStatus();
+    res.json(status);
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/providers/connect', async (req, res) => {
+  try {
+    const { provider, token, instanceUrl } = req.body;
+    if (!provider || !token) {
+      return res.status(400).json({ error: 'provider and token are required' });
+    }
+    const result = await connectProvider({ provider, token, instanceUrl });
+    res.json(result);
+  } catch (err: any) {
+    const detail = err.cause ? (err.cause.message || err.cause.code || String(err.cause)) : '';
+    const message = detail ? `${err.message} (${detail})` : (err.message || 'Connection failed');
+    res.status(400).json({ error: message });
+  }
+});
+
+app.post('/api/auth/providers/disconnect', async (req, res) => {
+  try {
+    const { provider } = req.body;
+    if (!provider) return res.status(400).json({ error: 'provider is required' });
+    await disconnectProvider(provider);
+    res.json({ success: true });
+  } catch (err: any) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+app.post('/api/auth/providers/sync-ssh-key', async (req, res) => {
+  try {
+    const { provider } = req.body;
+    if (!provider) return res.status(400).json({ error: 'provider is required' });
+    const result = await syncSshKeyToProvider(provider);
+    res.json(result);
+  } catch (err: any) {
+    const detail = err.cause ? (err.cause.message || err.cause.code || String(err.cause)) : '';
+    const message = detail ? `${err.message} (${detail})` : (err.message || 'Sync failed');
+    res.status(400).json({ error: message });
+  }
+});
+
 // 12. Local AI status
 app.get('/api/ai/status', async (req, res) => {
   try {
@@ -372,22 +465,11 @@ app.post('/api/ai/generate-commit', async (req, res) => {
     }
 
     const details = await getRepoDetails(repoPath);
-    // Prefer staged diff, or unstaged if nothing staged
-    let diff = await getDiff(repoPath, undefined, true);
-    let changedFiles = details.files.filter(f => f.isStaged).map(f => f.path);
-
-    if (!diff || diff.trim() === '') {
-      diff = await getDiff(repoPath, undefined, false);
-      changedFiles = details.files.map(f => f.path);
-    }
-
-    if (!diff || diff.trim() === '') {
-      return res.json({
-        message: 'chore: no changes detected',
-        source: 'smart-heuristic',
-        provider: 'None',
-        model: 'None'
-      });
+    // Suggestions describe only the index, which is what Git will commit.
+    const diff = await getDiff(repoPath, undefined, true);
+    const changedFiles = details.files.filter(f => f.isStaged).map(f => f.path);
+    if (!changedFiles.length) {
+      return res.status(400).json({ error: 'Stage the changes you want to commit before generating a message.' });
     }
 
     const result = await generateCommitMessage({
@@ -439,6 +521,8 @@ if (fs.existsSync(distPath)) {
   });
 }
 
-app.listen(PORT, () => {
-  console.log(`Gitler is running at http://localhost:${PORT}`);
-});
+export function startServer() {
+  return app.listen(PORT, '127.0.0.1', () => {
+    console.log(`Gitler is running at http://127.0.0.1:${PORT}`);
+  });
+}

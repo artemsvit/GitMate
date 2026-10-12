@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { apiFetch } from './api';
+import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { MainWorkspace } from './components/MainWorkspace';
 import { AICopilotPanel } from './components/AICopilotPanel';
@@ -8,6 +9,12 @@ import { RemoteAuthModal } from './components/RemoteAuthModal';
 import { SettingsModal, SettingsTab } from './components/SettingsModal';
 import { RepoSummary, RepoDetails, LocalAIStatus } from './types';
 import { FolderGit2, FolderOpen, ShieldAlert } from 'lucide-react';
+
+function subscribeToViewport(listener: () => void) {
+  window.addEventListener('resize', listener);
+  return () => window.removeEventListener('resize', listener);
+}
+const getViewportWidth = () => window.innerWidth;
 
 export function App() {
   const [currentPath, setCurrentPath] = useState('');
@@ -41,16 +48,16 @@ export function App() {
     return (localStorage.getItem('gitler_theme') as 'dark' | 'light') || 'dark';
   });
 
-  // Panel Widths (Draggable & Persisted, default 420px)
+  // Keep the working area usable while respecting saved panel sizes.
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
     const saved = localStorage.getItem('gitler_sidebar_width');
-    if (!saved || saved === '280' || saved === '312' || saved === '380') return 420;
+    if (!saved || !Number.isFinite(Number(saved))) return 300;
     return Math.max(260, Math.min(650, Number(saved)));
   });
 
   const [copilotWidth, setCopilotWidth] = useState<number>(() => {
     const saved = localStorage.getItem('gitler_copilot_width');
-    if (!saved || saved === '340' || saved === '372') return 380;
+    if (!saved || !Number.isFinite(Number(saved))) return 320;
     return Math.max(260, Math.min(650, Number(saved)));
   });
 
@@ -58,7 +65,17 @@ export function App() {
     return localStorage.getItem('gitler_copilot_collapsed') === 'true';
   });
 
+  const viewportWidth = useSyncExternalStore(subscribeToViewport, getViewportWidth);
+  const [isCopilotOverlayOpen, setIsCopilotOverlayOpen] = useState(false);
+  const effectiveSidebarWidth = Math.max(260, Math.min(sidebarWidth, viewportWidth - 644));
+  const needsCompactCopilot = viewportWidth - effectiveSidebarWidth - copilotWidth < 600;
+  const effectiveCopilotCollapsed = needsCompactCopilot ? !isCopilotOverlayOpen : isCopilotCollapsed;
+
   const handleToggleCopilotCollapse = () => {
+    if (needsCompactCopilot) {
+      setIsCopilotOverlayOpen(open => !open);
+      return;
+    }
     setIsCopilotCollapsed(prev => {
       const next = !prev;
       localStorage.setItem('gitler_copilot_collapsed', String(next));
@@ -91,7 +108,7 @@ export function App() {
     e.preventDefault();
     setIsResizingSidebar(true);
     const startX = e.clientX;
-    const startWidth = sidebarWidth;
+    const startWidth = effectiveSidebarWidth;
 
     const onMouseMove = (moveEvent: MouseEvent) => {
       const delta = moveEvent.clientX - startX;
@@ -149,8 +166,8 @@ export function App() {
     const init = async () => {
       try {
         const [folderRes, aiRes] = await Promise.all([
-          fetch('/api/system/folders'),
-          fetch('/api/ai/status')
+          apiFetch('/api/system/folders'),
+          apiFetch('/api/ai/status')
         ]);
 
         let targetFolder = localStorage.getItem('gitler_selected_folder');
@@ -190,7 +207,7 @@ export function App() {
     localStorage.setItem('gitler_selected_folder', path);
 
     try {
-      const res = await fetch('/api/repos/scan', {
+      const res = await apiFetch('/api/repos/scan', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ rootDir: path, maxDepth: depth })
@@ -239,12 +256,12 @@ export function App() {
         if (selected) {
           setPermissionPromptFolder(null);
           handleScan(selected, 3);
-          return;
         }
+        return;
       }
 
       // 2. Web browser fallback via server
-      const res = await fetch('/api/system/browse-folder', {
+      const res = await apiFetch('/api/system/browse-folder', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ defaultPath: targetDefault })
@@ -268,7 +285,7 @@ export function App() {
 
   const refreshAIStatus = async () => {
     try {
-      const res = await fetch('/api/ai/status');
+      const res = await apiFetch('/api/ai/status');
       if (res.ok) setAIStatus(await res.json());
     } catch (e) {
       console.error(e);
@@ -289,7 +306,7 @@ export function App() {
       theme={theme}
       onToggleTheme={handleToggleTheme}
       onOpenSettings={() => handleOpenSettings('providers')}
-      width={sidebarWidth}
+      width={effectiveSidebarWidth}
     />
   );
 
@@ -303,8 +320,8 @@ export function App() {
         onOpenSettings={() => handleOpenSettings('ai')}
         onCommitSuccess={() => handleScan(currentPath)}
         onOpenRemoteAuth={() => setAuthModalRepo(selectedRepo)}
-        width={copilotWidth}
-        isCollapsed={isCopilotCollapsed}
+        width={Math.min(copilotWidth, viewportWidth - 60)}
+        isCollapsed={effectiveCopilotCollapsed}
         onToggleCollapse={handleToggleCopilotCollapse}
       />
     ) : null
@@ -363,12 +380,27 @@ export function App() {
 
         {/* Drag Handle: Sidebar */}
         <div
+          role="separator"
+          tabIndex={0}
+          aria-label="Repository sidebar width"
+          aria-orientation="vertical"
+          aria-valuemin={260}
+          aria-valuemax={650}
+          aria-valuenow={effectiveSidebarWidth}
+          onKeyDown={event => {
+            if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+              event.preventDefault();
+              const width = Math.max(260, Math.min(650, effectiveSidebarWidth + (event.key === 'ArrowRight' ? 20 : -20)));
+              setSidebarWidth(width);
+              localStorage.setItem('gitler_sidebar_width', String(width));
+            }
+          }}
           onMouseDown={handleSidebarMouseDown}
           onDoubleClick={() => {
-            setSidebarWidth(420);
-            localStorage.setItem('gitler_sidebar_width', '420');
+            setSidebarWidth(300);
+            localStorage.setItem('gitler_sidebar_width', '300');
           }}
-          title="Drag to resize repositories sidebar (Double-click to reset to 420px)"
+          title="Drag to resize repositories sidebar (Double-click to reset to 300px)"
           className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
             isResizingSidebar ? 'bg-[var(--accent-violet)]/30' : 'hover:bg-[var(--accent-violet)]/20'
           } transition-colors`}
@@ -383,12 +415,27 @@ export function App() {
         {renderMainWorkspace()}
 
         {/* Drag Handle: AI Copilot */}
-        {selectedRepo && !isCopilotCollapsed && (
+        {selectedRepo && !effectiveCopilotCollapsed && !needsCompactCopilot && (
           <div
+            role="separator"
+            tabIndex={0}
+            aria-label="Copilot panel width"
+            aria-orientation="vertical"
+            aria-valuemin={260}
+            aria-valuemax={650}
+            aria-valuenow={copilotWidth}
+            onKeyDown={event => {
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                event.preventDefault();
+                const width = Math.max(260, Math.min(650, copilotWidth + (event.key === 'ArrowLeft' ? 20 : -20)));
+                setCopilotWidth(width);
+                localStorage.setItem('gitler_copilot_width', String(width));
+              }
+            }}
             onMouseDown={handleCopilotMouseDown}
             onDoubleClick={() => {
-              setCopilotWidth(380);
-              localStorage.setItem('gitler_copilot_width', '380');
+              setCopilotWidth(320);
+              localStorage.setItem('gitler_copilot_width', '320');
             }}
             title="Drag to resize AI Copilot panel (Double-click to reset)"
             className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
@@ -403,7 +450,11 @@ export function App() {
           </div>
         )}
 
-        {renderAICopilot()}
+        {needsCompactCopilot && isCopilotOverlayOpen ? (
+          <div className="fixed right-0 top-0 bottom-7 z-40 bg-[var(--bg-canvas)] shadow-2xl border-l border-[var(--border-interactive)]">
+            {renderAICopilot()}
+          </div>
+        ) : renderAICopilot()}
       </div>
 
       {/* Bottom Status Bar */}

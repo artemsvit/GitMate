@@ -1,38 +1,41 @@
 {
   "name": "gitler",
   "version": "1.0.0",
-  "description": "",
+  "description": "A local Git client for macOS",
   "main": "electron/main.cjs",
   "type": "module",
   "scripts": {
-    "start": "tsx server/index.ts",
-    "server": "tsx server/index.ts",
+    "start": "tsx server/main.ts",
+    "server": "NODE_ENV=development tsx server/main.ts",
     "client": "vite",
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,magenta\" \"npm run server\" \"npm run client\"",
     "build:client": "vite build",
-    "build:server": "esbuild server/index.ts --bundle --platform=node --format=cjs --packages=external --outfile=server/index.cjs",
-    "build": "npm run build:client && npm run build:server",
+    "build:server": "esbuild server/main.ts --bundle --platform=node --format=cjs --packages=external --outfile=server/index.cjs",
+    "build": "npm run typecheck && npm run build:client && npm run build:server",
     "dist:mac": "npm run build && electron-builder --mac dmg zip",
-    "dist:dir": "npm run build && electron-builder --mac dir"
+    "dist:dir": "npm run build && electron-builder --mac dir --publish never",
+    "typecheck": "tsc --noEmit",
+    "test": "tsx --test tests/*.test.ts",
+    "check": "npm run typecheck && npm test",
+    "dev:desktop": "npm run build && electron .",
+    "verify:package": "node scripts/verify-package.cjs"
   },
   "dependencies": {
-    "cors": "^2.8.6",
     "dotenv": "^18.0.7",
     "express": "^5.3.0",
-    "simple-git": "^4.0.2"
+    "simple-git": "^4.0.2",
+    "electron-updater": "^6.8.9"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
-    "@types/cors": "^2.8.19",
     "@types/express": "^5.0.6",
     "@types/node": "^26.6.5",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "@vitejs/plugin-react": "^6.1.2",
     "concurrently": "^10.0.6",
-    "electron": "^33.2.1",
-    "electron-builder": "^25.1.8",
-    "electron-updater": "^6.3.9",
+    "electron": "^44.7.0",
+    "electron-builder": "^26.15.3",
     "lucide-react": "^1.55.0",
     "react": "^19.3.0",
     "react-dom": "^19.3.0",
@@ -40,5 +43,9 @@
     "tsx": "^4.23.15",
     "typescript": "^7.0.2",
     "vite": "^8.3.4"
+  },
+  "author": "Artem Svitelskyi",
+  "engines": {
+    "node": ">=22.12.0"
   }
 }

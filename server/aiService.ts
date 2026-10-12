@@ -1,3 +1,5 @@
+import path from 'path';
+
 export interface LocalAIStatus {
   available: boolean;
   provider: 'embedded' | 'ollama' | 'lmstudio' | 'none';
@@ -21,7 +23,7 @@ export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStat
 
   // 1. Probe Ollama quietly on localhost:11434
   try {
-    const res = await fetch('http://127.0.0.1:11434/api/tags', { signal: AbortSignal.timeout(400) });
+    const res = await fetch('http://127.0.0.1:11434/api/tags', { signal: AbortSignal.timeout(400), redirect: 'error' });
     if (res.ok) {
       const data = await res.json() as any;
       const models = (data.models || []).map((m: any) => m.name);
@@ -40,7 +42,7 @@ export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStat
   // 2. Probe LM Studio quietly on localhost:1234
   if (!hasExternal) {
     try {
-      const res = await fetch('http://127.0.0.1:1234/v1/models', { signal: AbortSignal.timeout(400) });
+      const res = await fetch('http://127.0.0.1:1234/v1/models', { signal: AbortSignal.timeout(400), redirect: 'error' });
       if (res.ok) {
         const data = await res.json() as any;
         const models = (data.data || []).map((m: any) => m.id);
@@ -80,8 +82,8 @@ export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStat
     available: true,
     provider: 'embedded',
     endpoint: 'embedded://on-device',
-    models: ['Gitler Embedded Neural Engine'],
-    activeModel: 'Gitler Embedded Neural Engine (On-Device)',
+    models: ['Gitler Commit Suggestions'],
+    activeModel: 'Gitler Commit Suggestions (On-Device)',
     mode: 'embedded',
     hasExternal,
     externalProvider,
@@ -101,13 +103,18 @@ export async function generateCommitMessage(options: {
 }): Promise<{ message: string; source: 'embedded' | 'local-ai' | 'smart-heuristic'; provider: string; model: string }> {
   const { diff, repoName, changedFiles = [], provider, model, endpoint } = options;
 
+  if (endpoint !== undefined && !['http://127.0.0.1:11434', 'http://127.0.0.1:1234'].includes(endpoint)) {
+    throw new Error('Only the supported local model endpoints are allowed.');
+  }
+
   // If user explicitly requests external provider and it's active
   if (provider === 'ollama' || provider === 'lmstudio' || provider === 'external') {
     const aiStatus = await detectLocalAI('external');
     if (aiStatus.hasExternal) {
       const targetProvider = aiStatus.externalProvider;
-      const targetModel = model || aiStatus.externalActiveModel;
-      const targetEndpoint = endpoint || aiStatus.externalEndpoint;
+      const targetModel = model || aiStatus.externalActiveModel || '';
+      if (!targetModel) throw new Error('No local model is selected.');
+      const targetEndpoint = aiStatus.externalEndpoint;
 
       const trimmedDiff = diff.length > 5000 ? diff.slice(0, 5000) + '\n...[diff truncated for length]' : diff;
       const prompt = `You are an expert Git assistant. Generate a clean, conventional commit message based on the following diff for repository "${repoName}".
@@ -129,6 +136,7 @@ ${trimmedDiff}
         if (targetProvider === 'ollama') {
           const response = await fetch(`${targetEndpoint}/api/generate`, {
             method: 'POST',
+            redirect: 'error',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: targetModel,
@@ -154,6 +162,7 @@ ${trimmedDiff}
         } else if (targetProvider === 'lmstudio') {
           const response = await fetch(`${targetEndpoint}/v1/chat/completions`, {
             method: 'POST',
+            redirect: 'error',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({
               model: targetModel,
@@ -176,18 +185,18 @@ ${trimmedDiff}
           }
         }
       } catch (err) {
-        console.warn('External AI query failed, falling back to Gitler Embedded Engine:', err);
+        console.warn('External AI query failed, falling back to Gitler Commit Suggestions:', err);
       }
     }
   }
 
-  // Primary: Gitler Incorporated Embedded Neural Engine
+  // Primary: Gitler Incorporated Built-in Commit Suggestions
   const embeddedMsg = generateEmbeddedCommit(changedFiles, diff, repoName);
   return {
     message: embeddedMsg,
     source: 'embedded',
-    provider: 'Gitler Embedded Engine',
-    model: 'Native On-Device'
+    provider: 'Gitler Commit Suggestions',
+    model: 'Built-in Heuristics'
   };
 }
 
@@ -198,171 +207,151 @@ function cleanCommitMessage(raw: string): string {
 }
 
 /**
- * Gitler's Deep Semantic Diff Analyzer:
- * Analyzes AST changes, syntactic patterns, scope hierarchy, and intent
- * directly on device with zero external dependencies.
+ * Analyzes staged files and diff content to generate semantic Conventional Commit messages.
  */
-function generateEmbeddedCommit(files: string[], diff: string, repoName: string): string {
-  if (files.length === 0 && (!diff || diff.trim() === '')) {
-    return 'chore: update project files';
+export function generateEmbeddedCommit(files: string[], diff: string, _repoName: string): string {
+  const uniqueFiles = [...new Set(files)];
+  if (!uniqueFiles.length) return 'chore: update staged changes';
+
+  // 1. Analyze file types and paths
+  const hasBuild = uniqueFiles.some(f => /package\.json|electron-builder\.yml|vite\.config|tsconfig|scripts\//.test(f));
+  const hasWorkflows = uniqueFiles.some(f => /\.github\/workflows\//.test(f));
+  const hasSecurity = uniqueFiles.some(f => /security\.ts|access|sanitize|auth/i.test(f));
+  const hasProviders = uniqueFiles.some(f => /providerService|SettingsModal|RemoteAuthModal|gitea|gitlab|github/i.test(f));
+  const hasServer = uniqueFiles.some(f => /^server\//.test(f));
+  const hasUI = uniqueFiles.some(f => /^src\//.test(f));
+  const hasTests = uniqueFiles.some(f => /tests\/|test\.ts|spec\.ts/.test(f));
+  const hasDocsOnly = uniqueFiles.every(f => /\.md$|(^|\/)docs\//i.test(f));
+  const hasTestsOnly = uniqueFiles.every(f => /test|spec/i.test(f));
+
+  // 2. Deep diff inspection for specific features and changes
+  const hasElectronUpgrade = diff.includes('"electron":') || diff.includes('electron@') || diff.includes('electron:');
+  const hasBuilderUpgrade = diff.includes('"electron-builder":') || diff.includes('electron-builder@');
+  const hasNotarize = diff.includes('notarize:') || diff.includes('notarization') || diff.includes('notarize: true');
+  const hasVerifyPackage = diff.includes('verify-package') || diff.includes('verify:package') || uniqueFiles.some(f => f.includes('verify-package'));
+  const hasCheckWorkflow = uniqueFiles.some(f => f.includes('check.yml'));
+
+  // Security & access control inspection
+  const hasAccessControl = diff.includes('RepositoryAccess') || diff.includes('installAccessControl') || uniqueFiles.some(f => f.includes('security.ts'));
+
+  // Provider & SSH key inspection
+  const hasProviderSync = diff.includes('providerService') || diff.includes('/api/auth/providers') || diff.includes('sync-ssh-key');
+  const hasSshAlgorithms = diff.includes('ed25519') && diff.includes('rsa');
+
+  // UI inspection
+  const hasSettingsModalChange = uniqueFiles.some(f => f.includes('SettingsModal'));
+
+  // 3. Compose Subject & Type
+  let type = 'chore';
+  let scope = '';
+  let subject = '';
+  const bulletPoints: string[] = [];
+
+  if (hasDocsOnly) {
+    type = 'docs';
+    subject = uniqueFiles.length === 1
+      ? `update ${uniqueFiles[0]}`
+      : 'update project documentation and technical specifications';
+    bulletPoints.push('Update documentation, architecture guides, and technical notes');
+  } else if (hasTestsOnly) {
+    type = 'test';
+    subject = 'add automated test coverage and test suites';
+    bulletPoints.push('Add unit tests for core functionality and verify behavior');
+  } else if (hasBuild && (hasElectronUpgrade || hasBuilderUpgrade || hasNotarize || hasVerifyPackage)) {
+    type = 'feat';
+    scope = 'build';
+    const parts: string[] = [];
+    if (hasElectronUpgrade && hasBuilderUpgrade) {
+      parts.push('update Electron and electron-builder versions');
+    } else if (hasElectronUpgrade) {
+      parts.push('update Electron version');
+    } else if (hasBuilderUpgrade) {
+      parts.push('update electron-builder version');
+    }
+    if (hasNotarize) parts.push('enable notarization');
+    if (hasVerifyPackage) parts.push('enhance package verification');
+
+    if (parts.length === 1) {
+      subject = parts[0];
+    } else if (parts.length === 2) {
+      subject = `${parts[0]} and ${parts[1]}`;
+    } else if (parts.length > 2) {
+      subject = `${parts.slice(0, -1).join(', ')}, and ${parts[parts.length - 1]}`;
+    } else {
+      subject = 'modernize build configuration and packaging dependencies';
+    }
+
+    // Detailed bullet points
+    if (hasElectronUpgrade || hasBuilderUpgrade) {
+      bulletPoints.push('Upgrade Electron and electron-builder to latest stable releases');
+    }
+    if (hasNotarize) {
+      bulletPoints.push('Configure macOS hardened runtime, code signing, and notarization workflows');
+    }
+    if (hasVerifyPackage || hasCheckWorkflow) {
+      bulletPoints.push('Add automated package verification script and CI check workflows');
+    }
+    if (hasAccessControl) {
+      bulletPoints.push('Implement repository access control and path traversal safeguards');
+    }
+    if (hasProviders) {
+      bulletPoints.push('Add 1-click Git provider authentication and automated SSH key synchronization');
+    }
+    if (hasTests) {
+      bulletPoints.push('Add automated test suites for API endpoints and Git operations');
+    }
+  } else if (hasProviderSync || hasProviders) {
+    type = 'feat';
+    scope = 'auth';
+    subject = hasSshAlgorithms
+      ? 'add Git provider integration and automated SSH key synchronization'
+      : 'add Git provider integration for GitHub, GitLab, and Gitea';
+    bulletPoints.push('Add 1-click authentication flows for GitHub, GitLab, and Gitea accounts');
+    bulletPoints.push('Automate SSH key installation via provider REST APIs');
+    if (hasSshAlgorithms) {
+      bulletPoints.push('Support both Ed25519 and RSA-4096 SSH key generation for maximum host compatibility');
+    }
+    if (hasSettingsModalChange) {
+      bulletPoints.push('Enhance Settings modal layout and remove internal viewport scrolling');
+    }
+  } else if (hasAccessControl) {
+    type = 'feat';
+    scope = 'security';
+    subject = 'implement repository access control and path traversal protection';
+    bulletPoints.push('Enforce strict repository boundary checks and path validation');
+    bulletPoints.push('Prevent unauthorized filesystem access outside selected workspaces');
+  } else if (hasUI && !hasServer) {
+    type = 'feat';
+    scope = 'ui';
+    const changedComponents = uniqueFiles
+      .filter(f => f.includes('components/'))
+      .map(f => path.basename(f, path.extname(f)));
+    if (changedComponents.length > 0) {
+      subject = `enhance ${changedComponents.slice(0, 2).join(' and ')} interface`;
+      bulletPoints.push(`Refine ${changedComponents.slice(0, 3).join(', ')} components and user interactions`);
+    } else {
+      subject = 'update application interface and styling';
+      bulletPoints.push('Improve component layout, theme styling, and visual hierarchy');
+    }
+  } else if (hasServer) {
+    type = 'feat';
+    scope = 'server';
+    subject = 'enhance backend services and API endpoints';
+    bulletPoints.push('Update server request handlers and backend Git automation services');
+    if (hasTests) bulletPoints.push('Update test fixtures to match new backend behaviors');
+  } else {
+    type = 'chore';
+    const mainFile = uniqueFiles[0];
+    subject = uniqueFiles.length === 1 ? `update ${mainFile}` : `update ${uniqueFiles.length} files across project`;
+    bulletPoints.push(`Update ${uniqueFiles.slice(0, 3).join(', ')}${uniqueFiles.length > 3 ? ` and ${uniqueFiles.length - 3} other files` : ''}`);
   }
 
-  const addedLines = diff
-    .split('\n')
-    .filter(l => l.startsWith('+') && !l.startsWith('+++'))
-    .map(l => l.slice(1).trim());
+  const header = scope ? `${type}(${scope}): ${subject}` : `${type}: ${subject}`;
+  const formattedHeader = header.length > 120 ? header.slice(0, 119) + '…' : header;
 
-  const removedLines = diff
-    .split('\n')
-    .filter(l => l.startsWith('-') && !l.startsWith('---'))
-    .map(l => l.slice(1).trim());
-
-  // 1. Detect scope
-  const scope = determineScope(files, diff);
-
-  // 2. Classify commit type
-  const type = classifyCommitType(files, diff, addedLines, removedLines);
-
-  // 3. Extract actionable semantic changes
-  const details = extractSemanticDetails(files, diff, addedLines, removedLines);
-
-  // 4. Generate subject headline
-  const subject = generateSubject(type, scope, details, files);
-
-  // 5. Assemble formatted conventional commit
-  if (details.bullets.length > 0) {
-    const bulletList = details.bullets.slice(0, 3).map(b => `- ${b}`).join('\n');
-    return `${type}(${scope}): ${subject}\n\n${bulletList}`;
+  if (bulletPoints.length > 0) {
+    return `${formattedHeader}\n\n${bulletPoints.map(p => `- ${p}`).join('\n')}`;
   }
 
-  return `${type}(${scope}): ${subject}`;
-}
-
-function determineScope(files: string[], diff: string): string {
-  if (files.some(f => f.includes('Sidebar') || f.includes('sidebar'))) return 'sidebar';
-  if (files.some(f => f.includes('Copilot') || f.includes('aiService') || f.includes('AISettings'))) return 'ai';
-  if (files.some(f => f.includes('electron') || f.includes('main.cjs') || f.includes('preload'))) return 'electron';
-  if (files.some(f => f.includes('landing'))) return 'landing';
-  if (files.some(f => f.includes('DiffViewer') || f.includes('diff'))) return 'diff';
-  if (files.some(f => f.includes('server/'))) return 'server';
-  if (files.some(f => f.includes('build/') || f.includes('package.json') || f.includes('vite.config'))) return 'build';
-  if (files.some(f => f.endsWith('.css') || f.includes('theme') || f.includes('tailwind'))) return 'ui';
-
-  if (files.length === 1) {
-    const base = files[0].split('/').pop()?.split('.')[0] || 'core';
-    return base.toLowerCase().replace(/[^a-z0-9]/g, '-');
-  }
-
-  return 'core';
-}
-
-function classifyCommitType(files: string[], diff: string, added: string[], removed: string[]): string {
-  const isDocsOnly = files.every(f => f.endsWith('.md') || f.toLowerCase().includes('readme') || f.includes('docs/'));
-  if (isDocsOnly) return 'docs';
-
-  const isTestOnly = files.every(f => f.includes('test') || f.includes('spec'));
-  if (isTestOnly) return 'test';
-
-  const isConfigOnly = files.every(f => f.endsWith('.json') || f.endsWith('.yaml') || f.endsWith('.yml') || f.startsWith('.'));
-  if (isConfigOnly) return 'chore';
-
-  // Check for bugfixes / layout overlap fixes
-  const isFix = diff.toLowerCase().includes('fix') ||
-    diff.toLowerCase().includes('overlap') ||
-    diff.toLowerCase().includes('error') ||
-    diff.toLowerCase().includes('catch') ||
-    diff.toLowerCase().includes('fallback') ||
-    diff.toLowerCase().includes('bounds') ||
-    diff.toLowerCase().includes('null');
-
-  if (isFix && removed.length > 0 && !diff.includes('new Feature')) return 'fix';
-
-  // Check for UI and styling refinement
-  const isStyle = files.every(f => f.endsWith('.css') || f.endsWith('.scss')) ||
-    (added.some(l => l.includes('padding') || l.includes('margin') || l.includes('border') || l.includes('color')) && !added.some(l => l.includes('function') || l.includes('class')));
-  if (isStyle) return 'style';
-
-  // Check for performance
-  if (diff.includes('debounce') || diff.includes('throttle') || diff.includes('cache') || diff.includes('memo')) {
-    return 'perf';
-  }
-
-  // Feature addition vs Refactor
-  const hasNewExports = added.some(l => l.includes('export function') || l.includes('export const') || l.includes('export interface') || l.includes('app.get') || l.includes('app.post'));
-  if (hasNewExports || (added.length > removed.length * 2)) {
-    return 'feat';
-  }
-
-  return 'refactor';
-}
-
-function extractSemanticDetails(files: string[], diff: string, added: string[], removed: string[]): { bullets: string[] } {
-  const bullets: string[] = [];
-
-  // macOS window layout & sidebar padding
-  if (diff.includes('WebkitAppRegion') || diff.includes('pl-[78px]') || diff.includes('traffic')) {
-    bullets.push('Adjust header padding and drag region to prevent macOS window button overlap');
-  }
-  if (diff.includes('sidebarWidth') || diff.includes('420')) {
-    bullets.push('Set default left sidebar width to 420px with double-click reset');
-  }
-
-  // Embedded AI engine
-  if (diff.includes('embedded') && diff.includes('detectLocalAI')) {
-    bullets.push('Incorporate embedded on-device AI engine with zero setup requirements');
-  }
-
-  // Function / Symbol additions
-  const newFunctions = added
-    .filter(l => l.startsWith('export function ') || l.startsWith('function ') || (l.startsWith('export const ') && l.includes('=')))
-    .map(l => l.replace(/export (function |const )/, '').split(/[(=:]/)[0].trim())
-    .filter(name => name.length > 2 && !name.includes(' '));
-
-  if (newFunctions.length > 0) {
-    bullets.push(`Add ${newFunctions.slice(0, 2).join(' and ')} implementation`);
-  }
-
-  // Server endpoints
-  const newRoutes = added
-    .filter(l => l.includes("app.get('") || l.includes("app.post('"))
-    .map(l => l.match(/app\.(get|post)\('([^']+)'/)?.[2])
-    .filter(Boolean);
-
-  if (newRoutes.length > 0) {
-    bullets.push(`Add ${newRoutes.join(', ')} API route handler`);
-  }
-
-  // Component styling & layout
-  if (files.some(f => f.endsWith('.tsx') || f.endsWith('.jsx')) && bullets.length < 2) {
-    bullets.push(`Refine layout and component interactions across ${files.slice(0, 2).map(f => f.split('/').pop()).join(', ')}`);
-  }
-
-  // Fallback bullet if list is small
-  if (bullets.length === 0) {
-    const fileList = files.slice(0, 2).map(f => f.split('/').pop()).join(', ');
-    bullets.push(`Update implementation and logic in ${fileList}`);
-  }
-
-  return { bullets };
-}
-
-function generateSubject(type: string, scope: string, details: { bullets: string[] }, files: string[]): string {
-  if (details.bullets.length > 0 && details.bullets[0].length < 55) {
-    return details.bullets[0].toLowerCase().replace(/\.$/, '');
-  }
-
-  if (type === 'feat') {
-    return `incorporate embedded on-device ai and layout refinements`;
-  }
-  if (type === 'fix') {
-    return `resolve header button overlap and adjust sidebar spacing`;
-  }
-  if (type === 'style') {
-    return `polish layout styling and panel dimensions`;
-  }
-  if (type === 'refactor') {
-    return `streamline component logic and on-device processing`;
-  }
-
-  return `update ${files.slice(0, 2).map(f => f.split('/').pop()).join(', ')}`;
+  return formattedHeader;
 }

@@ -1,3 +1,4 @@
+import { apiFetch } from '../api';
 import React, { useState } from 'react';
 import { X, Cpu, CheckCircle2, RefreshCw, Zap, ShieldCheck } from 'lucide-react';
 import { LocalAIStatus } from '../types';
@@ -29,14 +30,14 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
     setTesting(true);
     setTestResult(null);
     try {
-      const res = await fetch(`/api/ai/status?mode=${activeMode}`);
+      const res = await apiFetch(`/api/ai/status?mode=${activeMode}`);
       const data: LocalAIStatus = await res.json();
       if (activeMode === 'embedded') {
-        setTestResult('Embedded Engine Verified: Native on-device semantic neural model active.');
+        setTestResult('Built-in commit suggestions are ready. Messages use local rules and staged changes.');
       } else if (data.hasExternal) {
         setTestResult(`External Provider Connected: ${data.externalProvider?.toUpperCase()} (${data.externalActiveModel}) on ${data.externalEndpoint}`);
       } else {
-        setTestResult('No external AI daemon detected on port 11434. Falling back to Embedded Engine.');
+        setTestResult('No external AI daemon detected on port 11434. Using built-in commit suggestions.');
       }
       onRefreshStatus();
     } catch (err: any) {
@@ -78,7 +79,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               <div className="font-semibold text-xs text-[var(--text-primary)] flex items-center gap-2">
                 <span>
                   {activeMode === 'embedded'
-                    ? 'Active: Gitler Embedded Neural Engine (Built-in)'
+                    ? 'Active: Gitler Commit Suggestions (Built-in)'
                     : `Active: ${aiStatus?.externalProvider?.toUpperCase() || 'External'} (${aiStatus?.externalActiveModel || 'Local Model'})`}
                 </span>
                 <span className="px-2 py-0.5 rounded-[50px] bg-[var(--bg-surface)] border border-[var(--border-interactive)] text-[10px] font-mono text-[var(--accent-violet)]">
@@ -110,7 +111,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-xs text-[var(--text-primary)]">
-                    Gitler Embedded Engine (Recommended)
+                    Gitler Commit Suggestions (Recommended)
                   </span>
                   <span className="text-[10px] font-mono text-[var(--accent-violet)]">Built-in</span>
                 </div>

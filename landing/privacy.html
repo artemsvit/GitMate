@@ -1,0 +1,171 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Gitler</title>
+  <meta name="description" content="Gitler Privacy Policy — 100% offline, zero telemetry, local AI Git client for macOS." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .legal-container {
+      max-width: 800px;
+      margin: 60px auto 100px;
+      padding: 0 24px;
+    }
+    .legal-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 32px;
+      transition: color 0.15s;
+    }
+    .legal-back:hover {
+      color: var(--text-primary);
+    }
+    .legal-title {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+    .legal-updated {
+      color: var(--text-muted);
+      font-size: 13px;
+      font-family: 'Geist Mono', monospace;
+      margin-bottom: 40px;
+    }
+    .legal-content {
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .legal-content h2 {
+      color: var(--text-primary);
+      font-size: 20px;
+      font-weight: 600;
+      margin: 36px 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .legal-content p {
+      margin-bottom: 16px;
+    }
+    .legal-content ul {
+      margin: 12px 0 20px 24px;
+    }
+    .legal-content li {
+      margin-bottom: 8px;
+    }
+    .legal-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-carbon);
+      border-radius: 12px;
+      padding: 20px;
+      margin: 24px 0;
+    }
+    .legal-card strong {
+      color: var(--text-primary);
+      display: block;
+      margin-bottom: 6px;
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </div>
+        <span class="brand-name">Gitler</span>
+        <span class="version-tag">v1.0.0</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="index.html#features">Features</a>
+        <a href="index.html#download" class="nav-btn-primary">Download .dmg</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="legal-container">
+    <a href="index.html" class="legal-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Home
+    </a>
+
+    <h1 class="legal-title">Privacy Policy</h1>
+    <div class="legal-updated">Last Updated: October 12, 2026</div>
+
+    <div class="legal-content">
+      <div class="legal-card">
+        <strong>Executive Summary</strong>
+        Gitler is designed from the ground up to respect your privacy. Gitler is a 100% offline-first application. We do not collect, store, sell, or transmit your personal data, source code, repositories, or AI prompts.
+      </div>
+
+      <h2>1. Zero Telemetry & Tracking</h2>
+      <p>Gitler contains no analytics trackers, diagnostic reporting tools, session replay scripts, or advertising identifiers. When you run Gitler, the application does not report your activity, usage statistics, or crash details to our servers or any third-party analytics services.</p>
+
+      <h2>2. Source Code and Repository Data</h2>
+      <p>All interactions with your Git repositories remain strictly local to your macOS machine. When you scan folders, view diffs, stage files, or commit changes:</p>
+      <ul>
+        <li>Your file contents and commit history are read directly from your local filesystem.</li>
+        <li>No code, file paths, branch names, or author identities are ever transmitted to any external server.</li>
+        <li>File operations execute using standard local Git binaries and POSIX filesystem system calls.</li>
+      </ul>
+
+      <h2>3. Local On-Device AI Models</h2>
+      <p>Gitler provides local AI commit message suggestions powered by Apple Silicon hardware acceleration and local daemons (such as Ollama or MLX):</p>
+      <ul>
+        <li>AI inference runs entirely on your local machine using your CPU or Apple Neural Engine / Metal GPU.</li>
+        <li>Your Git diffs and generated commit text are processed in memory on your computer.</li>
+        <li>No prompts, tokens, or commit messages are uploaded to cloud AI providers.</li>
+      </ul>
+
+      <h2>4. Network Communications & Git Providers</h2>
+      <p>Gitler initiates network communication only when explicitly requested by you for normal Git operations or account synchronization:</p>
+      <ul>
+        <li><strong>Git Operations:</strong> Push, pull, and fetch operations connect exclusively to the Git remotes configured in your repositories (e.g., GitHub, GitLab, or private servers) over SSH or HTTPS.</li>
+        <li><strong>Provider Integrations:</strong> When you connect a GitHub, GitLab, or Gitea/Forgejo account, authentication tokens are stored locally on your device with restricted permissions (<code>0600</code>). Gitler communicates directly with your designated server endpoint.</li>
+        <li><strong>Local Network Privacy:</strong> In compliance with macOS Sequoia Local Network Privacy (<code>kTCCServiceLocalNetwork</code>), Gitler requests explicit user consent before connecting to self-hosted instances on RFC 1918 private IPv4 addresses (such as <code>192.168.x.x</code> or <code>10.x.x.x</code>).</li>
+      </ul>
+
+      <h2>5. SSH Key Security</h2>
+      <p>When Gitler generates a dedicated SSH key pair (<code>~/.ssh/gitler_ed25519</code>) for seamless authentication, the private key never leaves your local computer. Only the corresponding public key is uploaded to your authorized Git providers upon your explicit request.</p>
+
+      <h2>6. Open Source Verification</h2>
+      <p>Gitler is free and open-source software distributed under the MIT License. The complete source code is publicly accessible on GitHub, allowing developers to inspect and verify our security and privacy practices independently.</p>
+
+      <h2>7. Contact</h2>
+      <p>If you have any questions or feedback regarding this Privacy Policy, please open an issue or contact the maintainer on GitHub at <a href="https://github.com/artemsvit/Gitler" target="_blank" rel="noreferrer" style="color: var(--accent-violet); text-decoration: underline;">github.com/artemsvit/Gitler</a>.</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <span class="footer-brand">Gitler</span>
+        <span class="footer-copy">© 2026 Artem Svitelskyi. Open source under the MIT License.</span>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html" style="color: var(--text-primary);">Privacy Policy</a>
+        <a href="terms.html">Terms of Service</a>
+        <a href="https://github.com/artemsvit/Gitler" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/artemsvit/Gitler/releases" target="_blank" rel="noreferrer">Releases</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

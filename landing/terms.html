@@ -1,0 +1,163 @@
+<!DOCTYPE html>
+<html lang="en" class="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — Gitler</title>
+  <meta name="description" content="Gitler Terms of Service — MIT License and usage terms." />
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="style.css" />
+  <style>
+    .legal-container {
+      max-width: 800px;
+      margin: 60px auto 100px;
+      padding: 0 24px;
+    }
+    .legal-back {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      color: var(--text-muted);
+      font-size: 13px;
+      margin-bottom: 32px;
+      transition: color 0.15s;
+    }
+    .legal-back:hover {
+      color: var(--text-primary);
+    }
+    .legal-title {
+      font-size: 36px;
+      font-weight: 700;
+      letter-spacing: -0.03em;
+      margin-bottom: 8px;
+    }
+    .legal-updated {
+      color: var(--text-muted);
+      font-size: 13px;
+      font-family: 'Geist Mono', monospace;
+      margin-bottom: 40px;
+    }
+    .legal-content {
+      color: var(--text-secondary);
+      font-size: 15px;
+      line-height: 1.7;
+    }
+    .legal-content h2 {
+      color: var(--text-primary);
+      font-size: 20px;
+      font-weight: 600;
+      margin: 36px 0 12px;
+      letter-spacing: -0.02em;
+    }
+    .legal-content p {
+      margin-bottom: 16px;
+    }
+    .legal-content ul {
+      margin: 12px 0 20px 24px;
+    }
+    .legal-content li {
+      margin-bottom: 8px;
+    }
+    .license-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border-carbon);
+      border-radius: 12px;
+      padding: 24px;
+      margin: 24px 0;
+      font-family: 'Geist Mono', monospace;
+      font-size: 13px;
+      line-height: 1.6;
+      color: var(--text-primary);
+    }
+  </style>
+</head>
+<body>
+  <!-- Navigation Header -->
+  <header class="navbar">
+    <div class="nav-container">
+      <a href="index.html" class="brand">
+        <div class="brand-icon">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="4 17 10 11 4 5"></polyline>
+            <line x1="12" y1="19" x2="20" y2="19"></line>
+          </svg>
+        </div>
+        <span class="brand-name">Gitler</span>
+        <span class="version-tag">v1.0.0</span>
+      </a>
+
+      <nav class="nav-links">
+        <a href="index.html#features">Features</a>
+        <a href="index.html#download" class="nav-btn-primary">Download .dmg</a>
+      </nav>
+    </div>
+  </header>
+
+  <main class="legal-container">
+    <a href="index.html" class="legal-back">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+        <line x1="19" y1="12" x2="5" y2="12"></line>
+        <polyline points="12 19 5 12 12 5"></polyline>
+      </svg>
+      Back to Home
+    </a>
+
+    <h1 class="legal-title">Terms of Service</h1>
+    <div class="legal-updated">Last Updated: October 12, 2026</div>
+
+    <div class="legal-content">
+      <p>By downloading, installing, or using Gitler ("the Software"), you agree to be bound by the following terms and conditions.</p>
+
+      <h2>1. Open Source License</h2>
+      <p>Gitler is released as free and open-source software under the terms of the MIT License:</p>
+
+      <div class="license-box">
+        Copyright (c) 2026 Artem Svitelskyi<br/><br/>
+        Permission is hereby granted, free of charge, to any person obtaining a copy
+        of this software and associated documentation files (the "Software"), to deal
+        in the Software without restriction, including without limitation the rights
+        to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+        copies of the Software, and to permit persons to whom the Software is
+        furnished to do so, subject to the following conditions:<br/><br/>
+        The above copyright notice and this permission notice shall be included in all
+        copies or substantial portions of the Software.
+      </div>
+
+      <h2>2. Disclaimer of Warranty</h2>
+      <p>THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.</p>
+
+      <h2>3. User Responsibility</h2>
+      <p>You are solely responsible for:</p>
+      <ul>
+        <li>Maintaining backups of your local Git repositories and codebases.</li>
+        <li>Reviewing commit messages generated by local AI models before publishing or pushing commits.</li>
+        <li>Protecting personal access tokens and SSH credentials saved in your local user directory.</li>
+      </ul>
+
+      <h2>4. Modifications and Termination</h2>
+      <p>Because Gitler is an open-source tool, you are free to inspect, modify, fork, and adapt the Software under the MIT License terms. We reserve the right to release new versions, discontinue development, or adjust project roadmaps on GitHub at any time.</p>
+
+      <h2>5. Governing Law</h2>
+      <p>These terms shall be governed by and construed in accordance with applicable copyright law and the terms of the MIT License.</p>
+    </div>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer">
+    <div class="footer-container">
+      <div class="footer-left">
+        <span class="footer-brand">Gitler</span>
+        <span class="footer-copy">© 2026 Artem Svitelskyi. Open source under the MIT License.</span>
+      </div>
+      <div class="footer-links">
+        <a href="privacy.html">Privacy Policy</a>
+        <a href="terms.html" style="color: var(--text-primary);">Terms of Service</a>
+        <a href="https://github.com/artemsvit/Gitler" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/artemsvit/Gitler/releases" target="_blank" rel="noreferrer">Releases</a>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>

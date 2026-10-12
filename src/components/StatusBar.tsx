@@ -32,7 +32,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
               <Cpu className="w-3 h-3 text-[var(--accent-violet)]" />
               <span className="text-[var(--text-primary)] font-medium">
                 {aiStatus.provider === 'embedded'
-                  ? 'Gitler Embedded Neural Engine'
+                  ? 'Gitler Commit Suggestions'
                   : `${aiStatus.provider}: ${aiStatus.activeModel}`}
               </span>
             </>

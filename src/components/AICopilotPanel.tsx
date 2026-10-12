@@ -1,4 +1,5 @@
-import React, { useState } from 'react';
+import { apiFetch } from '../api';
+import React, { useState, useRef, useEffect } from 'react';
 import {
   Sparkles,
   GitCommit,
@@ -43,8 +44,17 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const [isCommitting, setIsCommitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
   const [aiResult, setAiResult] = useState<AICommitResult | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  const totalChanges = (details?.stagedCount || 0) + (details?.unstagedCount || 0);
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(100, textarea.scrollHeight)}px`;
+  }, [commitMessage]);
+
+  const hasStagedChanges = (details?.stagedCount || 0) > 0;
+  const totalChanges = details?.files.length || 0;
 
   // Conventional type chips
   const typeChips = ['feat', 'fix', 'refactor', 'chore', 'docs', 'style'];
@@ -54,7 +64,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
       setCommitMessage(`${type}: `);
     } else if (commitMessage.includes(':')) {
       const parts = commitMessage.split(':');
-      setCommitMessage(`${type}${parts.slice(1).join(':')}`);
+      setCommitMessage(`${type}: ${parts.slice(1).join(':').trim()}`);
     } else {
       setCommitMessage(`${type}: ${commitMessage}`);
     }
@@ -68,7 +78,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
       const targetProvider = savedMode === 'external' ? (aiStatus?.externalProvider || 'ollama') : 'embedded';
       const targetModel = savedMode === 'external' ? aiStatus?.externalActiveModel : 'Gitler Embedded';
 
-      const res = await fetch('/api/ai/generate-commit', {
+      const res = await apiFetch('/api/ai/generate-commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -101,15 +111,12 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
     setIsCommitting(true);
     setStatusMessage(null);
     try {
-      if ((details?.stagedCount || 0) === 0) {
-        await fetch('/api/repos/stage', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ path: repoSummary.path, files: ['.'] })
-        });
+      if (!hasStagedChanges) {
+        setStatusMessage({ text: 'Stage the changes you want to commit first.', type: 'error' });
+        return;
       }
 
-      const res = await fetch('/api/repos/commit', {
+      const res = await apiFetch('/api/repos/commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, message: commitMessage.trim() })
@@ -122,7 +129,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
         if (andPush) {
           try {
-            const pushRes = await fetch('/api/repos/push', {
+            const pushRes = await apiFetch('/api/repos/push', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
               body: JSON.stringify({ path: repoSummary.path })
@@ -210,7 +217,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   return (
     <aside
       style={{ width }}
-      className="h-full flex flex-col bg-[var(--bg-canvas)] p-4 select-none shrink-0 justify-between transition-colors"
+      className="h-full flex flex-col bg-[var(--bg-canvas)] p-4 select-none shrink-0 justify-between transition-colors overflow-y-auto"
     >
       <div className="space-y-4">
         {/* Header */}
@@ -247,7 +254,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         {/* Generate Button (Paper filled pill button) */}
         <button
           onClick={handleGenerateCommit}
-          disabled={isGenerating || totalChanges === 0}
+          disabled={isGenerating || !hasStagedChanges}
           className="w-full py-2.5 px-4 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-2 disabled:opacity-30 cursor-pointer"
         >
           {isGenerating ? (
@@ -258,10 +265,12 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
           ) : (
             <>
               <Zap className="w-3.5 h-3.5" />
-              <span>Generate with Local AI</span>
+              <span>Generate Commit Message</span>
             </>
           )}
         </button>
+
+        {!hasStagedChanges && <p className="text-xs text-[var(--text-muted)]">Stage changes before generating a message or committing.</p>}
 
         {/* AI source tag if generated */}
         {aiResult && (
@@ -300,11 +309,16 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             </span>
           </div>
           <textarea
+            ref={textareaRef}
+            aria-label="Commit message"
             value={commitMessage}
-            onChange={e => setCommitMessage(e.target.value)}
+            onChange={e => {
+              setCommitMessage(e.target.value);
+              e.target.style.height = 'auto';
+              e.target.style.height = `${Math.max(100, e.target.scrollHeight)}px`;
+            }}
             placeholder="feat(ui): update to warp design tokens..."
-            rows={5}
-            className="w-full bg-[var(--bg-surface)] border border-[var(--border-interactive)] focus:border-[var(--accent-violet)] rounded-xl p-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-dim)] font-mono focus:outline-none transition resize-none leading-relaxed"
+            className="w-full bg-[var(--bg-surface)] border border-[var(--border-interactive)] focus:border-[var(--accent-violet)] rounded-xl p-3 text-xs text-[var(--text-primary)] placeholder-[var(--text-dim)] font-mono focus:outline-none transition resize-none leading-relaxed overflow-hidden"
           />
           {aiResult && (
             <div className="mt-1.5 flex items-center gap-1.5 text-[10px] text-[var(--accent-violet)] font-mono">
@@ -361,7 +375,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
       <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
         <button
           onClick={() => handleCommit(false)}
-          disabled={isCommitting || !commitMessage.trim()}
+          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim()}
           className="w-full py-2.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-[var(--text-primary)] text-xs font-medium transition disabled:opacity-30"
         >
           {isCommitting ? 'Committing...' : 'Commit Changes'}
@@ -369,7 +383,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
         <button
           onClick={() => handleCommit(true)}
-          disabled={isCommitting || !commitMessage.trim()}
+          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim()}
           className="w-full py-2.5 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
         >
           <Send className="w-3.5 h-3.5" />

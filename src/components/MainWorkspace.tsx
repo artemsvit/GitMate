@@ -1,3 +1,4 @@
+import { apiFetch } from '../api';
 import React, { useState, useEffect } from 'react';
 import {
   GitBranch,
@@ -41,7 +42,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 }) => {
   const [details, setDetails] = useState<RepoDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'changes' | 'history' | 'branches'>('changes');
-  
+
   const [diff, setDiff] = useState<string>('');
   const [loadingDiff, setLoadingDiff] = useState(false);
 
@@ -61,10 +62,53 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   const [isBranchDropdownOpen, setIsBranchDropdownOpen] = useState(false);
   const [newBranchInput, setNewBranchInput] = useState('');
 
+  // Working Tree panel resizable width
+  const [workingTreeWidth, setWorkingTreeWidth] = useState<number>(() => {
+    try {
+      const saved = localStorage.getItem('gitler_working_tree_width');
+      if (!saved || !Number.isFinite(Number(saved))) return 290;
+      return Math.max(220, Math.min(550, Number(saved)));
+    } catch {
+      return 290;
+    }
+  });
+  const [isResizingWorkingTree, setIsResizingWorkingTree] = useState(false);
+
+  const handleWorkingTreeMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingWorkingTree(true);
+    const startX = e.clientX;
+    const startWidth = workingTreeWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = Math.max(220, Math.min(550, startWidth + delta));
+      setWorkingTreeWidth(nextWidth);
+      try {
+        localStorage.setItem('gitler_working_tree_width', String(nextWidth));
+      } catch {
+        // Ignore storage errors
+      }
+    };
+
+    const onMouseUp = () => {
+      setIsResizingWorkingTree(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
   // 1. Fetch details on repo change
   const fetchDetails = async () => {
     try {
-      const res = await fetch(`/api/repos/details?path=${encodeURIComponent(repoSummary.path)}`);
+      const res = await apiFetch(`/api/repos/details?path=${encodeURIComponent(repoSummary.path)}`);
       if (res.ok) {
         const data: RepoDetails = await res.json();
         setDetails(data);
@@ -84,33 +128,34 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
     fetchDetails();
   }, [repoSummary.path]);
 
-  // 2. Fetch diff when selected file changes
+  // Cancel stale requests when the selection changes, including the initial all-files request.
   useEffect(() => {
+    const controller = new AbortController();
     const fetchDiff = async () => {
       setLoadingDiff(true);
       try {
         const url = `/api/repos/diff?path=${encodeURIComponent(repoSummary.path)}${
           selectedFile ? `&file=${encodeURIComponent(selectedFile)}` : ''
         }&staged=${selectedDiffStaged}`;
-        const res = await fetch(url);
+        const res = await apiFetch(url, { signal: controller.signal });
         if (res.ok) {
           const data = await res.json();
-          setDiff(data.diff || '');
+          if (!controller.signal.aborted) setDiff(data.diff || '');
         }
-      } catch (err) {
-        setDiff('');
+      } catch {
+        if (!controller.signal.aborted) setDiff('');
       } finally {
-        setLoadingDiff(false);
+        if (!controller.signal.aborted) setLoadingDiff(false);
       }
     };
-
     fetchDiff();
+    return () => controller.abort();
   }, [selectedFile, selectedDiffStaged, repoSummary.path]);
 
   // Stage single file
   const handleStage = async (file: string) => {
     try {
-      const res = await fetch('/api/repos/stage', {
+      const res = await apiFetch('/api/repos/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [file] })
@@ -130,7 +175,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   // Unstage single file
   const handleUnstage = async (file: string) => {
     try {
-      const res = await fetch('/api/repos/unstage', {
+      const res = await apiFetch('/api/repos/unstage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [file] })
@@ -150,7 +195,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   // Stage All
   const handleStageAll = async () => {
     try {
-      const res = await fetch('/api/repos/stage', {
+      const res = await apiFetch('/api/repos/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: ['.'] })
@@ -170,7 +215,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   // Unstage All
   const handleUnstageAll = async () => {
     try {
-      const res = await fetch('/api/repos/unstage', {
+      const res = await apiFetch('/api/repos/unstage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [] })
@@ -192,7 +237,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
     setIsPulling(true);
     setSyncNotice(null);
     try {
-      const res = await fetch('/api/repos/pull', {
+      const res = await apiFetch('/api/repos/pull', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
@@ -227,7 +272,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
     setIsPushing(true);
     setSyncNotice(null);
     try {
-      const res = await fetch('/api/repos/push', {
+      const res = await apiFetch('/api/repos/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
@@ -262,7 +307,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
     setIsFetching(true);
     setSyncNotice(null);
     try {
-      const res = await fetch('/api/repos/fetch', {
+      const res = await apiFetch('/api/repos/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
@@ -296,7 +341,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   const handleSwitchBranch = async (branchName: string) => {
     setIsBranchDropdownOpen(false);
     try {
-      const res = await fetch('/api/repos/checkout', {
+      const res = await apiFetch('/api/repos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, branch: branchName, createNew: false })
@@ -318,7 +363,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
     if (!newBranchInput.trim()) return;
     setIsBranchDropdownOpen(false);
     try {
-      const res = await fetch('/api/repos/checkout', {
+      const res = await apiFetch('/api/repos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, branch: newBranchInput.trim(), createNew: true })
@@ -342,12 +387,12 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   };
 
   const stagedFiles = details?.files.filter(f => f.isStaged) || [];
-  const unstagedFiles = details?.files.filter(f => !f.isStaged) || [];
+  const unstagedFiles = details?.files.filter(f => f.isUnstaged) || [];
 
   return (
-    <div className="flex-1 h-full flex flex-col bg-[var(--bg-canvas)] overflow-hidden transition-colors">
+    <div className="flex-1 min-w-0 h-full flex flex-col bg-[var(--bg-canvas)] overflow-hidden transition-colors">
       {/* Top Workspace Header */}
-      <div className="h-12 px-4 sm:px-5 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0 gap-2">
+      <div className="min-h-12 py-2 px-3 border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] flex items-center justify-between shrink-0 gap-2 flex-wrap">
         <div className="flex items-center gap-2.5 min-w-0 flex-1 overflow-hidden">
           <div className="w-7 h-7 rounded-lg bg-[var(--bg-card)] border border-[var(--border-interactive)] flex items-center justify-center text-[var(--accent-violet)] shrink-0">
             <FolderGit2 className="w-3.5 h-3.5" />
@@ -399,11 +444,13 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                     type="text"
                     value={newBranchInput}
                     onChange={e => setNewBranchInput(e.target.value)}
+                    aria-label="New branch name"
                     placeholder="New branch name..."
                     className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-[33px] px-2.5 py-1 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
                   />
                   <button
                     type="submit"
+                    aria-label="Create branch"
                     className="px-2.5 py-1 bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] rounded-[33px] font-semibold text-xs cursor-pointer"
                   >
                     <Plus className="w-3 h-3" />
@@ -560,15 +607,28 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       {activeTab === 'changes' && (
         <div className="flex-1 flex overflow-hidden">
           {/* Sub-panel 1: Files List */}
-          <div className="w-72 border-r border-[var(--border-subtle)] flex flex-col bg-[var(--bg-canvas)] select-none shrink-0">
-            <div className="p-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-muted)]">
-              <span className="font-semibold text-[var(--text-primary)] text-[11px] uppercase tracking-wider">Working Tree</span>
-              <div className="flex gap-2 text-[11px] font-mono">
-                <button onClick={handleStageAll} className="hover:text-[var(--text-primary)] transition">
+          <div
+            style={{ width: workingTreeWidth }}
+            className="border-r border-[var(--border-subtle)] flex flex-col bg-[var(--bg-canvas)] select-none shrink-0"
+          >
+            <div className="p-2.5 border-b border-[var(--border-subtle)] flex items-center justify-between text-xs text-[var(--text-muted)] gap-2">
+              <span className="font-semibold text-[var(--text-primary)] text-[11px] uppercase tracking-wider whitespace-nowrap shrink-0">
+                Working Tree
+              </span>
+              <div className="flex items-center gap-2 text-[11px] font-mono whitespace-nowrap shrink-0">
+                <button
+                  type="button"
+                  onClick={handleStageAll}
+                  className="hover:text-[var(--text-primary)] transition cursor-pointer"
+                >
                   Stage All
                 </button>
                 <span className="text-[var(--border-interactive)]">|</span>
-                <button onClick={handleUnstageAll} className="hover:text-[var(--text-primary)] transition">
+                <button
+                  type="button"
+                  onClick={handleUnstageAll}
+                  className="hover:text-[var(--text-primary)] transition cursor-pointer"
+                >
                   Unstage
                 </button>
               </div>
@@ -587,27 +647,36 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                       return (
                         <div
                           key={'staged-' + file.path}
-                          onClick={() => onSelectFile(file.path, true)}
-                          className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono cursor-pointer transition border ${
+                          className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono cursor-pointer transition border gap-2 ${
                             isSelected
                               ? 'bg-[var(--bg-card)] border-[var(--border-interactive)] text-[var(--text-primary)]'
                               : 'border-transparent hover:bg-[var(--bg-surface)] text-[var(--text-secondary)]'
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <span
+                          <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                            <button
+                              type="button"
                               onClick={e => {
                                 e.stopPropagation();
                                 handleUnstage(file.path);
                               }}
-                              className="text-[var(--accent-violet)] hover:text-[var(--text-primary)] p-0.5"
+                              className="text-[var(--accent-violet)] hover:text-[var(--text-primary)] p-0.5 shrink-0"
+                              aria-label={`Unstage ${file.path}`}
                               title="Unstage file"
                             >
                               <CheckSquare className="w-3.5 h-3.5" />
-                            </span>
-                            <span className="truncate">{file.path}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onSelectFile(file.path, true)}
+                              aria-label={`Preview ${file.path} (staged)`}
+                              title={file.path}
+                              className="truncate flex-1 text-left"
+                            >
+                              {file.path}
+                            </button>
                           </div>
-                          <span className="text-[10px] font-bold text-[var(--text-primary)]">M</span>
+                          <span className="text-[10px] font-bold text-[var(--text-primary)] shrink-0">{file.indexStatus}</span>
                         </div>
                       );
                     })}
@@ -631,28 +700,37 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                       return (
                         <div
                           key={'unstaged-' + file.path}
-                          onClick={() => onSelectFile(file.path, false)}
-                          className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono cursor-pointer transition border ${
+                          className={`group flex items-center justify-between px-2.5 py-1.5 rounded-lg text-xs font-mono cursor-pointer transition border gap-2 ${
                             isSelected
                               ? 'bg-[var(--bg-card)] border-[var(--border-interactive)] text-[var(--text-primary)]'
                               : 'border-transparent hover:bg-[var(--bg-surface)] text-[var(--text-secondary)]'
                           }`}
                         >
-                          <div className="flex items-center gap-2 truncate">
-                            <span
+                          <div className="flex items-center gap-2 truncate min-w-0 flex-1">
+                            <button
+                              type="button"
                               onClick={e => {
                                 e.stopPropagation();
                                 handleStage(file.path);
                               }}
-                              className="text-[var(--text-dim)] hover:text-[var(--accent-violet)] p-0.5"
+                              className="text-[var(--text-dim)] hover:text-[var(--accent-violet)] p-0.5 shrink-0"
+                              aria-label={`Stage ${file.path}`}
                               title="Stage file"
                             >
                               <Square className="w-3.5 h-3.5" />
-                            </span>
-                            <span className="truncate">{file.path}</span>
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => onSelectFile(file.path, false)}
+                              aria-label={`Preview ${file.path} (working tree)`}
+                              title={file.path}
+                              className="truncate flex-1 text-left"
+                            >
+                              {file.path}
+                            </button>
                           </div>
-                          <span className="text-[10px] font-bold text-[var(--text-muted)]">
-                            {file.workingDirStatus === 'created' ? 'U' : 'M'}
+                          <span className="text-[10px] font-bold text-[var(--text-muted)] shrink-0">
+                            {file.workingDirStatus === '?' ? 'U' : file.workingDirStatus}
                           </span>
                         </div>
                       );
@@ -663,8 +741,45 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
             </div>
           </div>
 
+          {/* Working Tree Resizer Handle */}
+          <div
+            role="separator"
+            aria-orientation="vertical"
+            tabIndex={0}
+            onKeyDown={event => {
+              if (event.key === 'ArrowLeft' || event.key === 'ArrowRight') {
+                const width = Math.max(220, Math.min(550, workingTreeWidth + (event.key === 'ArrowRight' ? 20 : -20)));
+                setWorkingTreeWidth(width);
+                try {
+                  localStorage.setItem('gitler_working_tree_width', String(width));
+                } catch {
+                  // ignore
+                }
+              }
+            }}
+            onMouseDown={handleWorkingTreeMouseDown}
+            onDoubleClick={() => {
+              setWorkingTreeWidth(290);
+              try {
+                localStorage.setItem('gitler_working_tree_width', '290');
+              } catch {
+                // ignore
+              }
+            }}
+            title="Drag to resize Working Tree panel (Double-click to reset)"
+            className={`w-[6px] -ml-[3px] -mr-[3px] z-10 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
+              isResizingWorkingTree ? 'bg-[var(--accent-violet)]/30' : 'hover:bg-[var(--accent-violet)]/20'
+            } transition-colors`}
+          >
+            <div
+              className={`w-[1px] h-full transition-colors ${
+                isResizingWorkingTree ? 'bg-[var(--accent-violet)]' : 'bg-transparent group-hover:bg-[var(--accent-violet)]'
+              }`}
+            />
+          </div>
+
           {/* Sub-panel 2: Diff Viewer */}
-          <div className="flex-1 h-full p-2.5 overflow-hidden bg-[var(--bg-canvas)] flex flex-col">
+          <div className="flex-1 min-w-0 h-full p-2.5 overflow-hidden bg-[var(--bg-canvas)] flex flex-col">
             <DiffViewer
               diff={diff}
               filename={selectedFile || 'All Files'}

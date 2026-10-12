@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import { apiFetch } from '../api';
+import React, { useState, useEffect, useRef } from 'react';
 import {
   X,
   GitBranch,
@@ -48,13 +49,20 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   const [currentDiff, setCurrentDiff] = useState<string>('');
   const [loadingDiff, setLoadingDiff] = useState(false);
 
-  // Commit Studio state
   const [commitMessage, setCommitMessage] = useState('');
   const [isGeneratingAI, setIsGeneratingAI] = useState(false);
   const [aiResultInfo, setAIResultInfo] = useState<AICommitResult | null>(null);
   const [isCommitting, setIsCommitting] = useState(false);
   const [isSyncing, setIsSyncing] = useState(false);
   const [statusNotice, setStatusNotice] = useState<string | null>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    const textarea = textareaRef.current;
+    if (!textarea) return;
+    textarea.style.height = 'auto';
+    textarea.style.height = `${Math.max(60, textarea.scrollHeight)}px`;
+  }, [commitMessage]);
 
   // Branch creation
   const [newBranchName, setNewBranchName] = useState('');
@@ -64,7 +72,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   const fetchDetails = async () => {
     try {
       setLoading(true);
-      const res = await fetch(`/api/repos/details?path=${encodeURIComponent(repoSummary.path)}`);
+      const res = await apiFetch(`/api/repos/details?path=${encodeURIComponent(repoSummary.path)}`);
       if (res.ok) {
         const data = await res.json();
         setDetails(data);
@@ -97,7 +105,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
         const url = `/api/repos/diff?path=${encodeURIComponent(repoSummary.path)}${
           selectedFile ? `&file=${encodeURIComponent(selectedFile)}` : ''
         }&staged=${selectedDiffStaged}`;
-        const res = await fetch(url);
+        const res = await apiFetch(url);
         if (res.ok) {
           const data = await res.json();
           setCurrentDiff(data.diff || '');
@@ -115,7 +123,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   // Stage single file
   const handleStageFile = async (filePath: string) => {
     try {
-      const res = await fetch('/api/repos/stage', {
+      const res = await apiFetch('/api/repos/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [filePath] })
@@ -134,7 +142,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   // Unstage single file
   const handleUnstageFile = async (filePath: string) => {
     try {
-      const res = await fetch('/api/repos/unstage', {
+      const res = await apiFetch('/api/repos/unstage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [filePath] })
@@ -153,7 +161,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   // Stage All
   const handleStageAll = async () => {
     try {
-      const res = await fetch('/api/repos/stage', {
+      const res = await apiFetch('/api/repos/stage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: ['.'] })
@@ -172,7 +180,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   // Unstage All
   const handleUnstageAll = async () => {
     try {
-      const res = await fetch('/api/repos/unstage', {
+      const res = await apiFetch('/api/repos/unstage', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [] })
@@ -193,7 +201,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
     setIsGeneratingAI(true);
     setStatusNotice(null);
     try {
-      const res = await fetch('/api/ai/generate-commit', {
+      const res = await apiFetch('/api/ai/generate-commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -226,14 +234,14 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
     try {
       // First ensure something is staged; if nothing is staged, auto stage all
       if (details?.stagedCount === 0) {
-        await fetch('/api/repos/stage', {
+        await apiFetch('/api/repos/stage', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ path: repoSummary.path, files: ['.'] })
         });
       }
 
-      const res = await fetch('/api/repos/commit', {
+      const res = await apiFetch('/api/repos/commit', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, message: commitMessage.trim() })
@@ -266,7 +274,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
     setIsSyncing(true);
     setStatusNotice(null);
     try {
-      const res = await fetch('/api/repos/pull', {
+      const res = await apiFetch('/api/repos/pull', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
@@ -291,7 +299,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
     setIsSyncing(true);
     setStatusNotice(null);
     try {
-      const res = await fetch('/api/repos/push', {
+      const res = await apiFetch('/api/repos/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path })
@@ -314,7 +322,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   // Checkout branch
   const handleCheckoutBranch = async (branchName: string) => {
     try {
-      const res = await fetch('/api/repos/checkout', {
+      const res = await apiFetch('/api/repos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, branch: branchName, createNew: false })
@@ -338,7 +346,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
     if (!newBranchName.trim()) return;
 
     try {
-      const res = await fetch('/api/repos/checkout', {
+      const res = await apiFetch('/api/repos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, branch: newBranchName.trim(), createNew: true })
@@ -359,7 +367,7 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
   };
 
   const stagedFiles = details?.files.filter(f => f.isStaged) || [];
-  const unstagedFiles = details?.files.filter(f => !f.isStaged) || [];
+  const unstagedFiles = details?.files.filter(f => f.isUnstaged) || [];
 
   return (
     <div className="fixed inset-0 z-50 bg-slate-950/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -645,11 +653,15 @@ export const RepoInspector: React.FC<RepoInspectorProps> = ({
 
                 {/* Message input */}
                 <textarea
+                  ref={textareaRef}
                   value={commitMessage}
-                  onChange={e => setCommitMessage(e.target.value)}
+                  onChange={e => {
+                    setCommitMessage(e.target.value);
+                    e.target.style.height = 'auto';
+                    e.target.style.height = `${Math.max(60, e.target.scrollHeight)}px`;
+                  }}
                   placeholder="e.g. feat(auth): add OAuth2 token refresh logic..."
-                  rows={2}
-                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono resize-none"
+                  className="w-full bg-slate-950 border border-slate-800 rounded-lg p-2.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:ring-2 focus:ring-indigo-500/50 font-mono resize-none overflow-hidden"
                 />
 
                 {/* Action buttons */}
