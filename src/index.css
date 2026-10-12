@@ -17,6 +17,8 @@
   --btn-primary-bg: #ffffff;
   --btn-primary-text: #080808;
   --scrollbar-thumb: #1e1e1d;
+  --selection-bg: #cbb0f7;
+  --selection-text: #000000;
 }
 
 html.light, .light {
@@ -36,6 +38,8 @@ html.light, .light {
   --btn-primary-bg: #080808;
   --btn-primary-text: #faf9f6;
   --scrollbar-thumb: #dcdbd7;
+  --selection-bg: #cbb0f7;
+  --selection-text: #000000;
 }
 
 @layer base {
@@ -67,4 +71,21 @@ html.light, .light {
 
 ::-webkit-scrollbar-thumb:hover {
   background: var(--border-interactive);
+}
+
+/* Crisp, high-contrast text selection across the entire app */
+::selection {
+  background-color: var(--selection-bg) !important;
+  color: var(--selection-text) !important;
+}
+
+::-moz-selection {
+  background-color: var(--selection-bg) !important;
+  color: var(--selection-text) !important;
+}
+
+input::selection,
+textarea::selection {
+  background-color: var(--selection-bg) !important;
+  color: var(--selection-text) !important;
 }
