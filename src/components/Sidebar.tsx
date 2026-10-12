@@ -7,8 +7,7 @@ import {
   RefreshCw,
   Terminal,
   Sun,
-  Moon,
-  ArrowLeftRight
+  Moon
 } from 'lucide-react';
 import { RepoSummary } from '../types';
 
@@ -22,8 +21,7 @@ interface SidebarProps {
   isScanning: boolean;
   theme: 'dark' | 'light';
   onToggleTheme: () => void;
-  layoutFlipped: boolean;
-  onToggleLayout: () => void;
+  width?: number;
 }
 
 export const Sidebar: React.FC<SidebarProps> = ({
@@ -36,8 +34,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isScanning,
   theme,
   onToggleTheme,
-  layoutFlipped,
-  onToggleLayout
+  width = 280
 }) => {
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState<'all' | 'dirty' | 'ahead' | 'clean'>('all');
@@ -71,8 +68,11 @@ export const Sidebar: React.FC<SidebarProps> = ({
     'Select Folder';
 
   return (
-    <aside className="w-80 h-full flex flex-col bg-[var(--bg-canvas)] border-r border-[var(--border-subtle)] select-none shrink-0 transition-colors">
-      {/* Top Header: Brand, Version Tag, Theme Switcher, Layout Flip & Rescan */}
+    <aside
+      style={{ width }}
+      className="h-full flex flex-col bg-[var(--bg-canvas)] select-none shrink-0 transition-colors"
+    >
+      {/* Top Header: Brand, Version Tag, Theme Switcher & Rescan */}
       <div className="h-12 px-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-canvas)]">
         <div className="flex items-center gap-2.5">
           <div className="w-6 h-6 rounded-md bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-violet)]">
@@ -87,17 +87,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Right side Header Controls: Theme switcher, Swap Layout, Rescan */}
+        {/* Right side Header Controls: Theme switcher & Rescan */}
         <div className="flex items-center gap-1">
-          {/* Swap Columns Toggle */}
-          <button
-            onClick={onToggleLayout}
-            title={layoutFlipped ? 'Move Repositories to left' : 'Move Repositories to right'}
-            className="p-1.5 rounded-full hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
-          >
-            <ArrowLeftRight className="w-3.5 h-3.5" />
-          </button>
-
           {/* Light / Dark Theme Switcher */}
           <button
             onClick={onToggleTheme}

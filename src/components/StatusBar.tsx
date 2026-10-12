@@ -1,5 +1,5 @@
 import React from 'react';
-import { Cpu, GitBranch, Folder, Sparkles, ArrowLeftRight } from 'lucide-react';
+import { Cpu, GitBranch, Folder, Sparkles } from 'lucide-react';
 import { LocalAIStatus, RepoSummary } from '../types';
 
 interface StatusBarProps {
@@ -8,8 +8,6 @@ interface StatusBarProps {
   selectedRepo: RepoSummary | null;
   repoCount: number;
   currentPath: string;
-  layoutFlipped: boolean;
-  onToggleLayout: () => void;
 }
 
 export const StatusBar: React.FC<StatusBarProps> = ({
@@ -17,9 +15,7 @@ export const StatusBar: React.FC<StatusBarProps> = ({
   onOpenAISettings,
   selectedRepo,
   repoCount,
-  currentPath,
-  layoutFlipped,
-  onToggleLayout
+  currentPath
 }) => {
   return (
     <footer className="h-7 bg-[var(--bg-canvas)] border-t border-[var(--border-subtle)] px-3.5 flex items-center justify-between text-[11px] text-[var(--text-muted)] font-mono select-none shrink-0 transition-colors">
@@ -69,16 +65,6 @@ export const StatusBar: React.FC<StatusBarProps> = ({
 
         <span className="text-[var(--text-dim)]">{repoCount} repositories</span>
 
-        <span className="text-[var(--border-interactive)]">|</span>
-
-        <button
-          onClick={onToggleLayout}
-          title={layoutFlipped ? 'Layout: Copilot on Left, Repos on Right' : 'Layout: Repos on Left, Copilot on Right'}
-          className="flex items-center gap-1 hover:text-[var(--text-primary)] transition"
-        >
-          <ArrowLeftRight className="w-3 h-3" />
-          <span>{layoutFlipped ? 'Flipped' : 'Default'}</span>
-        </button>
       </div>
     </footer>
   );

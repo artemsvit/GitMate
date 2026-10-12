@@ -28,10 +28,19 @@ export function App() {
     return (localStorage.getItem('gitler_theme') as 'dark' | 'light') || 'dark';
   });
 
-  // Layout Swap (Default: Repos Left, Copilot Right; Flipped: Copilot Left, Repos Right)
-  const [layoutFlipped, setLayoutFlipped] = useState<boolean>(() => {
-    return localStorage.getItem('gitler_layout_flipped') === 'true';
+  // Panel Widths (Draggable & Persisted)
+  const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('gitler_sidebar_width');
+    return saved ? Math.max(200, Math.min(520, Number(saved))) : 280;
   });
+
+  const [copilotWidth, setCopilotWidth] = useState<number>(() => {
+    const saved = localStorage.getItem('gitler_copilot_width');
+    return saved ? Math.max(260, Math.min(600, Number(saved))) : 340;
+  });
+
+  const [isResizingSidebar, setIsResizingSidebar] = useState(false);
+  const [isResizingCopilot, setIsResizingCopilot] = useState(false);
 
   // Apply theme to document element
   useEffect(() => {
@@ -50,12 +59,60 @@ export function App() {
     setTheme(prev => (prev === 'dark' ? 'light' : 'dark'));
   };
 
-  const handleToggleLayout = () => {
-    setLayoutFlipped(prev => {
-      const next = !prev;
-      localStorage.setItem('gitler_layout_flipped', String(next));
-      return next;
-    });
+  // Drag Resizing: Left Sidebar
+  const handleSidebarMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingSidebar(true);
+    const startX = e.clientX;
+    const startWidth = sidebarWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = Math.max(200, Math.min(520, startWidth + delta));
+      setSidebarWidth(nextWidth);
+      localStorage.setItem('gitler_sidebar_width', String(nextWidth));
+    };
+
+    const onMouseUp = () => {
+      setIsResizingSidebar(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
+  };
+
+  // Drag Resizing: Right AI Copilot
+  const handleCopilotMouseDown = (e: React.MouseEvent) => {
+    e.preventDefault();
+    setIsResizingCopilot(true);
+    const startX = e.clientX;
+    const startWidth = copilotWidth;
+
+    const onMouseMove = (moveEvent: MouseEvent) => {
+      const delta = moveEvent.clientX - startX;
+      const nextWidth = Math.max(260, Math.min(600, startWidth - delta));
+      setCopilotWidth(nextWidth);
+      localStorage.setItem('gitler_copilot_width', String(nextWidth));
+    };
+
+    const onMouseUp = () => {
+      setIsResizingCopilot(false);
+      window.removeEventListener('mousemove', onMouseMove);
+      window.removeEventListener('mouseup', onMouseUp);
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+    };
+
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+    window.addEventListener('mousemove', onMouseMove);
+    window.addEventListener('mouseup', onMouseUp);
   };
 
   // 1. Initial Load: System folders & AI status
@@ -152,8 +209,7 @@ export function App() {
       isScanning={isScanning}
       theme={theme}
       onToggleTheme={handleToggleTheme}
-      layoutFlipped={layoutFlipped}
-      onToggleLayout={handleToggleLayout}
+      width={sidebarWidth}
     />
   );
 
@@ -166,8 +222,7 @@ export function App() {
         aiStatus={aiStatus}
         onOpenSettings={() => setAISettingsOpen(true)}
         onCommitSuccess={() => handleScan(currentPath)}
-        isLeftPosition={layoutFlipped}
-        onToggleLayout={handleToggleLayout}
+        width={copilotWidth}
       />
     ) : null
   );
@@ -201,21 +256,53 @@ export function App() {
 
   return (
     <div className={`h-screen w-screen flex flex-col bg-[var(--bg-canvas)] text-[var(--text-primary)] overflow-hidden font-sans ${theme}`}>
-      {/* 3-Pane Main Layout (Supports Left/Right Column Swapping) */}
+      {/* 3-Pane Main Layout with Smooth Drag Resizers */}
       <div className="flex-1 flex overflow-hidden">
-        {layoutFlipped ? (
-          <>
-            {renderAICopilot()}
-            {renderMainWorkspace()}
-            {renderSidebar()}
-          </>
-        ) : (
-          <>
-            {renderSidebar()}
-            {renderMainWorkspace()}
-            {renderAICopilot()}
-          </>
+        {renderSidebar()}
+
+        {/* Drag Handle: Sidebar */}
+        <div
+          onMouseDown={handleSidebarMouseDown}
+          onDoubleClick={() => {
+            setSidebarWidth(280);
+            localStorage.setItem('gitler_sidebar_width', '280');
+          }}
+          title="Drag to resize repositories sidebar (Double-click to reset)"
+          className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
+            isResizingSidebar ? 'bg-[var(--accent-violet)]/30' : 'hover:bg-[var(--accent-violet)]/20'
+          } transition-colors`}
+        >
+          <div
+            className={`w-[1px] h-full transition-colors ${
+              isResizingSidebar ? 'bg-[var(--accent-violet)]' : 'bg-[var(--border-subtle)] group-hover:bg-[var(--accent-violet)]'
+            }`}
+          />
+        </div>
+
+        {renderMainWorkspace()}
+
+        {/* Drag Handle: AI Copilot */}
+        {selectedRepo && (
+          <div
+            onMouseDown={handleCopilotMouseDown}
+            onDoubleClick={() => {
+              setCopilotWidth(340);
+              localStorage.setItem('gitler_copilot_width', '340');
+            }}
+            title="Drag to resize AI Copilot panel (Double-click to reset)"
+            className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
+              isResizingCopilot ? 'bg-[var(--accent-violet)]/30' : 'hover:bg-[var(--accent-violet)]/20'
+            } transition-colors`}
+          >
+            <div
+              className={`w-[1px] h-full transition-colors ${
+                isResizingCopilot ? 'bg-[var(--accent-violet)]' : 'bg-[var(--border-subtle)] group-hover:bg-[var(--accent-violet)]'
+              }`}
+            />
+          </div>
         )}
+
+        {renderAICopilot()}
       </div>
 
       {/* Bottom Status Bar */}
@@ -225,8 +312,6 @@ export function App() {
         selectedRepo={selectedRepo}
         repoCount={repositories.length}
         currentPath={currentPath}
-        layoutFlipped={layoutFlipped}
-        onToggleLayout={handleToggleLayout}
       />
 
       {/* Local AI Settings Modal */}

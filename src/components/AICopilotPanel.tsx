@@ -8,8 +8,7 @@ import {
   AlertCircle,
   FileCode2,
   Zap,
-  Tag,
-  ArrowLeftRight
+  Tag
 } from 'lucide-react';
 import { RepoDetails, RepoSummary, LocalAIStatus, AICommitResult } from '../types';
 
@@ -19,8 +18,7 @@ interface AICopilotPanelProps {
   aiStatus: LocalAIStatus | null;
   onOpenSettings: () => void;
   onCommitSuccess: () => void;
-  isLeftPosition?: boolean;
-  onToggleLayout?: () => void;
+  width?: number;
 }
 
 export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
@@ -29,8 +27,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   aiStatus,
   onOpenSettings,
   onCommitSuccess,
-  isLeftPosition = false,
-  onToggleLayout
+  width = 340
 }) => {
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -137,7 +134,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const isLineTooLong = firstLine.length > 72;
 
   return (
-    <aside className={`w-80 h-full flex flex-col bg-[var(--bg-canvas)] ${isLeftPosition ? 'border-r' : 'border-l'} border-[var(--border-subtle)] p-4 select-none shrink-0 justify-between transition-colors`}>
+    <aside
+      style={{ width }}
+      className="h-full flex flex-col bg-[var(--bg-canvas)] p-4 select-none shrink-0 justify-between transition-colors"
+    >
       <div className="space-y-4">
         {/* Header */}
         <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
@@ -149,16 +149,6 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
           </div>
 
           <div className="flex items-center gap-1">
-            {onToggleLayout && (
-              <button
-                onClick={onToggleLayout}
-                title="Swap column position"
-                className="p-1 rounded-full text-[var(--text-muted)] hover:text-[var(--text-primary)] transition"
-              >
-                <ArrowLeftRight className="w-3.5 h-3.5" />
-              </button>
-            )}
-
             <button
               onClick={onOpenSettings}
               className="flex items-center gap-1.5 px-2.5 py-0.5 rounded-[50px] border border-[var(--border-interactive)] text-[10px] font-mono text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition"
