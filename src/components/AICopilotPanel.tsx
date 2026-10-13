@@ -1,3 +1,4 @@
+import { currentCommitNotice, type CommitNotice } from '../pushStatus';
 import { useRepositoryPush, destinationKey } from '../useRepositoryPush';
 import { PushResults } from './PushResults';
 import { Dropdown } from './Dropdown';
@@ -51,7 +52,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
-  const [statusMessage, setStatusMessage] = useState<{ text: string; type: 'success' | 'error' } | null>(null);
+  const [statusMessage, setStatusMessage] = useState<CommitNotice | null>(null);
   const [aiResult, setAiResult] = useState<AICommitResult | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -139,7 +140,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         if (andPush) {
           try {
             const pushData = await pushState.push(data.commitHash);
-            setStatusMessage({ text: pushData.success ? `Verified ${data.commitHash.slice(0, 7)} at every selected destination.` : `Committed locally (${data.commitHash.slice(0, 7)}). Some destinations failed; review the results.`, type: pushData.success ? 'success' : 'error' });
+            setStatusMessage({ pushCommit: data.commitHash, text: pushData.success ? `Verified ${data.commitHash.slice(0, 7)} at every selected destination.` : `Committed locally (${data.commitHash.slice(0, 7)}). Some destinations failed; review the results.`, type: pushData.success ? 'success' : 'error' });
           } catch (pushErr: any) {
             setStatusMessage({
               text: `Committed locally (${data.commitHash.slice(0, 7)}), but Push failed: ${pushErr.message}`,
@@ -162,6 +163,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
     }
   };
 
+  const displayStatus = currentCommitNotice(statusMessage, pushState.report);
   const firstLine = commitMessage.split('\n')[0] || '';
   const isLineTooLong = firstLine.length > 72;
 
@@ -316,34 +318,34 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         </div>
 
         {/* Status Toast */}
-        {statusMessage && (
+        {displayStatus && (
           <div
             className={`p-3 rounded-xl border text-xs font-mono space-y-2 ${
-              statusMessage.type === 'success'
+              displayStatus.type === 'success'
                 ? 'bg-emerald-50 text-emerald-900 border-emerald-200 dark:bg-emerald-950/40 dark:border-emerald-500/30 dark:text-emerald-300'
                 : 'bg-rose-50 text-rose-900 border-rose-200 dark:bg-rose-950/40 dark:border-rose-500/30 dark:text-rose-200'
             }`}
           >
             <div className="flex items-start gap-2">
-              {statusMessage.type === 'success' ? (
+              {displayStatus.type === 'success' ? (
                 <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 dark:text-emerald-400 shrink-0 mt-0.5" />
               ) : (
                 <AlertCircle className="w-3.5 h-3.5 text-rose-600 dark:text-rose-400 shrink-0 mt-0.5" />
               )}
               <div className="text-[11px] leading-relaxed break-words font-mono flex-1 font-medium">
-                {statusMessage.text}
+                {displayStatus.text}
               </div>
             </div>
 
             {/* Quick action button for Push / Authentication failures */}
-            {statusMessage.type === 'error' &&
+            {displayStatus.type === 'error' &&
               onOpenRemoteAuth &&
-              (statusMessage.text.includes('Push failed') ||
-                statusMessage.text.toLowerCase().includes('auth') ||
-                statusMessage.text.toLowerCase().includes('remote') ||
-                statusMessage.text.toLowerCase().includes('permission') ||
-                statusMessage.text.toLowerCase().includes('ssh') ||
-                statusMessage.text.toLowerCase().includes('token')) && (
+              (displayStatus.text.includes('Push failed') ||
+                displayStatus.text.toLowerCase().includes('auth') ||
+                displayStatus.text.toLowerCase().includes('remote') ||
+                displayStatus.text.toLowerCase().includes('permission') ||
+                displayStatus.text.toLowerCase().includes('ssh') ||
+                displayStatus.text.toLowerCase().includes('token')) && (
                 <div className="pt-1 flex items-center justify-end">
                   <button
                     onClick={onOpenRemoteAuth}
