@@ -18,6 +18,7 @@ function patchUUID(buffer, identity) {
 module.exports = async context => {
   if (context.electronPlatformName !== 'darwin') return;
   const info = context.packager.appInfo;
+  require('./runtime-compatibility.cjs').validateRuntime(path.join(context.appOutDir, `${info.productFilename}.app`));
   const file = path.join(context.appOutDir, `${info.productFilename}.app`, 'Contents', 'MacOS', info.productFilename);
   const binary = fs.readFileSync(file);
   // Stable per app and architecture; Electron's shared UUID must not identify multiple apps.

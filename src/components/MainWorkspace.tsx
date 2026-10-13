@@ -583,6 +583,52 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       </div>
 
       {/* Sync Status Banner */}
+      {/* Mode Underline Tabs */}
+      <div className="h-10 px-5 bg-[var(--bg-canvas)] border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0">
+        <div className="h-full flex gap-6">
+          <button
+            onClick={() => setActiveTab('changes')}
+            className={`h-full text-xs font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'changes'
+                ? 'border-[var(--accent-violet)] text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            <FileEdit className="w-3.5 h-3.5" />
+            <span>Changes</span>
+            {(details?.files.length ?? 0) > 0 && (
+              <span className="px-2 py-0.2 rounded-[50px] border border-[var(--border-interactive)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-mono text-[10px]">
+                {details?.files.length}
+              </span>
+            )}
+          </button>
+
+          <button
+            onClick={() => setActiveTab('history')}
+            className={`h-full text-xs font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'history'
+                ? 'border-[var(--accent-violet)] text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            <History className="w-3.5 h-3.5" />
+            <span>History</span>
+          </button>
+
+          <button
+            onClick={() => setActiveTab('branches')}
+            className={`h-full text-xs font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'branches'
+                ? 'border-[var(--accent-violet)] text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            <Layers className="w-3.5 h-3.5" />
+            <span>Remotes</span>
+          </button>
+        </div>
+      </div>
+
       {syncNotice && (
         <div className={`px-5 py-2.5 text-xs flex items-center justify-between border-b transition-all shrink-0 ${
           syncNotice.type === 'success'
@@ -616,51 +662,6 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 
       {pushState.report && <div className="px-5 py-2"><PushResults report={pushState.report} busy={pushState.pushing} retry={() => handlePush(true)} /></div>}
 
-      {/* Mode Underline Tabs */}
-      <div className="px-5 bg-[var(--bg-canvas)] border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0">
-        <div className="flex gap-6">
-          <button
-            onClick={() => setActiveTab('changes')}
-            className={`py-2.5 text-xs font-medium flex items-center gap-2 border-b-2 transition ${
-              activeTab === 'changes'
-                ? 'border-[var(--accent-violet)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            <FileEdit className="w-3.5 h-3.5" />
-            <span>Changes</span>
-            {(details?.files.length ?? 0) > 0 && (
-              <span className="px-2 py-0.2 rounded-[50px] border border-[var(--border-interactive)] bg-[var(--bg-surface)] text-[var(--text-primary)] font-mono text-[10px]">
-                {details?.files.length}
-              </span>
-            )}
-          </button>
-
-          <button
-            onClick={() => setActiveTab('history')}
-            className={`py-2.5 text-xs font-medium flex items-center gap-2 border-b-2 transition ${
-              activeTab === 'history'
-                ? 'border-[var(--accent-violet)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            <History className="w-3.5 h-3.5" />
-            <span>History</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('branches')}
-            className={`py-2.5 text-xs font-medium flex items-center gap-2 border-b-2 transition ${
-              activeTab === 'branches'
-                ? 'border-[var(--accent-violet)] text-[var(--text-primary)]'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
-            }`}
-          >
-            <Layers className="w-3.5 h-3.5" />
-            <span>Remotes</span>
-          </button>
-        </div>
-      </div>
 
       {/* Main Workspace Body */}
       <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex flex-wrap gap-2 items-center text-xs">

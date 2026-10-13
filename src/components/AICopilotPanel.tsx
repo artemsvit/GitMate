@@ -1,3 +1,4 @@
+import { cn } from '../cn';
 import { currentCommitNotice, type CommitNotice } from '../pushStatus';
 import { useRepositoryPush, destinationKey } from '../useRepositoryPush';
 import { PushResults } from './PushResults';
@@ -213,11 +214,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   return (
     <aside
       style={{ width }}
-      className="h-full flex flex-col bg-[var(--bg-canvas)] p-4 select-none shrink-0 justify-between transition-colors overflow-y-auto"
+      className="h-full min-h-0 flex flex-col bg-[var(--bg-canvas)] border-l border-[var(--border-subtle)] select-none shrink-0 overflow-hidden"
     >
-      <div className="space-y-4">
         {/* Header */}
-        <div className="flex items-center justify-between pb-3 border-b border-[var(--border-subtle)]">
+        <div className="h-12 px-4 flex items-center justify-between border-b border-[var(--border-subtle)] bg-[var(--bg-surface)] shrink-0">
           <div className="flex items-center gap-2">
             <div className="w-6 h-6 rounded-md bg-[var(--bg-surface)] border border-[var(--border-interactive)] flex items-center justify-center text-[var(--accent-violet)]">
               <Sparkles className="w-3.5 h-3.5" />
@@ -229,17 +229,17 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             <button
               onClick={onToggleCollapse}
               className="p-1.5 rounded-lg border border-[var(--border-interactive)] hover:border-[var(--accent-violet)] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition flex items-center justify-center cursor-pointer"
-              title="Collapse AI Copilot panel"
+              aria-label="Collapse AI Copilot panel" title="Collapse AI Copilot panel"
             >
               <PanelRightClose className="w-3.5 h-3.5" />
             </button>
           </div>
         </div>
 
-        <div role="tablist" aria-label="Copilot mode" className="flex gap-5 border-b border-[var(--border-subtle)]">
-          {(['commit', 'chat'] as const).map(tab => <button key={tab} role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`py-2 text-xs font-medium border-b-2 ${activeTab === tab ? 'border-[var(--accent-violet)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)]'}`}>{tab === 'commit' ? 'Commit' : 'Chat'}</button>)}
+        <div role="tablist" aria-label="Copilot mode" className="h-10 px-4 flex gap-6 border-b border-[var(--border-subtle)] shrink-0">
+          {(['commit', 'chat'] as const).map(tab => <button key={tab} role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={cn('h-full text-xs font-medium border-b-2 flex items-center gap-2', activeTab === tab ? 'border-[var(--accent-violet)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)]')}>{tab === 'commit' ? <GitCommit className="size-3.5" /> : <Sparkles className="size-3.5" />}{tab === 'commit' ? 'Commit' : 'Chat'}</button>)}
         </div>
-        {activeTab === 'chat' ? <CopilotChat key={repoSummary.path} repo={repoSummary} repositories={repositories} /> : <div className="space-y-4">
+        {activeTab === 'chat' ? <CopilotChat key={repoSummary.path} repo={repoSummary} repositories={repositories} /> : <div role="tabpanel" aria-label="Commit" className="flex-1 min-h-0 overflow-y-auto p-4 space-y-4">
         {/* Generate Button (Paper filled pill button) */}
         <button
           onClick={handleGenerateCommit}
@@ -360,10 +360,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         )}
         <PushResults report={pushState.report} busy={pushState.pushing} retry={() => { const report = pushState.report; if (report) pushState.push(report.commitHash, report.results.filter(result => result.status !== 'verified').map(result => result.destination)).catch(error => setStatusMessage({ text: error.message, type: 'error' })); }} />
         </div>}
-      </div>
 
       {/* Action Buttons */}
-      {activeTab === 'commit' && <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
+      {activeTab === 'commit' && <div className="p-4 border-t border-[var(--border-subtle)] space-y-2 shrink-0">
         <button
           onClick={() => handleCommit(false)}
           disabled={isCommitting || !hasStagedChanges || !commitMessage.trim()}

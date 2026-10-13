@@ -34,3 +34,9 @@ test('updater IPC guards its sender and requires download before installation', 
   assert.equal((await handlers['check-updates'](expected)).status, 'available'); assert.equal(updater.autoDownload, false); assert.equal(updater.autoInstallOnAppQuit, false);
   await handlers['download-update'](expected); handlers['install-update'](expected); assert.equal(installs, 1);
 });
+
+test('release compatibility checks read actual Mach-O deployment targets, independently of the plist', () => {
+  const { minimumMacOS } = require('../scripts/runtime-compatibility.cjs');
+  const binary = Buffer.alloc(56); binary.writeUInt32LE(0xfeedfacf, 0); binary.writeUInt32LE(1, 16); binary.writeUInt32LE(0x32, 32); binary.writeUInt32LE(24, 36); binary.writeUInt32LE(1, 40); binary.writeUInt32LE(12 << 16, 44);
+  assert.deepEqual(minimumMacOS(binary), [12,0,0]); binary.writeUInt32LE(13 << 16, 44); assert.deepEqual(minimumMacOS(binary), [13,0,0]);
+});
