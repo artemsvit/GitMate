@@ -72,3 +72,19 @@ test('commit context treats wildcard filenames literally and cannot include excl
   const {repo,git}=await fixture(t);await fs.writeFile(path.join(repo,'*'),'public marker');await fs.writeFile(path.join(repo,'.env'),'PRIVATE_VALUE=fixture-hidden-value');await git('add','.');await git('commit','-m','fixture');const hash=(await git('rev-parse','HEAD')).stdout.trim();
   const context=await gatherContext([repo],'Explain this commit',hash);assert.match(context.text,/public marker/);assert.equal(context.text.includes('fixture-hidden-value'),false);
 });
+
+test('chat history keeps the newest messages within the budget', async () => {
+  const { recentHistory } = await import('../server/copilotService');
+  const messages = ['first', 'second', 'third'].map(content => ({ id: content, role: 'user' as const, content }));
+  assert.equal(recentHistory(messages, 1000), 'user: first\nuser: second\nuser: third');
+  assert.equal(recentHistory(messages, 25), 'user: second\nuser: third');
+  assert.equal(recentHistory([{ id: 'x', role: 'assistant', content: 'y'.repeat(9000) }], 100000).length, 'assistant: '.length + 4000);
+});
+
+test('evidence budget scales with the available context', async () => {
+  const { mkdtempSync, writeFileSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path'); const { execFileSync } = await import('node:child_process');
+  const repo = mkdtempSync(join(tmpdir(), 'gitler-budget-')); execFileSync('git', ['init', '-q', repo]);
+  writeFileSync(join(repo, 'README.md'), 'readme '.repeat(8000));
+  const small = await gatherContext([repo], 'Summarize the readme'); const large = await gatherContext([repo], 'Summarize the readme', undefined, 60000);
+  assert.ok(small.text.length <= 18000); assert.ok(large.text.length > small.text.length + 8000 && large.text.length <= 60000);
+});

@@ -95,7 +95,7 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
       {model?.state === 'unsupported' && <p className="text-pretty text-[var(--text-muted)]">{model.error}</p>}
       {!ready && model?.state !== 'unsupported' && <div className="p-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
         <p className="font-medium text-balance text-[var(--text-primary)]">Set up local Copilot</p>
-        <p className="text-pretty text-[var(--text-muted)]">Download Qwen3-4B once (2.5 GB). Your code and chats stay on this Mac.</p>
+        <p className="text-pretty text-[var(--text-muted)]">Download Qwen3.5-9B once (5.7 GB). Your code and chats stay on this Mac.</p>
         {model && <><p className="text-[var(--text-muted)] tabular-nums">{model.state} · {(model.downloaded / 1e9).toFixed(2)} / 2.50 GB</p><progress aria-label="Model download progress" className="w-full accent-[var(--accent-violet)]" value={model.downloaded} max={model.size} />{model.error && <p className="text-rose-600">{model.error}</p>}</>}
         <button onClick={() => modelAction(['downloading', 'verifying'].includes(model?.state || '') ? 'cancel' : 'download')} className="px-3 py-1.5 rounded-full border border-[var(--border-interactive)] text-[var(--text-primary)]">{['downloading', 'verifying'].includes(model?.state || '') ? 'Cancel download' : model?.downloaded ? 'Resume download' : 'Download model'}</button>
       </div>}

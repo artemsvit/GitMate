@@ -93,7 +93,7 @@ Generate a distributable Apple Silicon & Intel DMG installer:
 ```bash
 npm run dist:mac
 ```
-The output file will be generated in `release/Gitler-1.1.0-arm64.dmg`.
+The output file will be generated in `release/Gitler-1.1.1-arm64.dmg`.
 
 ---
 
@@ -179,7 +179,7 @@ Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image previ
 
 ### Copilot chat and interface controls
 
-Copilot has separate **Commit** and **Chat** tabs. Commit suggestions work without a model download. Chat requires macOS 14 or newer; Git features retain macOS 12 support. Chat uses Qwen3-4B Q4_K_M locally after a one-time 2.5 GB download. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
+Copilot has separate **Commit** and **Chat** tabs. Commit suggestions work without a model download. Chat requires macOS 14 or newer; Git features retain macOS 12 support. Chat uses Qwen3.5-9B Q4_K_M locally after a one-time 5.7 GB download, with up to a 32K-token context. Gitler removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
 
 Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitler/conversations`; use New chat or Delete chat to manage them.
 

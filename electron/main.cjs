@@ -1,4 +1,4 @@
-const { app, BrowserWindow, shell, ipcMain, dialog, session } = require('electron');
+const { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } = require('electron');
 const path = require('node:path');
 const { networkPermissions, trustedInterfacePermission } = require('./permissions.cjs');
 
@@ -50,6 +50,7 @@ async function startBackendServer() {
 
 let attachZoom;
 let updates;
+let updateTimer;
 function createWindow() {
   mainWindow = new BrowserWindow({
     show: false, width: 1280, height: 820, minWidth: 960, minHeight: 600,
@@ -77,8 +78,9 @@ function createWindow() {
   });
   mainWindow.loadURL(interfaceURL).catch(error => dialog.showErrorBox('Gitler could not load', error.message));
   mainWindow.on('closed', () => { mainWindow = null; });
-  if (app.isPackaged) {
-    updates.check().catch(() => {});
+  if (app.isPackaged && !updateTimer) {
+    mainWindow.once('ready-to-show', () => updates.checkInBackground());
+    updateTimer = setInterval(() => updates.checkInBackground(), 24 * 60 * 60 * 1000);
   }
 }
 
@@ -94,7 +96,8 @@ else {
       providerSession.setPermissionRequestHandler((_contents, permission, callback) => callback(networkPermissions.has(permission)));
       providerSession.setPermissionCheckHandler((_contents, permission) => networkPermissions.has(permission));
       globalThis.__electronNetFetch = (url, options) => providerSession.fetch(url, options);
-      updates = require('./updates.cjs').installUpdates(app, ipcMain, checkSender, () => mainWindow);
+      updates = require('./updates.cjs').installUpdates(app, ipcMain, checkSender, () => mainWindow, dialog);
+      require('./menu.cjs').installMenu(app, Menu, () => updates.checkInteractive());
       attachZoom = require('./zoom.cjs').installZoom(app, ipcMain, checkSender, () => mainWindow);
       await startBackendServer();
       createWindow();
@@ -104,4 +107,5 @@ else {
   });
 }
 app.on('will-quit', () => backendServer?.close());
-app.on('window-all-closed', () => { if (process.platform !== 'darwin') app.quit(); });
+// Gitler has one main window, so closing it quits and releases the local server and the model.
+app.on('window-all-closed', () => app.quit());

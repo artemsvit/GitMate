@@ -13,13 +13,13 @@ export function safeContextFile(repoPath: string, file: string) {
   if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('This file is outside the repository.');
   return real;
 }
-export async function gatherContext(repos: string[], question: string, commit?: string) {
+export async function gatherContext(repos: string[], question: string, commit?: string, maxChars = 18000) {
   const sources: { repository: string; file?: string; commit?: string; kind: string }[] = [];
-  let budget = 18000; let truncated = false; const parts: string[] = [];
+  let budget = maxChars; const itemLimit = Math.max(6500, Math.floor(maxChars / 4)); let truncated = false; const parts: string[] = [];
   const add = (value: string, source: typeof sources[number]) => {
     if (budget <= 0) { truncated = true; return; }
     const clean = redactRemote(value).replace(/((?:api[_-]?key|password|secret|token)\s*[:=]\s*)["']?[^\s"',;]+/gi, '$1[redacted]');
-    const limit = Math.min(budget, 6500); parts.push(clean.slice(0, limit)); sources.push(source);
+    const limit = Math.min(budget, itemLimit); parts.push(clean.slice(0, limit)); sources.push(source);
     if (clean.length > limit) truncated = true; budget -= Math.min(limit, clean.length);
   };
   for (const repo of repos) {
