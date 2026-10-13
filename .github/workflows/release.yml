@@ -8,6 +8,10 @@ on:
         description: 'Existing version tag, for example v1.1.0'
         required: true
         type: string
+      tooling_ref:
+        description: 'Optional commit for release-tooling fixes; application source stays on tag'
+        required: false
+        type: string
 permissions:
   contents: write
 concurrency:
@@ -28,6 +32,12 @@ jobs:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tag || github.ref }}
+      - name: Checkout optional release tooling
+        if: github.event.inputs.tooling_ref != ''
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.event.inputs.tooling_ref }}
+          path: .release-tooling
       - uses: actions/setup-node@v4
         with:
           node-version: 24
@@ -65,9 +75,15 @@ jobs:
         run: npx electron-builder --mac dmg zip --arm64 --publish never
       - run: npm run verify:package
       - name: Notarize DMG and finalize hashes
-        run: node scripts/finalize-release.cjs
+        run: |
+          TOOLING_ROOT="."
+          if test -d .release-tooling; then TOOLING_ROOT=".release-tooling"; fi
+          node "$TOOLING_ROOT/scripts/finalize-release.cjs"
       - name: Validate both distribution formats
-        run: node scripts/validate-release.cjs
+        run: |
+          TOOLING_ROOT="."
+          if test -d .release-tooling; then TOOLING_ROOT=".release-tooling"; fi
+          node "$TOOLING_ROOT/scripts/validate-release.cjs"
       - name: Save notarization evidence
         if: always()
         uses: actions/upload-artifact@v4

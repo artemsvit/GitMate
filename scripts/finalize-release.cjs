@@ -17,8 +17,9 @@ if (result.status !== 'Accepted') throw new Error(`Apple rejected DMG submission
 execFileSync('xcrun', ['stapler', 'staple', dmg], { stdio: 'inherit' });
 execFileSync('xcrun', ['stapler', 'validate', dmg], { stdio: 'inherit' });
 execFileSync('hdiutil', ['verify', dmg], { stdio: 'inherit' });
-const builder = require('app-builder-bin').appBuilderPath;
-for (const file of [dmg, zip]) execFileSync(builder, ['blockmap', '--input', file, '--output', file + '.blockmap']);
+const { buildBlockMap } = require('app-builder-lib/out/targets/blockmap/blockmap');
+async function finalizeArtifacts() {
+for (const file of [dmg, zip]) await buildBlockMap(file, 'gzip', file + '.blockmap');
 const metadataFile = path.join(root, 'latest-mac.yml'); const metadata = yaml.load(fs.readFileSync(metadataFile, 'utf8'));
 if (metadata.version !== version) throw new Error('Updater version mismatch.');
 for (const entry of metadata.files) { const bytes = fs.readFileSync(path.join(root, entry.url)); entry.sha512 = crypto.createHash('sha512').update(bytes).digest('base64'); entry.size = bytes.length; }
@@ -26,3 +27,5 @@ metadata.sha512 = crypto.createHash('sha512').update(fs.readFileSync(zip)).diges
 fs.writeFileSync(metadataFile, yaml.dump(metadata));
 const names = [path.basename(dmg), path.basename(zip), path.basename(dmg) + '.blockmap', path.basename(zip) + '.blockmap', 'latest-mac.yml'];
 fs.writeFileSync(path.join(root, 'SHA256SUMS.txt'), names.map(name => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, name))).digest('hex') + '  ' + name).join('\n') + '\n');
+}
+finalizeArtifacts().catch(error => { console.error(error.message); process.exitCode = 1; });
