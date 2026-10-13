@@ -3,7 +3,7 @@
    ========================================================================== */
 
 :root {
-  --bg-obsidian: #000000;
+  --bg-obsidian: #050505;
   --bg-graphite: #0c0c0c;
   --bg-card: #151515;
   --bg-surface: #1e1e1e;
@@ -11,7 +11,7 @@
   --border-subtle: #1c1c1c;
   --text-primary: #faf9f6;
   --text-secondary: #a3a2a0;
-  --text-muted: #6a6967;
+  --text-muted: #918e99;
   --accent-violet: #cbb0f7;
   --accent-violet-glow: rgba(203, 176, 247, 0.18);
   --btn-white: #ffffff;
@@ -172,7 +172,7 @@ a {
 
 .hero-title {
   font-size: 56px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.1;
   letter-spacing: -0.035em;
   margin-bottom: 20px;
@@ -208,7 +208,7 @@ a {
   border-radius: 33px;
   font-size: 14px;
   font-weight: 600;
-  transition: all 0.2s ease;
+  transition: transform 0.2s ease, background-color 0.2s ease, border-color 0.2s ease;
   cursor: pointer;
 }
 
@@ -246,9 +246,11 @@ a {
    Mockup Section
    ========================================================================== */
 .mockup-section {
-  max-width: 1140px;
-  margin: 20px auto 100px;
-  padding: 0 24px;
+  --preview-sidebar-width: clamp(280px, 20vw, 320px);
+  --preview-copilot-width: clamp(280px, 22vw, 360px);
+  width: calc(100% - 64px);
+  max-width: 1600px;
+  margin: 44px auto 110px;
 }
 
 .mockup-frame {
@@ -269,7 +271,7 @@ a {
 }
 
 .topbar-sidebar {
-  width: 290px;
+  width: var(--preview-sidebar-width);
   border-right: 1px solid var(--border-carbon);
   display: flex;
   align-items: center;
@@ -450,7 +452,7 @@ a {
 
 /* Copilot Topbar (Right) */
 .topbar-copilot {
-  width: 330px;
+  width: var(--preview-copilot-width);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -485,13 +487,13 @@ a {
 /* App 3-Pane Body */
 .mockup-app {
   display: flex;
-  height: 520px;
+  height: clamp(620px, 48vw, 800px);
   background: var(--bg-obsidian);
 }
 
 /* Sidebar Body */
 .mockup-sidebar {
-  width: 290px;
+  width: var(--preview-sidebar-width);
   border-right: 1px solid var(--border-carbon);
   background: #0d0f13;
   display: flex;
@@ -700,7 +702,7 @@ a {
 
 /* Working tree pane */
 .working-tree-pane {
-  width: 220px;
+  width: 200px;
   border-right: 1px solid var(--border-carbon);
   background: #0d0f13;
   display: flex;
@@ -867,18 +869,21 @@ a {
 }
 
 .diff-content-body {
-  padding: 12px;
-  font-size: 11px;
-  line-height: 1.7;
+  padding: 16px;
+  font-size: 12px;
+  line-height: 1.9;
   overflow-y: auto;
   flex: 1;
 }
 
 .diff-line {
-  padding: 1px 6px;
+  padding: 3px 8px;
   border-radius: 3px;
-  white-space: pre;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
+.diff-line:not(.hunk) { display: flex; align-items: baseline; }
+.diff-line > span:not(.sign) { white-space: pre-wrap; min-width: 0; }
 .diff-line.hunk {
   color: var(--accent-violet);
   background: rgba(203, 176, 247, 0.08);
@@ -901,12 +906,13 @@ a {
 .diff-line .sign {
   display: inline-block;
   width: 14px;
+  flex-shrink: 0;
   font-weight: bold;
 }
 
 /* AI Copilot Panel */
 .mockup-copilot {
-  width: 330px;
+  width: var(--preview-copilot-width);
   background: #0d0f13;
   display: flex;
   flex-direction: column;
@@ -1126,7 +1132,7 @@ a {
 
 .section-title {
   font-size: 36px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
   margin-bottom: 50px;
 }
@@ -1139,8 +1145,8 @@ a {
 }
 
 .feature-card {
-  background: var(--bg-graphite);
-  border: 1px solid var(--border-carbon);
+  background: radial-gradient(circle at top right, rgba(203, 176, 247, 0.08), transparent 70%), var(--bg-graphite);
+  border: 1px solid rgba(203, 176, 247, 0.4);
   border-radius: 16px;
   padding: 28px;
   transition: transform 0.2s ease, border-color 0.2s ease;
@@ -1148,20 +1154,15 @@ a {
 
 .feature-card:hover {
   transform: translateY(-3px);
-  border-color: #444;
-}
-
-.feature-card.highlight {
-  border-color: rgba(203, 176, 247, 0.4);
-  background: radial-gradient(circle at top right, rgba(203, 176, 247, 0.08), transparent 70%), var(--bg-graphite);
+  border-color: rgba(203, 176, 247, 0.65);
 }
 
 .feature-icon {
   width: 42px;
   height: 42px;
   border-radius: 10px;
-  background: var(--bg-surface);
-  border: 1px solid var(--border-carbon);
+  background: rgba(203, 176, 247, 0.15);
+  border: 1px solid rgba(203, 176, 247, 0.3);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1172,11 +1173,6 @@ a {
 .feature-icon svg {
   width: 20px;
   height: 20px;
-}
-
-.feature-card.highlight .feature-icon {
-  background: rgba(203, 176, 247, 0.15);
-  border-color: rgba(203, 176, 247, 0.3);
 }
 
 .feature-card h3 {
@@ -1268,97 +1264,70 @@ a {
    Download Section
    ========================================================================== */
 .download-section {
-  max-width: 800px;
-  margin: 0 auto 120px;
+  max-width: 1140px;
+  margin: 0 auto 100px;
   padding: 0 24px;
   text-align: center;
 }
 
 .download-card {
-  background: radial-gradient(circle at center, rgba(203, 176, 247, 0.08), transparent 75%), var(--bg-graphite);
-  border: 1px solid var(--border-carbon);
-  border-radius: 24px;
-  padding: 50px 32px;
-  display: flex;
-  flex-direction: column;
+  background: radial-gradient(circle at top left, rgba(203, 176, 247, 0.09), transparent 65%), var(--bg-graphite);
+  border: 1px solid rgba(203, 176, 247, 0.4);
+  border-radius: 20px;
+  padding: 48px;
+  display: grid;
+  grid-template-columns: 1.1fr 1fr;
+  gap: 48px;
+  text-align: left;
   align-items: center;
-}
-
-.badge-dot-green {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--status-clean);
-  box-shadow: 0 0 10px var(--status-clean);
-  margin-bottom: 16px;
 }
 
 .download-card h2 {
   font-size: 38px;
-  font-weight: 800;
+  font-weight: 700;
   letter-spacing: -0.03em;
-  margin-bottom: 12px;
+  line-height: 1.15;
+  margin-bottom: 16px;
 }
 
-.download-card p {
-  font-size: 15px;
+.download-copy > p {
+  font-size: 16px;
   color: var(--text-secondary);
-  margin-bottom: 30px;
+  margin-bottom: 28px;
+  line-height: 1.65;
 }
 
-.btn-large {
-  padding: 16px 36px;
-  font-size: 15px;
-}
-
-.terminal-install {
-  margin-top: 32px;
+.btn-large { padding: 14px 24px; font-size: 14px; }
+.download-meta {
   display: flex;
-  flex-direction: column;
-  gap: 8px;
-}
-
-.terminal-label {
-  font-size: 12px;
-  color: var(--text-muted);
-}
-
-.terminal-cmd {
-  display: flex;
-  align-items: center;
-  background: #090909;
-  border: 1px solid var(--border-carbon);
-  border-radius: 33px;
-  padding: 4px 6px 4px 16px;
-  gap: 12px;
-}
-
-.terminal-cmd code {
-  font-size: 12px;
-  color: var(--accent-violet);
-}
-
-.copy-btn {
-  background: var(--bg-surface);
-  color: var(--text-primary);
-  border: 1px solid var(--border-carbon);
-  padding: 4px 12px;
-  border-radius: 50px;
-  font-size: 11px;
-  cursor: pointer;
-  transition: background 0.15s;
-}
-
-.copy-btn:hover {
-  background: #333;
-}
-
-.security-note {
-  margin-top: 24px;
-  font-size: 12px;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-top: 18px;
   font-family: 'Geist Mono', monospace;
-  color: var(--text-muted);
+  font-size: 11px;
+  color: var(--text-secondary);
 }
+.release-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  color: var(--accent-violet);
+  font-size: 12px;
+  margin-top: 16px;
+}
+.release-link:hover { text-decoration: underline; text-underline-offset: 4px; }
+.download-setup { border-left: 1px solid var(--border-carbon); padding-left: 36px; }
+.setup-heading {
+  font-family: 'Geist Mono', monospace;
+  font-size: 11px;
+  color: var(--text-secondary);
+  margin-bottom: 24px;
+}
+.setup-steps { list-style: none; display: grid; gap: 24px; }
+.setup-steps li { display: flex; gap: 14px; align-items: flex-start; }
+.setup-steps .step-num { flex-shrink: 0; margin: 0; }
+.setup-steps h3 { font-size: 14px; font-weight: 600; margin-bottom: 5px; }
+.setup-steps p { font-size: 13px; color: var(--text-secondary); line-height: 1.6; }
 
 /* ==========================================================================
    Footer
@@ -1393,12 +1362,101 @@ a {
   color: var(--text-primary);
 }
 
+/* Small motion, visible focus, and responsive navigation. */
+html { scroll-behavior: smooth; scroll-padding-top: 84px; }
+.hero-title, .section-title, .download-card h2 { text-wrap: balance; }
+.hero-subtitle, .feature-card p { text-wrap: pretty; }
+a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-violet); outline-offset: 5px; }
+.btn:active, .nav-btn-primary:active { transform: translateY(1px); }
+.nav-toggle { display: none; }
+.skip-link {
+  position: fixed;
+  top: 12px;
+  left: 16px;
+  z-index: 101;
+  padding: 10px 16px;
+  border-radius: 8px;
+  background: var(--btn-white);
+  color: var(--btn-dark);
+  transform: translateY(-150%);
+}
+.skip-link:focus { transform: translateY(0); }
+.reveal-enter { animation: reveal-in 440ms ease-out both; }
+@keyframes reveal-in {
+  from { opacity: 0; transform: translateY(8px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@media (max-width: 1000px) {
+  .grid-features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .grid-features .feature-card:last-child { grid-column: 1 / -1; }
+  .download-card { padding: 36px; gap: 28px; }
+  .download-setup { padding-left: 28px; }
+}
+@media (max-width: 1024px) {
+  .mockup-section, .nav-links a[href="#mockup"] { display: none; }
+  .features-section { margin-top: 72px; }
+}
 @media (max-width: 900px) {
-  .hero-title { font-size: 38px; }
-  .grid-features { grid-template-columns: 1fr; }
-  .mockup-frame { overflow-x: auto; }
-  .mockup-topbar { min-width: 820px; }
-  .mockup-app { min-width: 820px; }
-  .mockup-statusbar { min-width: 820px; }
-  .arch-flow { flex-direction: column; }
+  .hero-title { font-size: 42px; }
+  .arch-flow { flex-direction: column; align-items: stretch; gap: 12px; }
+  .arch-arrow { transform: rotate(90deg); text-align: center; }
+  .download-card { grid-template-columns: 1fr; gap: 32px; }
+  .download-setup { border-left: 0; border-top: 1px solid var(--border-carbon); padding: 28px 0 0; }
+  .footer-container { flex-direction: column; align-items: flex-start; gap: 20px; }
+  .footer-links { flex-wrap: wrap; gap: 12px 20px; }
+}
+@media (max-width: 640px) {
+  .nav-container { padding: 0 20px; }
+  .nav-toggle {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 36px;
+    height: 36px;
+    margin-left: auto;
+    color: var(--text-primary);
+    background: var(--bg-surface);
+    border: 1px solid var(--border-carbon);
+    border-radius: 8px;
+    cursor: pointer;
+  }
+  .nav-links {
+    display: none;
+    position: absolute;
+    top: 59px;
+    left: 0;
+    right: 0;
+    padding: 20px;
+    background: var(--bg-graphite);
+    border-bottom: 1px solid var(--border-carbon);
+    flex-direction: column;
+    align-items: stretch;
+    gap: 8px;
+  }
+  .nav-links.is-open { display: flex; }
+  .nav-links a { padding: 10px 14px; }
+  .nav-btn-primary { text-align: center; }
+  .hero { margin-top: 48px; padding: 0 20px; }
+  .hero-title { font-size: clamp(30px, 7.5vw, 42px); }
+  .hero-subtitle { font-size: 16px; }
+  .hero-badge { font-size: 10px; padding: 6px 10px; }
+  .hero-actions { flex-direction: column; width: 100%; gap: 10px; }
+  .hero-actions .btn { justify-content: center; width: 100%; max-width: 340px; }
+  .hero-meta { font-size: 10px; line-height: 1.9; }
+  .features-section, .architecture-section, .download-section { padding: 0 20px; margin-bottom: 64px; }
+  .section-title { font-size: 28px; margin-bottom: 28px; line-height: 1.2; }
+  .grid-features { grid-template-columns: minmax(0, 1fr); gap: 14px; }
+  .feature-card { padding: 24px; }
+  .architecture-box, .download-card { padding: 28px 24px; }
+  .architecture-desc { font-size: 14px; margin-bottom: 28px; }
+  .download-card h2 { font-size: 32px; }
+  .download-copy > p { font-size: 14px; }
+  .download-buttons .btn { justify-content: center; width: 100%; padding: 14px 12px; font-size: 13px; }
+  .footer-left { display: flex; flex-direction: column; gap: 6px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  .reveal-enter { animation: none; }
+  .btn, .nav-btn-primary, .feature-card { transition: none; }
+  .btn:hover, .btn:active, .nav-btn-primary:hover, .nav-btn-primary:active, .feature-card:hover { transform: none; }
 }
