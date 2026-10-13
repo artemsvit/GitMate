@@ -1,6 +1,6 @@
 {
   "name": "gitler",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "A local Git client for macOS",
   "main": "electron/main.cjs",
   "type": "module",
@@ -11,9 +11,9 @@
     "dev": "concurrently -n \"API,WEB\" -c \"cyan,magenta\" \"npm run server\" \"npm run client\"",
     "build:client": "vite build",
     "build:server": "esbuild server/main.ts --bundle --platform=node --format=cjs --packages=external --outfile=server/index.cjs",
-    "build": "npm run typecheck && npm run build:client && npm run build:server",
+    "build": "node scripts/sync-version.cjs && npm run typecheck && npm run build:client && npm run build:server",
     "build:dmg-assets": "electron scripts/generate-dmg-assets.cjs",
-    "dist:mac": "npm run build && npm run build:dmg-assets && electron-builder --mac dmg zip",
+    "dist:mac": "npm run build && npm run build:dmg-assets && GITLER_RELEASE=1 electron-builder --mac dmg zip --arm64 --publish never",
     "dist:dir": "npm run build && electron-builder --mac dir --publish never",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",
@@ -23,9 +23,10 @@
   },
   "dependencies": {
     "dotenv": "^18.0.7",
+    "electron-updater": "^6.8.9",
     "express": "^5.3.0",
-    "simple-git": "^4.0.2",
-    "electron-updater": "^6.8.9"
+    "node-llama-cpp": "3.22.1",
+    "simple-git": "^4.0.2"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
@@ -48,5 +49,8 @@
   "author": "Artem Svitelskyi",
   "engines": {
     "node": ">=22.12.0"
+  },
+  "overrides": {
+    "simple-git": "^4.0.2"
   }
 }

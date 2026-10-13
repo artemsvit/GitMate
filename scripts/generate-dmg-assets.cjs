@@ -139,7 +139,7 @@ app.whenReady().then(async () => {
       <div class="brand-row">
         <img class="logo-img" src="data:image/png;base64,${iconBase64}" alt="Gitler" />
         <span class="brand-name">Gitler</span>
-        <span class="version-tag">v1.0.0</span>
+        <span class="version-tag">v${require('../package.json').version}</span>
       </div>
       <div class="subtitle">Drag Gitler into Applications folder to install</div>
     </div>

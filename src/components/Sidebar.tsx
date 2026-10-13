@@ -1,3 +1,4 @@
+import { appVersion } from '../version';
 import React, { useState } from 'react';
 import {
   GitBranch,
@@ -116,7 +117,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <span className="font-semibold text-xs text-[var(--text-primary)] tracking-tight">Gitler</span>
             {/* Version Tag */}
             <span className="px-2 py-0.5 rounded-[50px] border border-[var(--border-interactive)] bg-[var(--bg-surface)] text-[var(--accent-violet)] text-[10px] font-mono tracking-wider">
-              v1.0.0
+              v{appVersion}
             </span>
           </div>
         </div>

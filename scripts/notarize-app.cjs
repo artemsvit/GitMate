@@ -1,0 +1,21 @@
+const runNotary = require('./notary-command.cjs');
+const { execFileSync } = require('node:child_process');
+const fs = require('node:fs');
+const path = require('node:path');
+module.exports = async context => {
+  if (process.env.GITLER_RELEASE !== '1') return;
+  for (const key of ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID']) if (!process.env[key]) throw new Error(`Release requires ${key}.`);
+  const bundle = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
+  const output = path.resolve('release/notarization'); fs.mkdirSync(output, { recursive: true });
+  const upload = path.join(output, 'app-submission.zip');
+  execFileSync('codesign', ['--verify', '--deep', '--strict', bundle], { stdio: 'inherit' });
+  execFileSync('ditto', ['-c', '-k', '--keepParent', bundle, upload]);
+  const raw = runNotary(['submit', upload, '--wait', '--output-format', 'json']);
+  fs.writeFileSync(path.join(output, 'app-result.json'), raw);
+  const result = JSON.parse(raw);
+  const log = runNotary(['log', result.id]); fs.writeFileSync(path.join(output, 'app-log.json'), log);
+  fs.rmSync(upload);
+  if (result.status !== 'Accepted') throw new Error(`Apple rejected app submission ${result.id}. See notarization logs.`);
+  execFileSync('xcrun', ['stapler', 'staple', bundle], { stdio: 'inherit' });
+  execFileSync('xcrun', ['stapler', 'validate', bundle], { stdio: 'inherit' });
+};

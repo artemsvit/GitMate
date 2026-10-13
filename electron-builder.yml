@@ -15,9 +15,11 @@ files:
   - node_modules/**/*
 
 afterPack: scripts/unique-app-uuid.cjs
+afterSign: scripts/notarize-app.cjs
 
 asarUnpack:
   - "server/**/*"
+  - "node_modules/@node-llama-cpp/**/*"
 
 mac:
   category: public.app-category.developer-tools
@@ -25,11 +27,9 @@ mac:
     - target: dmg
       arch:
         - arm64
-        - x64
     - target: zip
       arch:
         - arm64
-        - x64
   icon: build/icon.icns
   hardenedRuntime: true
   gatekeeperAssess: false
@@ -46,7 +46,8 @@ mac:
   signIgnore:
     - '\.pak$'
     - '/MainMenu\.nib($|/)'
-  notarize: true
+  # Release afterSign submits, records acceptance, and staples before archiving.
+  notarize: false
 
 dmg:
   title: "Install ${productName}"

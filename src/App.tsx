@@ -1,3 +1,4 @@
+import { useRepositoryPush } from './useRepositoryPush';
 import { apiFetch } from './api';
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
 import { Sidebar } from './components/Sidebar';
@@ -36,8 +37,7 @@ export function App() {
   
   const [syncSelection, setSyncSelection] = useState({ path: '', remote: '', pushIndex: -1 });
   const syncRemote = syncSelection.path === selectedRepo?.path ? syncSelection.remote : selectedRepo?.sync?.pushRemote || selectedRepo?.sync?.pullRemote || selectedRepo?.remotes[0]?.name || '';
-  const pushUrls = selectedRepo?.remotes.find(remote => remote.name === syncRemote)?.pushUrls || [];
-  const syncPushIndex = syncSelection.path === selectedRepo?.path ? syncSelection.pushIndex : pushUrls.length === 1 ? 0 : -1;
+  const pushState = useRepositoryPush(selectedRepo, () => handleScan(currentPath));
   const selectSyncTarget = (remote: string, pushIndex: number) => setSyncSelection({ path: selectedRepo?.path || '', remote, pushIndex });
 
   // Selected file for diff
@@ -322,9 +322,10 @@ export function App() {
         key={'ai-' + selectedRepo.path}
         repoSummary={selectedRepo}
         syncRemote={syncRemote}
-        syncPushIndex={syncPushIndex}
+        pushState={pushState}
         details={selectedRepoDetails}
         aiStatus={aiStatus}
+        repositories={repositories}
         onOpenSettings={() => handleOpenSettings('ai')}
         onCommitSuccess={() => handleScan(currentPath)}
         onOpenRemoteAuth={() => setAuthModalRepo(selectedRepo)}
@@ -342,7 +343,7 @@ export function App() {
         key={selectedRepo.path}
         repoSummary={selectedRepo}
         syncRemote={syncRemote}
-        syncPushIndex={syncPushIndex}
+        pushState={pushState}
         onRefreshParent={() => handleScan(currentPath)}
         selectedFile={selectedFile}
         onSelectFile={(file, isStaged) => {

@@ -1,3 +1,6 @@
+import { useRepositoryPush, destinationKey } from '../useRepositoryPush';
+import { PushResults } from './PushResults';
+import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
 import React, { useState, useRef, useEffect } from 'react';
 import {
@@ -14,12 +17,14 @@ import {
   PanelRightOpen,
   Globe
 } from 'lucide-react';
+import { CopilotChat } from './CopilotChat';
 import { RepoDetails, RepoSummary, LocalAIStatus, AICommitResult } from '../types';
 
 interface AICopilotPanelProps {
   syncRemote: string;
-  syncPushIndex: number;
+  pushState: ReturnType<typeof useRepositoryPush>;
   repoSummary: RepoSummary;
+  repositories: RepoSummary[];
   details: RepoDetails | null;
   aiStatus: LocalAIStatus | null;
   onOpenSettings: () => void;
@@ -31,8 +36,8 @@ interface AICopilotPanelProps {
 }
 
 export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
-  repoSummary,
-  syncRemote, syncPushIndex,
+  repoSummary, repositories,
+  syncRemote, pushState,
   details,
   aiStatus,
   onOpenSettings,
@@ -42,6 +47,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   isCollapsed = false,
   onToggleCollapse
 }) => {
+  const [activeTab, setActiveTab] = useState<'commit' | 'chat'>('commit');
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
@@ -132,23 +138,8 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
         if (andPush) {
           try {
-            const pushRes = await apiFetch('/api/repos/push', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
-            });
-            const pushData = await pushRes.json();
-            if (pushRes.ok) {
-              setStatusMessage({
-                text: pushData.output || `Commit ${data.commitHash.slice(0, 7)} pushed to ${syncRemote}.`,
-                type: 'success'
-              });
-            } else {
-              setStatusMessage({
-                text: `Committed locally (${data.commitHash.slice(0, 7)}), but Push failed: ${pushData.error || 'Push error'}`,
-                type: 'error'
-              });
-            }
+            const pushData = await pushState.push(data.commitHash);
+            setStatusMessage({ text: pushData.success ? `Verified ${data.commitHash.slice(0, 7)} at every selected destination.` : `Committed locally (${data.commitHash.slice(0, 7)}). Some destinations failed; review the results.`, type: pushData.success ? 'success' : 'error' });
           } catch (pushErr: any) {
             setStatusMessage({
               text: `Committed locally (${data.commitHash.slice(0, 7)}), but Push failed: ${pushErr.message}`,
@@ -243,17 +234,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
           </div>
         </div>
 
-        {/* Change Stats */}
-        <div className="p-3 rounded-2xl bg-[var(--bg-surface)] border border-[var(--border-subtle)] text-xs flex items-center justify-between">
-          <div className="flex items-center gap-2 text-[var(--text-muted)]">
-            <FileCode2 className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
-            <span className="text-[11px] font-medium">Working Tree</span>
-          </div>
-          <span className="font-mono text-xs text-[var(--text-primary)]">
-            {totalChanges} changed files
-          </span>
+        <div role="tablist" aria-label="Copilot mode" className="flex gap-5 border-b border-[var(--border-subtle)]">
+          {(['commit', 'chat'] as const).map(tab => <button key={tab} role="tab" aria-selected={activeTab === tab} onClick={() => setActiveTab(tab)} className={`py-2 text-xs font-medium border-b-2 ${activeTab === tab ? 'border-[var(--accent-violet)] text-[var(--text-primary)]' : 'border-transparent text-[var(--text-muted)]'}`}>{tab === 'commit' ? 'Commit' : 'Chat'}</button>)}
         </div>
-
+        {activeTab === 'chat' ? <CopilotChat key={repoSummary.path} repo={repoSummary} repositories={repositories} /> : <div className="space-y-4">
         {/* Generate Button (Paper filled pill button) */}
         <button
           onClick={handleGenerateCommit}
@@ -372,10 +356,12 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
               )}
           </div>
         )}
+        <PushResults report={pushState.report} busy={pushState.pushing} retry={() => { const report = pushState.report; if (report) pushState.push(report.commitHash, report.results.filter(result => result.status !== 'verified').map(result => result.destination)).catch(error => setStatusMessage({ text: error.message, type: 'error' })); }} />
+        </div>}
       </div>
 
       {/* Action Buttons */}
-      <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
+      {activeTab === 'commit' && <div className="pt-3 border-t border-[var(--border-subtle)] space-y-2">
         <button
           onClick={() => handleCommit(false)}
           disabled={isCommitting || !hasStagedChanges || !commitMessage.trim()}
@@ -386,13 +372,13 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
         <button
           onClick={() => handleCommit(true)}
-          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim() || syncPushIndex < 0}
+          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim() || !pushState.destinations.length || pushState.pushing}
           className="w-full py-2.5 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
         >
           <Send className="w-3.5 h-3.5" />
-          <span>Commit & Push</span>
+          <span>Commit & Push{pushState.destinations.length > 1 ? ` to ${pushState.destinations.length}` : ''}</span>
         </button>
-      </div>
+      </div>}
     </aside>
   );
 };

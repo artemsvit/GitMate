@@ -1,3 +1,6 @@
+import { useRepositoryPush, destinationKey } from '../useRepositoryPush';
+import { PushResults } from './PushResults';
+import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
 import React, { useState, useEffect, useRef } from 'react';
 import {
@@ -23,7 +26,7 @@ import { DiffViewer } from './DiffViewer';
 
 interface MainWorkspaceProps {
   syncRemote: string;
-  syncPushIndex: number;
+  pushState: ReturnType<typeof useRepositoryPush>;
   onSyncTargetChange: (remote: string, pushIndex: number) => void;
   repoSummary: RepoSummary;
   onRefreshParent: () => void;
@@ -36,7 +39,7 @@ interface MainWorkspaceProps {
 
 export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   repoSummary,
-  syncRemote, syncPushIndex, onSyncTargetChange,
+  syncRemote, pushState, onSyncTargetChange,
   onRefreshParent,
   selectedFile,
   onSelectFile,
@@ -299,7 +302,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const res = await apiFetch('/api/repos/pull', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
+        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: undefined })
       });
       const data = await res.json();
       if (res.ok) {
@@ -327,38 +330,14 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   };
 
   // Push
-  const handlePush = async () => {
-    setIsPushing(true);
-    setSyncNotice(null);
+  const handlePush = async (retry = false) => {
+    setIsPushing(true); setSyncNotice(null);
     try {
-      const res = await apiFetch('/api/repos/push', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
-      });
-      const data = await res.json();
-      if (res.ok) {
-        setSyncNotice({
-          type: 'success',
-          message: data.output || 'Successfully pushed commits to remote.'
-        });
-        setDetails(data.updated);
-        onDetailsUpdated(data.updated);
-        onRefreshParent();
-      } else {
-        setSyncNotice({
-          type: 'error',
-          message: data.error || 'Push failed. Check remote and credentials.'
-        });
-      }
-    } catch (err: any) {
-      setSyncNotice({
-        type: 'error',
-        message: err.message || 'Network error while pushing to remote.'
-      });
-    } finally {
-      setIsPushing(false);
-    }
+      const previous = pushState.report;
+      const data = await pushState.push(retry ? previous?.commitHash : undefined, retry ? previous?.results.filter(result => result.status !== 'verified').map(result => result.destination) : undefined);
+      setSyncNotice({ type: data.success ? 'success' : 'error', message: data.success ? `Verified ${data.commitHash.slice(0, 7)} at every selected destination.` : 'Some pushes failed or could not be verified. Review each destination below.' });
+    } catch (error: any) { setSyncNotice({ type: 'error', message: error.message }); }
+    finally { setIsPushing(false); }
   };
 
   // Fetch
@@ -369,7 +348,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const res = await apiFetch('/api/repos/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
+        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: undefined })
       });
       const data = await res.json();
       if (res.ok) {
@@ -576,8 +555,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
           </button>
 
           <button
-            onClick={handlePush}
-            disabled={isPushing || syncPushIndex < 0 || !repoSummary.lastCommit}
+            onClick={() => handlePush()}
+            disabled={isPushing || !pushState.destinations.length || pushState.pushing || !repoSummary.lastCommit}
             title={repoSummary.ahead > 0 ? `Push ${repoSummary.ahead} local commits` : 'Push to remote'}
             className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] text-xs font-semibold text-[var(--text-primary)] transition disabled:opacity-30 cursor-pointer"
           >
@@ -630,15 +609,12 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                 <span>Configure Remote / Auth</span>
               </button>
             )}
-            <button
-              onClick={() => setSyncNotice(null)}
-              className="text-xs text-rose-700 dark:text-rose-400 hover:text-rose-900 dark:hover:text-rose-100 transition px-2 py-1 rounded hover:bg-rose-100 dark:hover:bg-white/10"
-            >
-              ✕
-            </button>
+            <button aria-label="Dismiss notice" onClick={() => setSyncNotice(null)} className="p-1 text-[var(--text-primary)] hover:opacity-70 transition cursor-pointer">✕</button>
           </div>
         </div>
       )}
+
+      {pushState.report && <div className="px-5 py-2"><PushResults report={pushState.report} busy={pushState.pushing} retry={() => handlePush(true)} /></div>}
 
       {/* Mode Underline Tabs */}
       <div className="px-5 bg-[var(--bg-canvas)] border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0">
@@ -688,20 +664,9 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 
       {/* Main Workspace Body */}
       <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex flex-wrap gap-2 items-center text-xs">
-        <label>Sync remote
-          <select aria-label="Sync remote" value={syncRemote} onChange={event => {
-            const remote = repoSummary.remotes.find(remote => remote.name === event.target.value);
-            onSyncTargetChange(event.target.value, remote?.pushUrls?.length === 1 ? 0 : -1);
-          }} className="ml-2 rounded border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-1">
-            {repoSummary.remotes.map(remote => <option key={remote.name} value={remote.name}>{remote.name}</option>)}
-          </select>
-        </label>
-        <label className="min-w-0 flex-1">Push to
-          <select aria-label="Push destination" value={syncPushIndex} onChange={event => onSyncTargetChange(syncRemote, Number(event.target.value))} className="ml-2 max-w-full rounded border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-1">
-            <option value={-1}>Choose a push destination</option>
-            {repoSummary.remotes.find(remote => remote.name === syncRemote)?.pushUrls?.map((url, index) => <option key={`${url}:${index}`} value={index}>{url}</option>)}
-          </select>
-        </label>
+        <div className="flex items-center gap-2 min-w-0"><span>Fetch / pull from</span><Dropdown label="Fetch and pull remote" value={syncRemote} options={repoSummary.remotes.map(remote => ({ value: remote.name, label: remote.name }))} onChange={value => onSyncTargetChange(value, 0)} /></div>
+        <div className="flex items-center gap-2 min-w-0"><span>Push to</span><Dropdown label="Push destinations" multiple value={pushState.destinations.map(destinationKey)} options={pushState.all.map(target => ({ value: destinationKey(target), label: target.url, group: target.remote }))} onChange={pushState.toggle} placeholder="Choose destinations" /></div>
+        {pushState.stale && <p className="text-amber-600">A saved destination changed. Select the destinations again.</p>}
         <span className="w-full text-[var(--text-muted)] break-all">Fetch / pull: {repoSummary.remotes.find(remote => remote.name === syncRemote)?.fetchUrl || 'No remote'} · Push branch: {repoSummary.currentBranch} · Tracking: {details?.tracking || 'not configured'}</span>
       </div>
 

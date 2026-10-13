@@ -93,7 +93,7 @@ Generate a distributable Apple Silicon & Intel DMG installer:
 ```bash
 npm run dist:mac
 ```
-The output file will be generated in `release/Gitler-1.0.0-arm64.dmg`.
+The output file will be generated in `release/Gitler-1.1.0-arm64.dmg`.
 
 ---
 
@@ -175,3 +175,22 @@ Gitler opens maximized. Choose **Sync remote** before fetching or pulling, and c
 Connected provider tokens are supplied privately to Git through a credential helper. Existing Git helpers remain available as fallback. The interface hides legacy credentials embedded in URLs. Use **Authorize** with a replacement token to verify the account and remove credentials from the selected server's remote URLs. Revoke any token that has appeared in a screenshot or shared log.
 
 Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image preview. Staged previews read the Git index; working-tree previews read the current file. **Show diff** switches back to text. SVG files are loaded as images, without inserting their markup into the application. Previews are limited to 10 MiB and stay inside the selected repository.
+
+
+### Copilot chat and interface controls
+
+Copilot has separate **Commit** and **Chat** tabs. Commit suggestions work without a model download. Chat uses Qwen3-4B Q4_K_M locally after a one-time 2.5 GB download. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
+
+Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitler/conversations`; use New chat or Delete chat to manage them.
+
+Settings → Appearance includes 80%, 90%, 100%, 110%, and 125% interface zoom. Cmd− and Cmd+ change the level; Cmd0 returns to 100%. The setting is saved across launches.
+
+### Push to several destinations
+
+**Fetch / pull from** chooses one remote. **Push to** selects one or more destinations and saves the selection per repository. Workspace Push and Copilot Commit & Push use the same destinations. A commit is created only once, then its exact SHA is pushed and verified separately at each selected destination. Repeated URLs are deduplicated. A failure does not stop the other pushes. **Retry failed destinations** retries the same commit and rejects the retry if local HEAD changed. Changed or removed remote URLs require reselection. Gitler never force pushes automatically.
+
+### Stable release process
+
+The package version drives application labels, installer artwork, and landing download links. Stable release tags must match it. The release workflow builds Apple Silicon artifacts, requires signing and notarization credentials, signs nested native code, staples the app before archiving, notarizes and staples the DMG, and verifies the app inside both formats. Final metadata, blockmaps, and SHA-256 checksums are generated after stapling.
+
+CI uploads a **draft** release. Before publishing it as Latest, download and compare every asset, test Gatekeeper installation, and verify updating the existing installed version through a temporary feed serving those exact artifacts. Failed notarization or updater verification blocks publication. Manual workflow runs require an existing version tag. Notarization submission results and logs are preserved as CI artifacts.

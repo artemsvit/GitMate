@@ -1,3 +1,5 @@
+import { appVersion } from '../version';
+import { InterfaceZoom } from './InterfaceZoom';
 import { apiFetch } from '../api';
 import React, { useState, useEffect } from 'react';
 import {
@@ -905,7 +907,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     <Cpu className="w-4 h-4 text-[var(--accent-violet)]" />
                     <div>
                       <h4 className="font-semibold text-xs text-[var(--text-primary)]">Active AI Mode</h4>
-                      <p className="text-[10px] text-[var(--text-muted)]">Used for automated semantic commit generation &amp; AI Copilot</p>
+                      <p className="text-[10px] text-[var(--text-muted)]">Used for commit message suggestions. Copilot Chat uses its downloaded local model.</p>
                     </div>
                   </div>
                   <button
@@ -950,13 +952,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     }`}
                   >
                     <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-[var(--text-primary)]">External Ollama</span>
+                      <span className="font-semibold text-xs text-[var(--text-primary)]">Ollama / LM Studio</span>
                       <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-interactive)]">
                         Local Daemon
                       </span>
                     </div>
                     <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-                      Connect to your local Ollama or LM Studio instance on port 11434.
+                      Use a running local Ollama or LM Studio model for commit suggestions.
                     </p>
                   </button>
                 </div>
@@ -1090,11 +1092,13 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                 </div>
               </div>
 
+              <InterfaceZoom />
+
               {/* Application Details */}
               <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="text-[var(--text-muted)]">Gitler Application</span>
-                  <span className="text-[var(--text-primary)] font-semibold">v1.0.0</span>
+                  <span className="text-[var(--text-primary)] font-semibold">v{appVersion}</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono">
                   <span className="text-[var(--text-muted)]">Architecture</span>

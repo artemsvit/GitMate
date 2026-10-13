@@ -300,11 +300,11 @@ function validatedFiles(repoPath: string, files?: string[]): string[] {
   return (files?.length ? files : ['.']).map(file => validateFilePath(repoPath, file));
 }
 
-export async function stageFiles(repoPath: string, files?: string[]): Promise<void> {
+async function stageFilesUnlocked(repoPath: string, files?: string[]): Promise<void> {
   await getGit(repoPath).raw(['--literal-pathspecs', 'add', '--', ...validatedFiles(repoPath, files)]);
 }
 
-export async function unstageFiles(repoPath: string, files?: string[]): Promise<void> {
+async function unstageFilesUnlocked(repoPath: string, files?: string[]): Promise<void> {
   const git = getGit(repoPath);
   const selected = validatedFiles(repoPath, files);
   let hasHead = true;
@@ -319,7 +319,7 @@ function validateArgument(value: unknown, name: string): asserts value is string
   }
 }
 
-export async function commit(repoPath: string, message: string): Promise<string> {
+async function commitUnlocked(repoPath: string, message: string): Promise<string> {
   const git = getGit(repoPath);
   if (typeof message !== 'string' || !message.trim() || message.includes('\0')) throw new Error('A commit message is required.');
   const result = await git.commit(message);
@@ -349,13 +349,15 @@ function formatRemoteError(err: any, remoteName?: string): Error {
   return new Error(msg);
 }
 
-export async function push(repoPath: string, remote?: string, branch?: string, pushIndex?: number): Promise<string> {
+async function pushUnlocked(repoPath: string, remote?: string, branch?: string, pushIndex?: number, expectedCommit?: string): Promise<string> {
   if (remote !== undefined) validateArgument(remote, 'remote');
   if (branch !== undefined) validateArgument(branch, 'branch');
   const git = await getNetworkGit(repoPath);
   const status = await git.status();
   if (!status.current || status.detached) throw new Error('Select a branch before pushing.');
   try { await git.revparse(['--verify', 'HEAD']); } catch { throw new Error('Create a local commit before pushing.'); }
+  const localHash = (await git.revparse(['HEAD'])).trim();
+  if (expectedCommit && localHash !== expectedCommit) throw new Error('The local commit changed. Refresh before retrying this push.');
   const sync = await getSyncTargets(repoPath);
   const targetRemote = await requireRemote(git, remote || sync.pushRemote);
   const urls = await getPushUrls(git, targetRemote);
@@ -367,8 +369,7 @@ export async function push(repoPath: string, remote?: string, branch?: string, p
   const ref = `refs/heads/${destinationBranch}`;
   await git.raw(['check-ref-format', ref]);
   try {
-    await git.raw(['push', '--porcelain', urls[index], `${status.current}:${ref}`]);
-    const localHash = (await git.revparse(['HEAD'])).trim();
+    await git.raw(['push', '--porcelain', urls[index], `${localHash}:${ref}`]);
     const result = (await git.raw(['ls-remote', urls[index], ref])).trim().split(/\s+/)[0];
     if (result !== localHash) throw new Error('The push command finished, but the remote commit could not be verified. Refresh and test the destination before retrying.');
     const configuredFetch = (await git.raw(['remote', 'get-url', targetRemote])).trim();
@@ -380,7 +381,7 @@ export async function push(repoPath: string, remote?: string, branch?: string, p
   } catch (error) { throw formatRemoteError(error, targetRemote); }
 }
 
-export async function pull(repoPath: string, remote?: string, branch?: string): Promise<string> {
+async function pullUnlocked(repoPath: string, remote?: string, branch?: string): Promise<string> {
   if (remote !== undefined) validateArgument(remote, 'remote');
   if (branch !== undefined) validateArgument(branch, 'branch');
   const git = await getNetworkGit(repoPath);
@@ -399,7 +400,7 @@ export async function pull(repoPath: string, remote?: string, branch?: string): 
   }
 }
 
-export async function fetchAll(repoPath: string, remote?: string): Promise<string> {
+async function fetchAllUnlocked(repoPath: string, remote?: string): Promise<string> {
   const git = await getNetworkGit(repoPath);
   const remotes = remote ? [{ name: await requireRemote(git, remote) }] : await git.getRemotes();
   if (!remotes.length) throw new Error('No remote is configured. Add a remote before fetching.');
@@ -412,7 +413,7 @@ export async function fetchAll(repoPath: string, remote?: string): Promise<strin
   return `Fetched ${succeeded.join(', ')}.${failed.length ? ` Other remotes failed: ${failed.join(' ')}` : ''}`;
 }
 
-export async function checkout(repoPath: string, branchName: string, createNew = false): Promise<string> {
+async function checkoutUnlocked(repoPath: string, branchName: string, createNew = false): Promise<string> {
   validateArgument(branchName, 'branch');
   if (typeof createNew !== 'boolean') throw new Error('createNew must be a boolean.');
   const git = getGit(repoPath);
@@ -424,7 +425,7 @@ export async function checkout(repoPath: string, branchName: string, createNew =
   return `Switched to ${branchName}`;
 }
 
-export async function setRemoteUrl(repoPath: string, remoteName: string, newUrl: string, direction: 'fetch' | 'push' = 'fetch', pushIndex = 0): Promise<string> {
+async function setRemoteUrlUnlocked(repoPath: string, remoteName: string, newUrl: string, direction: 'fetch' | 'push' = 'fetch', pushIndex = 0): Promise<string> {
   validateArgument(remoteName, 'remote');
   validateArgument(newUrl, 'remote URL');
   const git = getGit(repoPath);
@@ -752,3 +753,52 @@ export async function testHostSsh(host: string, port = 22): Promise<{
   });
 }
 
+
+
+const activeMutations = new Set<string>();
+export async function withRepositoryMutation<T>(repoPath: string, operation: () => Promise<T>): Promise<T> {
+  const key = fs.realpathSync(repoPath);
+  if (activeMutations.has(key)) throw new Error('Another operation is running in this repository. Wait for it to finish.');
+  activeMutations.add(key);
+  try { return await operation(); } finally { activeMutations.delete(key); }
+}
+export const stageFiles = (...args: Parameters<typeof stageFilesUnlocked>) => withRepositoryMutation(args[0], () => stageFilesUnlocked(...args));
+export const unstageFiles = (...args: Parameters<typeof unstageFilesUnlocked>) => withRepositoryMutation(args[0], () => unstageFilesUnlocked(...args));
+export const commit = (...args: Parameters<typeof commitUnlocked>) => withRepositoryMutation(args[0], () => commitUnlocked(...args));
+export const push = (...args: Parameters<typeof pushUnlocked>) => withRepositoryMutation(args[0], () => pushUnlocked(...args));
+export const pull = (...args: Parameters<typeof pullUnlocked>) => withRepositoryMutation(args[0], () => pullUnlocked(...args));
+export const checkout = (...args: Parameters<typeof checkoutUnlocked>) => withRepositoryMutation(args[0], () => checkoutUnlocked(...args));
+export const setRemoteUrl = (...args: Parameters<typeof setRemoteUrlUnlocked>) => withRepositoryMutation(args[0], () => setRemoteUrlUnlocked(...args));
+export const fetchAll = (...args: Parameters<typeof fetchAllUnlocked>) => withRepositoryMutation(args[0], () => fetchAllUnlocked(...args));
+
+export interface PushDestination { remote: string; pushIndex: number; url: string }
+export interface PushResult { destination: PushDestination; status: 'verified' | 'failed' | 'unverified'; message: string }
+export async function pushDestinations(repoPath: string, destinations: PushDestination[], expectedCommit?: string) {
+  return withRepositoryMutation(repoPath, async () => {
+    if (!Array.isArray(destinations) || !destinations.length || destinations.length > 32) throw new Error('Choose between 1 and 32 push destinations.');
+    const git = await getNetworkGit(repoPath);
+    const commitHash = (await git.revparse(['HEAD'])).trim();
+    if (expectedCommit && expectedCommit !== commitHash) throw new Error('The local commit changed. Refresh before retrying this push.');
+    const branch = (await git.status()).current;
+    if (!branch) throw new Error('Select a branch before pushing.');
+    const targets: PushDestination[] = [];
+    const seen = new Set<string>();
+    for (const target of destinations) {
+      validateArgument(target.remote, 'remote');
+      await requireRemote(git, target.remote);
+      const urls = await getPushUrls(git, target.remote);
+      if (!Number.isInteger(target.pushIndex) || redactRemote(urls[target.pushIndex] || '') !== target.url) throw new Error('A push destination changed. Select the destinations again.');
+      if (!seen.has(target.url)) { targets.push(target); seen.add(target.url); }
+    }
+    const results: PushResult[] = [];
+    for (const destination of targets) {
+      try {
+        const message = await pushUnlocked(repoPath, destination.remote, branch, destination.pushIndex, commitHash);
+        results.push({ destination, status: 'verified', message });
+      } catch (error: any) {
+        results.push({ destination, status: /could not be verified/.test(error.message) ? 'unverified' : 'failed', message: error.message });
+      }
+    }
+    return { commitHash, results, success: results.every(result => result.status === 'verified'), output: results.map(result => result.message).join('\n') };
+  });
+}

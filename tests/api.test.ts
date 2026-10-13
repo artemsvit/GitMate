@@ -25,6 +25,8 @@ test('API access, repository scope, and staged-only suggestions', async t => {
     req.on('error', reject); req.end(init.body);
   });
   assert.equal((await request('/api/system/folders')).status, 401);
+  assert.equal((await request('/api/copilot/model')).status, 401);
+  assert.equal((await request('/api/copilot/conversations')).status, 401);
   assert.equal((await request('/api/session', { headers: { Origin: 'https://attacker.invalid' } })).status, 403);
   assert.equal((await request('/api/session', { headers: { Host: 'attacker.invalid' } })).status, 403);
   assert.equal((await request('/api/session', { headers: { 'Sec-Fetch-Site': 'cross-site' } })).status, 403);
@@ -39,9 +41,12 @@ test('API access, repository scope, and staged-only suggestions', async t => {
   await run('git', ['init', '-b', 'main', root]);
   const detailsUrl = `/api/repos/details?path=${encodeURIComponent(root)}`;
   assert.equal((await request(detailsUrl, { headers })).status, 403);
+  assert.equal((await post('/api/copilot/chat', { path: root, question: 'Summarize' })).status, 403);
   assert.equal((await post('/api/repos/scan', { rootDir: root, maxDepth: 100 })).status, 400);
   assert.equal((await post('/api/repos/scan', { rootDir: root, maxDepth: 0 })).status, 200);
   assert.equal((await request(detailsUrl, { headers })).status, 200);
+  assert.equal((await post('/api/copilot/chat', { path: root, additionalRepos: ['/not-scanned'], question: 'Summarize' })).status, 403);
+  assert.equal((await request(`/api/copilot/conversations?path=${encodeURIComponent(root)}`, { headers })).status, 200);
   await fs.writeFile(path.join(root, 'only-untracked.txt'), 'untracked');
   const unstaged = await post('/api/ai/generate-commit', { repoPath: root });
   assert.equal(unstaged.status, 400); assert.match((await unstaged.json() as any).error, /Stage/);

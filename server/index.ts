@@ -1,3 +1,4 @@
+import { installCopilotRoutes } from './copilotRoutes';
 import { getFilePreview } from './filePreview';
 import { redactRemote } from './remoteSafety';
 import express from 'express';
@@ -24,6 +25,7 @@ import {
   unstageFiles,
   commit,
   push,
+  pushDestinations,
   pull,
   fetchAll,
   checkout,
@@ -75,6 +77,8 @@ app.use('/api', (req, res, next) => {
   }
   next();
 });
+
+installCopilotRoutes(app, access);
 
 // Prevent aggressive browser/proxy caching for HTML and development assets
 app.use((_req, res, next) => {
@@ -264,10 +268,15 @@ app.post('/api/repos/commit', async (req, res) => {
 // 8. Push
 app.post('/api/repos/push', async (req, res) => {
   try {
-    const { path: repoPath, remote, branch, pushIndex } = req.body;
+    const { path: repoPath, remote, branch, pushIndex, destinations, expectedCommit } = req.body;
     if (!repoPath) return res.status(400).json({ error: 'path is required' });
 
-    const output = await push(repoPath, remote, branch, pushIndex);
+    if (destinations !== undefined) {
+      const result = await pushDestinations(repoPath, destinations, expectedCommit);
+      const updated = await getRepoDetails(repoPath);
+      return res.json({ ...result, updated });
+    }
+    const output = await push(repoPath, remote, branch, pushIndex, expectedCommit);
     const updated = await getRepoDetails(repoPath);
     res.json({ success: true, output, updated });
   } catch (err: any) {

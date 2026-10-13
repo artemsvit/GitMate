@@ -56,6 +56,7 @@ async function startBackendServer() {
   }
 }
 
+let attachZoom;
 function createWindow() {
   mainWindow = new BrowserWindow({
     show: false, width: 1280, height: 820, minWidth: 960, minHeight: 600,
@@ -66,6 +67,7 @@ function createWindow() {
       nodeIntegration: false, contextIsolation: true, sandbox: true
     }
   });
+  attachZoom(mainWindow);
   mainWindow.once('ready-to-show', () => { mainWindow.maximize(); mainWindow.show(); });
   mainWindow.webContents.setWindowOpenHandler(({ url }) => {
     if (url.startsWith('http:') || url.startsWith('https:')) shell.openExternal(url);
@@ -99,6 +101,7 @@ else {
       providerSession.setPermissionRequestHandler((_contents, permission, callback) => callback(networkPermissions.has(permission)));
       providerSession.setPermissionCheckHandler((_contents, permission) => networkPermissions.has(permission));
       globalThis.__electronNetFetch = (url, options) => providerSession.fetch(url, options);
+      attachZoom = require('./zoom.cjs').installZoom(app, ipcMain, checkSender, () => mainWindow);
       await startBackendServer();
       createWindow();
     }

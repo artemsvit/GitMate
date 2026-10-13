@@ -1,3 +1,4 @@
+import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
 import React, { useState, useEffect } from 'react';
 import {
@@ -318,14 +319,8 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         )}
 
         <div className="flex flex-wrap items-center gap-2">
-          <label className="text-xs">URL for
-            <select aria-label="Remote URL direction" value={urlDirection} onChange={event => setUrlDirection(event.target.value as 'fetch' | 'push')} className="ml-2 border rounded-lg p-1 bg-[var(--bg-canvas)]">
-              <option value="fetch">Fetch and pull</option><option value="push">Push</option>
-            </select>
-          </label>
-          {urlDirection === 'push' && (currentRemote?.pushUrls?.length || 0) > 1 && <select aria-label="Push URL to edit" value={pushIndex} onChange={event => setPushIndex(Number(event.target.value))} className="border rounded-lg p-1 bg-[var(--bg-canvas)] max-w-full">
-            {currentRemote?.pushUrls.map((url, index) => <option key={`${url}:${index}`} value={index}>{url}</option>)}
-          </select>}
+          <span className="text-xs">URL for</span><Dropdown label="Remote URL direction" value={urlDirection} options={[{ value: 'fetch', label: 'Fetch and pull' }, { value: 'push', label: 'Push' }]} onChange={value => setUrlDirection(value as 'fetch' | 'push')} />
+          {urlDirection === 'push' && (currentRemote?.pushUrls?.length || 0) > 1 && <Dropdown label="Push URL to edit" value={String(pushIndex)} options={(currentRemote?.pushUrls || []).map((url, index) => ({ value: String(index), label: url }))} onChange={value => setPushIndex(Number(value))} />}
           {currentRemote?.hasEmbeddedCredentials && <p className="text-xs text-amber-600">This remote contains saved credentials. Reauthorize with a replacement token to remove them from its URLs.</p>}
         </div>
         {/* Section 1: Remote Repository URL */}

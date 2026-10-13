@@ -1,0 +1,28 @@
+const runNotary = require('./notary-command.cjs');
+const fs = require('node:fs');
+const path = require('node:path');
+const crypto = require('node:crypto');
+const { execFileSync } = require('node:child_process');
+const yaml = require('js-yaml');
+const version = require('../package.json').version;
+const root = path.resolve('release');
+const dmg = path.join(root, `Gitler-${version}-arm64.dmg`);
+const zip = path.join(root, `Gitler-${version}-arm64-mac.zip`);
+for (const key of ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID']) if (!process.env[key]) throw new Error(`Release requires ${key}.`);
+const raw = runNotary(['submit', dmg, '--wait', '--output-format', 'json']);
+const logs = path.join(root, 'notarization'); fs.mkdirSync(logs, { recursive: true }); fs.writeFileSync(path.join(logs, 'dmg-result.json'), raw);
+const result = JSON.parse(raw);
+fs.writeFileSync(path.join(logs, 'dmg-log.json'), runNotary(['log', result.id]));
+if (result.status !== 'Accepted') throw new Error(`Apple rejected DMG submission ${result.id}.`);
+execFileSync('xcrun', ['stapler', 'staple', dmg], { stdio: 'inherit' });
+execFileSync('xcrun', ['stapler', 'validate', dmg], { stdio: 'inherit' });
+execFileSync('hdiutil', ['verify', dmg], { stdio: 'inherit' });
+const builder = require('app-builder-bin').appBuilderPath;
+for (const file of [dmg, zip]) execFileSync(builder, ['blockmap', '--input', file, '--output', file + '.blockmap']);
+const metadataFile = path.join(root, 'latest-mac.yml'); const metadata = yaml.load(fs.readFileSync(metadataFile, 'utf8'));
+if (metadata.version !== version) throw new Error('Updater version mismatch.');
+for (const entry of metadata.files) { const bytes = fs.readFileSync(path.join(root, entry.url)); entry.sha512 = crypto.createHash('sha512').update(bytes).digest('base64'); entry.size = bytes.length; }
+metadata.sha512 = crypto.createHash('sha512').update(fs.readFileSync(zip)).digest('base64');
+fs.writeFileSync(metadataFile, yaml.dump(metadata));
+const names = [path.basename(dmg), path.basename(zip), path.basename(dmg) + '.blockmap', path.basename(zip) + '.blockmap', 'latest-mac.yml'];
+fs.writeFileSync(path.join(root, 'SHA256SUMS.txt'), names.map(name => crypto.createHash('sha256').update(fs.readFileSync(path.join(root, name))).digest('hex') + '  ' + name).join('\n') + '\n');

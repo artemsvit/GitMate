@@ -9,10 +9,13 @@ const bundles = fs.readdirSync(release).filter(name => name.startsWith('mac')).f
 if (!bundles.length) throw new Error('No packaged macOS app found.');
 for (const bundle of bundles) {
   const archive = path.join(bundle, 'Contents/Resources/app.asar');
-  const required = ['electron/main.cjs', 'electron/permissions.cjs', 'electron/preload.cjs', 'server/git-credential-helper.cjs', 'dist/index.html', 'server/index.cjs',
-    'node_modules/electron-updater/package.json', 'node_modules/simple-git/package.json'];
+  const required = ['electron/main.cjs', 'electron/zoom.cjs', 'electron/permissions.cjs', 'electron/preload.cjs', 'server/git-credential-helper.cjs', 'dist/index.html', 'server/index.cjs',
+    'node_modules/node-llama-cpp/package.json', 'node_modules/electron-updater/package.json', 'node_modules/simple-git/package.json'];
   for (const file of required) asar.statFile(archive, file);
   const manifest = JSON.parse(asar.extractFile(archive, 'package.json').toString());
   if (!manifest.dependencies['electron-updater']) throw new Error('Updater must be a runtime dependency.');
+  if (manifest.version !== require('../package.json').version) throw new Error('Packaged version mismatch.');
+  const native = path.join(bundle, 'Contents/Resources/app.asar.unpacked/node_modules/@node-llama-cpp/mac-arm64-metal/bins');
+  if (!fs.existsSync(native)) throw new Error('Packaged Copilot Metal runtime is missing.');
   console.log(`Verified runtime assets and updater: ${bundle}`);
 }
