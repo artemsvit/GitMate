@@ -179,11 +179,11 @@ Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image previ
 
 ### Copilot chat and interface controls
 
-Copilot has separate **Commit** and **Chat** tabs. Commit suggestions work without a model download. Chat uses Qwen3-4B Q4_K_M locally after a one-time 2.5 GB download. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
+Copilot has separate **Commit** and **Chat** tabs. Commit suggestions work without a model download. Chat requires macOS 14 or newer; Git features retain macOS 12 support. Chat uses Qwen3-4B Q4_K_M locally after a one-time 2.5 GB download. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
 
 Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitler/conversations`; use New chat or Delete chat to manage them.
 
-Settings → Appearance includes 80%, 90%, 100%, 110%, and 125% interface zoom. Cmd− and Cmd+ change the level; Cmd0 returns to 100%. The setting is saved across launches.
+Settings → Appearance includes 80%, 90%, 100%, 110%, and 125% interface zoom. Cmd− and Cmd+ change the level; Cmd0 returns to 100%. The setting is saved across launches. Application updates in the same Appearance tab provide Check for Updates, Download Update, and Restart & Install.
 
 ### Push to several destinations
 

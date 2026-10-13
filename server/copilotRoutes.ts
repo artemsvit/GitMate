@@ -6,6 +6,7 @@ export function installCopilotRoutes(app: Express, access: RepositoryAccess) {
   app.use('/api/copilot', (_req, res, next) => { res.setHeader('Cache-Control', 'no-store'); next(); });
   app.get('/api/copilot/model', (_req, res) => res.json(getModelStatus()));
   app.post('/api/copilot/model/download', (_req, res) => {
+    if (getModelStatus().state === 'unsupported') return res.status(400).json({ error: 'Copilot Chat requires macOS 14 or newer.' });
     if (getModelStatus().state === 'downloading' || getModelStatus().state === 'verifying') return res.status(409).json({ error: 'A download is already running.' });
     void downloadModel().catch(() => {}); res.status(202).json(getModelStatus());
   });

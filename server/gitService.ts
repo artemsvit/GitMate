@@ -787,7 +787,7 @@ export async function pushDestinations(repoPath: string, destinations: PushDesti
       validateArgument(target.remote, 'remote');
       await requireRemote(git, target.remote);
       const urls = await getPushUrls(git, target.remote);
-      if (!Number.isInteger(target.pushIndex) || redactRemote(urls[target.pushIndex] || '') !== target.url) throw new Error('A push destination changed. Select the destinations again.');
+      if (!Number.isInteger(target.pushIndex) || target.pushIndex < 0 || target.pushIndex >= urls.length || typeof target.url !== 'string' || !target.url || redactRemote(urls[target.pushIndex] || '') !== target.url) throw new Error('A push destination changed. Select the destinations again.');
       if (!seen.has(target.url)) { targets.push(target); seen.add(target.url); }
     }
     const results: PushResult[] = [];

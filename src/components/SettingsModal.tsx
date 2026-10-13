@@ -1,3 +1,4 @@
+import { AppUpdates } from './AppUpdates';
 import { appVersion } from '../version';
 import { InterfaceZoom } from './InterfaceZoom';
 import { apiFetch } from '../api';
@@ -1093,6 +1094,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               </div>
 
               <InterfaceZoom />
+              <AppUpdates />
 
               {/* Application Details */}
               <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">

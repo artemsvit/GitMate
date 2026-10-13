@@ -9,7 +9,7 @@ const bundles = fs.readdirSync(release).filter(name => name.startsWith('mac')).f
 if (!bundles.length) throw new Error('No packaged macOS app found.');
 for (const bundle of bundles) {
   const archive = path.join(bundle, 'Contents/Resources/app.asar');
-  const required = ['electron/main.cjs', 'electron/zoom.cjs', 'electron/permissions.cjs', 'electron/preload.cjs', 'server/git-credential-helper.cjs', 'dist/index.html', 'server/index.cjs',
+  const required = ['electron/main.cjs', 'electron/zoom.cjs', 'electron/updates.cjs', 'electron/permissions.cjs', 'electron/preload.cjs', 'server/git-credential-helper.cjs', 'dist/index.html', 'server/index.cjs',
     'node_modules/node-llama-cpp/package.json', 'node_modules/electron-updater/package.json', 'node_modules/simple-git/package.json'];
   for (const file of required) asar.statFile(archive, file);
   const manifest = JSON.parse(asar.extractFile(archive, 'package.json').toString());

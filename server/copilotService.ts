@@ -16,12 +16,16 @@ const modelPath = () => path.join(configDir(), 'models', modelSpec.file);
 let download: AbortController | null = null;
 let modelState: { state: string; downloaded: number; error?: string } = { state: 'missing', downloaded: 0 };
 let model: any; let modelLoading: Promise<any> | null = null; let idleTimer: ReturnType<typeof setTimeout> | undefined; let generating = false;
+export function chatSupported() { return process.platform !== 'darwin' || Number(os.release().split('.')[0]) >= 23; }
 export function getModelStatus() {
+  if (!chatSupported()) return { state: 'unsupported', downloaded: 0, model: modelSpec.name, size: modelSpec.size, error: 'Copilot Chat requires macOS 14 or newer. Git features remain available.' };
+  if (!download && !fs.existsSync(modelPath()) && fs.existsSync(modelPath() + '.partial')) modelState = { state: modelState.state === 'error' ? 'error' : 'paused', downloaded: fs.statSync(modelPath() + '.partial').size, error: modelState.error };
   if (!download && fs.existsSync(modelPath())) modelState = { state: modelLoading ? 'loading' : model ? 'loaded' : 'ready', downloaded: modelSpec.size };
   return { ...modelState, model: modelSpec.name, size: modelSpec.size, revision: modelSpec.revision, generating };
 }
 export function cancelModelDownload() { download?.abort(); }
 export async function downloadModel() {
+  if (!chatSupported()) throw new Error('Copilot Chat requires macOS 14 or newer.');
   if (download) throw new Error('The model download is already running.');
   const controller = new AbortController(); download = controller;
   const file = modelPath(); const partial = file + '.partial'; fs.mkdirSync(path.dirname(file), { recursive: true, mode: 0o700 });
@@ -65,6 +69,7 @@ export function saveConversation(repo: string, conversation: Conversation) {
   fs.writeFileSync(file + '.tmp', JSON.stringify(conversation), { mode: 0o600 }); fs.renameSync(file + '.tmp', file);
 }
 export async function chat(options: { repo: string; repos: string[]; id?: string; question: string; commit?: string; signal: AbortSignal; emit: (event: object) => void }) {
+  if (!chatSupported()) throw new Error('Copilot Chat requires macOS 14 or newer.');
   if (generating) throw new Error('Copilot is answering another question. Wait or stop that reply.');
   if (!options.question.trim() || options.question.length > 8000) throw new Error('Enter a question under 8,000 characters.');
   generating = true; let context: any; let session: any;

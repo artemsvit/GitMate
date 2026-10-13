@@ -36,7 +36,7 @@ export function App() {
   };
   
   const [syncSelection, setSyncSelection] = useState({ path: '', remote: '', pushIndex: -1 });
-  const syncRemote = syncSelection.path === selectedRepo?.path ? syncSelection.remote : selectedRepo?.sync?.pushRemote || selectedRepo?.sync?.pullRemote || selectedRepo?.remotes[0]?.name || '';
+  const syncRemote = syncSelection.path === selectedRepo?.path ? syncSelection.remote : selectedRepo?.sync?.pullRemote || selectedRepo?.sync?.pushRemote || selectedRepo?.remotes[0]?.name || '';
   const pushState = useRepositoryPush(selectedRepo, () => handleScan(currentPath));
   const selectSyncTarget = (remote: string, pushIndex: number) => setSyncSelection({ path: selectedRepo?.path || '', remote, pushIndex });
 

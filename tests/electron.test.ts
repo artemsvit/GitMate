@@ -21,3 +21,16 @@ test('interface network permissions are limited to the Gitler origin', () => {
   assert.equal(trustedInterfacePermission(contents, 'local-network', 'https://unrelated.invalid', 'http://localhost:3001'), false);
   assert.equal(trustedInterfacePermission(contents, 'camera', 'http://localhost:3001/', 'http://localhost:3001'), false);
 });
+
+test('updater IPC guards its sender and requires download before installation', async () => {
+  const { runInNewContext } = await import('node:vm'); const { EventEmitter } = await import('node:events'); const fs = await import('node:fs');
+  const updater: any = new EventEmitter(); let installs = 0;
+  updater.checkForUpdates = async () => updater.emit('update-available', { version: '1.1.0' });
+  updater.downloadUpdate = async () => updater.emit('update-downloaded', { version: '1.1.0' }); updater.quitAndInstall = () => installs++;
+  const module = { exports: {} as any }; runInNewContext(fs.readFileSync('electron/updates.cjs', 'utf8'), { module, require: () => ({ autoUpdater: updater }) });
+  const handlers: Record<string, any> = {}; const expected = {};
+  module.exports.installUpdates({ isPackaged: true }, { handle: (name: string, handler: any) => { handlers[name] = handler; } }, (event: object) => { if (event !== expected) throw new Error('sender rejected'); }, () => ({ webContents: { send: () => {} } }));
+  assert.throws(() => handlers['install-update']({}), /sender/); assert.throws(() => handlers['install-update'](expected), /Download/);
+  assert.equal((await handlers['check-updates'](expected)).status, 'available'); assert.equal(updater.autoDownload, false); assert.equal(updater.autoInstallOnAppQuit, false);
+  await handlers['download-update'](expected); handlers['install-update'](expected); assert.equal(installs, 1);
+});

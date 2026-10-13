@@ -37,14 +37,6 @@ ipcMain.handle('select-folder', async (event, defaultPath) => {
   return result.canceled ? null : (result.filePaths[0] || null);
 });
 
-ipcMain.handle('check-updates', async event => {
-  checkSender(event);
-  if (!app.isPackaged) return { available: false, message: 'Update checks require a packaged app.' };
-  const { autoUpdater } = require('electron-updater');
-  const result = await autoUpdater.checkForUpdates();
-  return { available: Boolean(result && autoUpdater.currentVersion.compare(result.updateInfo.version) < 0), version: result?.updateInfo?.version };
-});
-
 async function startBackendServer() {
   if (isDev) return;
   backendServer = require('../server/index.cjs').server;
@@ -57,6 +49,7 @@ async function startBackendServer() {
 }
 
 let attachZoom;
+let updates;
 function createWindow() {
   mainWindow = new BrowserWindow({
     show: false, width: 1280, height: 820, minWidth: 960, minHeight: 600,
@@ -85,7 +78,7 @@ function createWindow() {
   mainWindow.loadURL(interfaceURL).catch(error => dialog.showErrorBox('Gitler could not load', error.message));
   mainWindow.on('closed', () => { mainWindow = null; });
   if (app.isPackaged) {
-    require('electron-updater').autoUpdater.checkForUpdatesAndNotify().catch(error => console.log('Update check:', error.message));
+    updates.check().catch(() => {});
   }
 }
 
@@ -101,6 +94,7 @@ else {
       providerSession.setPermissionRequestHandler((_contents, permission, callback) => callback(networkPermissions.has(permission)));
       providerSession.setPermissionCheckHandler((_contents, permission) => networkPermissions.has(permission));
       globalThis.__electronNetFetch = (url, options) => providerSession.fetch(url, options);
+      updates = require('./updates.cjs').installUpdates(app, ipcMain, checkSender, () => mainWindow);
       attachZoom = require('./zoom.cjs').installZoom(app, ipcMain, checkSender, () => mainWindow);
       await startBackendServer();
       createWindow();
