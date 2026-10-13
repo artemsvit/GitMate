@@ -68,10 +68,13 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   } | null>(null);
 
   // Token input for HTTP/HTTPS fallback
+  const [urlDirection, setUrlDirection] = useState<'fetch' | 'push'>('fetch');
+  const [pushIndex, setPushIndex] = useState(0);
+  const [tokenProvider, setTokenProvider] = useState<'github' | 'gitlab' | 'gitea'>('gitea');
   const [personalToken, setPersonalToken] = useState('');
 
   const currentRemote = remotes.find(r => r.name === selectedRemoteName) || remotes[0];
-  const currentUrl = currentRemote?.pushUrl || currentRemote?.fetchUrl || '';
+  const currentUrl = urlDirection === 'fetch' ? currentRemote?.fetchUrl || '' : currentRemote?.pushUrls?.[pushIndex] || currentRemote?.pushUrl || '';
   const isHttps = currentUrl.startsWith('https://') || currentUrl.startsWith('http://');
   const isSsh = currentUrl.startsWith('git@') || currentUrl.startsWith('ssh://');
 
@@ -93,8 +96,8 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   // Extract host & port for display
   const sshHostMatch = currentUrl.match(/^(?:ssh:\/\/)?(?:[a-zA-Z0-9_.-]+@)?([a-zA-Z0-9_.-]+)(?::(\d+))?/);
   const httpHostMatch = currentUrl.match(/^https?:\/\/([^/:]+)(?::(\d+))?/);
-  const remoteHost = (sshHostMatch && sshHostMatch[1]) || (httpHostMatch && httpHostMatch[1]) || '';
-  const remotePort = (sshHostMatch && sshHostMatch[2]) || (httpHostMatch && httpHostMatch[2]) || (isSsh ? '22' : '443');
+  const remoteHost = isHttps ? (httpHostMatch?.[1] || '') : (sshHostMatch?.[1] || '');
+  const remotePort = isHttps ? (httpHostMatch?.[2] || (currentUrl.startsWith('http:') ? '80' : '443')) : (sshHostMatch?.[2] || '22');
 
   useEffect(() => {
     fetchDiagnostics();
@@ -167,7 +170,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
       const res = await apiFetch('/api/repos/remotes/test', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repo.path, remoteName })
+        body: JSON.stringify({ path: repo.path, remoteName, direction: urlDirection, pushIndex })
       });
       const data = await res.json();
       setTestResult({
@@ -236,7 +239,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         body: JSON.stringify({
           path: repo.path,
           remoteName: currentRemote?.name || 'origin',
-          newUrl
+          newUrl, direction: urlDirection, pushIndex
         })
       });
       const data = await res.json();
@@ -259,16 +262,18 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   };
 
   const handleApplyToken = async () => {
-    if (!personalToken.trim() || !currentUrl) return;
+    if (!personalToken.trim()) return;
+    setIsUpdating(true);
     try {
-      const isHttpProto = currentUrl.startsWith('http://');
-      const cleanUrl = currentUrl.replace(/https?:\/\/([^@]+@)?/, '');
-      const tokenUrl = `${isHttpProto ? 'http://' : 'https://'}${encodeURIComponent(personalToken.trim())}@${cleanUrl}`;
-      await applyNewUrl(tokenUrl);
-      setPersonalToken('');
-    } catch (err: any) {
-      setUpdateNotice({ success: false, message: err.message || 'Failed to apply token' });
-    }
+      const response = await apiFetch('/api/repos/remotes/authorize', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: repo.path, remoteName: selectedRemoteName, provider: isGitHub ? 'github' : isGitLab ? 'gitlab' : tokenProvider, token: personalToken.trim(), direction: urlDirection, pushIndex })
+      });
+      const result = await response.json();
+      setUpdateNotice({ success: response.ok, message: result.message || result.error });
+      if (response.ok) { setPersonalToken(''); setRemotes(result.updated.remotes); onUpdated(); }
+    } catch { setUpdateNotice({ success: false, message: 'Could not authorize this remote.' }); }
+    finally { setIsUpdating(false); }
   };
 
   return (
@@ -312,6 +317,17 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
           </div>
         )}
 
+        <div className="flex flex-wrap items-center gap-2">
+          <label className="text-xs">URL for
+            <select aria-label="Remote URL direction" value={urlDirection} onChange={event => setUrlDirection(event.target.value as 'fetch' | 'push')} className="ml-2 border rounded-lg p-1 bg-[var(--bg-canvas)]">
+              <option value="fetch">Fetch and pull</option><option value="push">Push</option>
+            </select>
+          </label>
+          {urlDirection === 'push' && (currentRemote?.pushUrls?.length || 0) > 1 && <select aria-label="Push URL to edit" value={pushIndex} onChange={event => setPushIndex(Number(event.target.value))} className="border rounded-lg p-1 bg-[var(--bg-canvas)] max-w-full">
+            {currentRemote?.pushUrls.map((url, index) => <option key={`${url}:${index}`} value={index}>{url}</option>)}
+          </select>}
+          {currentRemote?.hasEmbeddedCredentials && <p className="text-xs text-amber-600">This remote contains saved credentials. Reauthorize with a replacement token to remove them from its URLs.</p>}
+        </div>
         {/* Section 1: Remote Repository URL */}
         <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] space-y-3">
           <div className="flex items-center justify-between pb-0.5">
@@ -408,7 +424,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
               <div className="flex items-center gap-2">
                 <Server className="w-4 h-4 text-[var(--accent-violet)]" />
                 <span className="font-semibold text-xs text-[var(--text-primary)]">
-                  Gitea SSH Authorization ({remoteHost || 'Self-Hosted'}:{remotePort})
+                  Self-hosted Git SSH Authorization ({remoteHost || 'Self-Hosted'}:{remotePort})
                 </span>
               </div>
               <button
@@ -457,7 +473,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
             <div className="text-[11px] text-[var(--text-muted)] space-y-1.5 pt-0.5 font-mono">
               <div className="flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-                <span>In Gitea, open <strong>Settings &rarr; SSH / GPG Keys &rarr; Add Key</strong>.</span>
+                <span>Open your Git server’s <strong>SSH key settings</strong> and add a key.</span>
               </div>
               <div className="flex items-center gap-2">
                 <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
@@ -476,12 +492,15 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                   <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
                   <span>Alternative: Personal Access Token (HTTP)</span>
                 </div>
+                {!isGitHub && !isGitLab && <select aria-label="Token provider" value={tokenProvider} onChange={event => setTokenProvider(event.target.value as 'github' | 'gitlab' | 'gitea')} className="bg-[var(--bg-canvas)] border rounded p-1"><option value="gitea">Gitea / Forgejo</option><option value="gitlab">GitLab</option></select>}
+                <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Gitler account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="password"
+                    aria-label="Remote access token"
                     value={personalToken}
                     onChange={e => setPersonalToken(e.target.value)}
-                    placeholder="Personal Access Token or password..."
+                    placeholder="Personal Access Token..."
                     className="flex-1 bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-1.5 font-mono text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
                   />
                   <button
@@ -498,7 +517,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         )}
 
         {/* Section 3: GitHub Specific Authentication */}
-        {isGitHub && (
+        {(isGitHub || isGitLab) && (
           <div className="space-y-3">
             <span className="font-semibold text-[11px] text-[var(--text-muted)] uppercase tracking-wider font-mono">
               macOS System Authentication Status
@@ -507,7 +526,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
               <div className="p-3 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-card)] flex items-start gap-2.5">
                 <Key className="w-4 h-4 text-[var(--accent-violet)] shrink-0 mt-0.5" />
                 <div>
-                  <div className="font-semibold text-[11px] text-[var(--text-primary)]">GitHub SSH Key</div>
+                  <div className="font-semibold text-[11px] text-[var(--text-primary)]">GitHub SSH (independent of HTTPS)</div>
                   <div className="text-[10px] text-[var(--text-muted)] mt-0.5">
                     {diagnostics?.sshConnected
                       ? `✓ Active for "${diagnostics.sshUser || 'user'}"`
@@ -534,10 +553,10 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-[11px] text-[var(--text-primary)] flex items-center gap-1.5">
                     <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
-                    <span>GitHub Personal Access Token (PAT)</span>
+                    <span>Personal Access Token</span>
                   </span>
                   <a
-                    href="https://github.com/settings/tokens/new?scopes=repo&description=Gitler%20macOS"
+                    href={isGitHub ? 'https://github.com/settings/tokens/new?scopes=repo&description=Gitler' : `${new URL(currentUrl).origin}${isGitLab || tokenProvider === 'gitlab' ? '/-/user_settings/personal_access_tokens' : '/user/settings/applications'}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[10px] text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1"
@@ -546,9 +565,12 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                     <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
+                {!isGitHub && !isGitLab && <select aria-label="Token provider" value={tokenProvider} onChange={event => setTokenProvider(event.target.value as 'github' | 'gitlab' | 'gitea')} className="bg-[var(--bg-canvas)] border rounded p-1"><option value="gitea">Gitea / Forgejo</option><option value="gitlab">GitLab</option></select>}
+                <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Gitler account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="password"
+                    aria-label="Remote access token"
                     value={personalToken}
                     onChange={e => setPersonalToken(e.target.value)}
                     placeholder="ghp_xxxxxxxxxxxxxxxxxxxx"
@@ -570,7 +592,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
           <span className="text-[10px] text-[var(--text-muted)] font-mono">
-            {isSsh ? 'Pushing via Gitler dedicated SSH key' : 'Pushing via HTTP / Token credentials'}
+            {isSsh ? 'SSH uses your host configuration, agent, and Gitler key.' : 'HTTPS uses your connected account and existing Git credential helpers.'}
           </span>
           <button
             onClick={onClose}

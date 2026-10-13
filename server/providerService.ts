@@ -155,10 +155,14 @@ export function readProvidersConfig(): ProvidersConfig {
 
 export function writeProvidersConfig(config: ProvidersConfig): void {
   ensureConfigDir();
+  const temporary = `${CONFIG_FILE}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`;
   try {
-    fs.writeFileSync(CONFIG_FILE, JSON.stringify(config, null, 2), { mode: 0o600 });
-  } catch (err) {
-    console.error('Failed to save providers config:', err);
+    fs.writeFileSync(temporary, JSON.stringify(config, null, 2), { mode: 0o600 });
+    fs.renameSync(temporary, CONFIG_FILE);
+  } catch {
+    throw new Error('Could not save your account settings. Check access to the Gitler configuration folder.');
+  } finally {
+    if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
   }
 }
 
@@ -226,6 +230,7 @@ export async function connectProvider(params: {
   provider: 'github' | 'gitlab' | 'gitea';
   token: string;
   instanceUrl?: string;
+  syncSshKey?: boolean;
 }): Promise<{
   success: boolean;
   account: Omit<ProviderAccount, 'token'>;
@@ -328,8 +333,8 @@ export async function connectProvider(params: {
 
     // Auto-sync Gitler's SSH key directly into Gitea
     try {
-      const keyInfo = await getOrCreateGitlerSshKey(false);
-      if (keyInfo.publicKey) {
+      const keyInfo = params.syncSshKey === false ? null : await getOrCreateGitlerSshKey(false);
+      if (keyInfo?.publicKey) {
         const keyPostRes = await universalFetch(`${instance}/api/v1/user/keys`, {
           method: 'POST',
           headers: {

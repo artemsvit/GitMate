@@ -34,6 +34,12 @@ export function App() {
     setIsSettingsOpen(true);
   };
   
+  const [syncSelection, setSyncSelection] = useState({ path: '', remote: '', pushIndex: -1 });
+  const syncRemote = syncSelection.path === selectedRepo?.path ? syncSelection.remote : selectedRepo?.sync?.pushRemote || selectedRepo?.sync?.pullRemote || selectedRepo?.remotes[0]?.name || '';
+  const pushUrls = selectedRepo?.remotes.find(remote => remote.name === syncRemote)?.pushUrls || [];
+  const syncPushIndex = syncSelection.path === selectedRepo?.path ? syncSelection.pushIndex : pushUrls.length === 1 ? 0 : -1;
+  const selectSyncTarget = (remote: string, pushIndex: number) => setSyncSelection({ path: selectedRepo?.path || '', remote, pushIndex });
+
   // Selected file for diff
   const [selectedFile, setSelectedFile] = useState<string | null>(null);
   const [selectedDiffStaged, setSelectedDiffStaged] = useState<boolean>(false);
@@ -315,6 +321,8 @@ export function App() {
       <AICopilotPanel
         key={'ai-' + selectedRepo.path}
         repoSummary={selectedRepo}
+        syncRemote={syncRemote}
+        syncPushIndex={syncPushIndex}
         details={selectedRepoDetails}
         aiStatus={aiStatus}
         onOpenSettings={() => handleOpenSettings('ai')}
@@ -330,8 +338,11 @@ export function App() {
   const renderMainWorkspace = () => (
     selectedRepo ? (
       <MainWorkspace
+        onSyncTargetChange={selectSyncTarget}
         key={selectedRepo.path}
         repoSummary={selectedRepo}
+        syncRemote={syncRemote}
+        syncPushIndex={syncPushIndex}
         onRefreshParent={() => handleScan(currentPath)}
         selectedFile={selectedFile}
         onSelectFile={(file, isStaged) => {

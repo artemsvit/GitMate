@@ -2,12 +2,15 @@ import React, { useState } from 'react';
 import { FileCode, Check, WrapText } from 'lucide-react';
 
 interface DiffViewerProps {
+  preview?: { dataUrl?: string; error?: string } | null;
   diff: string;
   filename?: string;
   staged?: boolean;
 }
 
-export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged }) => {
+export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged, preview }) => {
+  const [failedImage, setFailedImage] = useState<string | null>(null);
+  const [showImage, setShowImage] = useState(true);
   const [isWrapped, setIsWrapped] = useState<boolean>(() => {
     try {
       return localStorage.getItem('gitler_diff_wrap') === 'true';
@@ -28,7 +31,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged }
     });
   };
 
-  if (!diff || diff.trim() === '') {
+  if ((!diff || diff.trim() === '') && !preview) {
     return (
       <div className="h-full flex flex-col items-center justify-center p-8 text-center text-[var(--text-muted)] bg-[var(--bg-canvas)] rounded-2xl border border-[var(--border-subtle)]">
         <Check className="w-8 h-8 text-[var(--border-interactive)] mb-2" />
@@ -55,6 +58,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged }
           </div>
 
           <div className="flex items-center gap-2 shrink-0">
+            {preview && <button type="button" onClick={() => setShowImage(value => !value)} className="rounded border px-2 py-1 text-xs">{showImage ? 'Show diff' : 'Show image'}</button>}
             {/* Word Wrap Toggle Button */}
             <button
               type="button"
@@ -82,8 +86,11 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged }
         </div>
       )}
 
-      {/* Diff Lines Container */}
-      <div className="flex-1 overflow-auto p-2 space-y-0.5 select-text bg-[var(--bg-canvas)]">
+      {preview && showImage ? (
+        <div className="flex-1 min-h-0 overflow-auto flex items-center justify-center p-4 bg-[var(--bg-surface)]">
+          {preview.dataUrl && failedImage !== preview.dataUrl ? <img onError={() => setFailedImage(preview.dataUrl!)} src={preview.dataUrl} alt={`Preview of ${filename}`} className="max-w-full max-h-full object-contain" /> : <p className="text-sm text-[var(--text-muted)]">{preview.error || (failedImage === preview.dataUrl ? 'This image could not be decoded. Use Show diff to inspect the file.' : 'Loading image…')}</p>}
+        </div>
+      ) : <div className="flex-1 overflow-auto p-2 space-y-0.5 select-text bg-[var(--bg-canvas)]">
         {lines.map((line, idx) => {
           let lineClass = 'text-[var(--text-secondary)]';
           let bgClass = '';
@@ -118,7 +125,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged }
             </div>
           );
         })}
-      </div>
+      </div>}
     </div>
   );
 };

@@ -22,6 +22,9 @@ import { RepoDetails, RepoSummary } from '../types';
 import { DiffViewer } from './DiffViewer';
 
 interface MainWorkspaceProps {
+  syncRemote: string;
+  syncPushIndex: number;
+  onSyncTargetChange: (remote: string, pushIndex: number) => void;
   repoSummary: RepoSummary;
   onRefreshParent: () => void;
   selectedFile: string | null;
@@ -33,6 +36,7 @@ interface MainWorkspaceProps {
 
 export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   repoSummary,
+  syncRemote, syncPushIndex, onSyncTargetChange,
   onRefreshParent,
   selectedFile,
   onSelectFile,
@@ -127,11 +131,12 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   };
 
   // 1. Fetch details on repo change
-  const fetchDetails = async () => {
+  const fetchDetails = async (signal?: AbortSignal) => {
     try {
-      const res = await apiFetch(`/api/repos/details?path=${encodeURIComponent(repoSummary.path)}`);
+      const res = await apiFetch(`/api/repos/details?path=${encodeURIComponent(repoSummary.path)}`, { signal });
       if (res.ok) {
         const data: RepoDetails = await res.json();
+        if (signal?.aborted) return;
         setDetails(data);
         onDetailsUpdated(data);
 
@@ -146,8 +151,21 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   };
 
   useEffect(() => {
-    fetchDetails();
-  }, [repoSummary.path]);
+    const controller = new AbortController();
+    fetchDetails(controller.signal);
+    return () => controller.abort();
+  }, [repoSummary]);
+
+  const [imagePreview, setImagePreview] = useState<{ dataUrl?: string; error?: string } | null>(null);
+  useEffect(() => {
+    const controller = new AbortController();
+    setImagePreview(null);
+    if (!selectedFile || !/\.(png|jpe?g|gif|webp|svg|ico|bmp)$/i.test(selectedFile)) return () => controller.abort();
+    apiFetch(`/api/repos/preview?path=${encodeURIComponent(repoSummary.path)}&file=${encodeURIComponent(selectedFile)}&staged=${selectedDiffStaged}`, { signal: controller.signal })
+      .then(response => response.json()).then(data => { if (!controller.signal.aborted) setImagePreview(data); })
+      .catch(() => { if (!controller.signal.aborted) setImagePreview({ error: 'Image preview could not be loaded.' }); });
+    return () => controller.abort();
+  }, [repoSummary.path, selectedFile, selectedDiffStaged]);
 
   // Cancel stale requests when the selection changes, including the initial all-files request.
   useEffect(() => {
@@ -181,6 +199,11 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [file] })
       });
+      if (!res.ok) {
+        const failure = await res.json();
+        setSyncNotice({ type: 'error', message: failure.error || 'The Git operation failed.' });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setDetails(data.updated);
@@ -189,7 +212,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         onRefreshParent();
       }
     } catch (e) {
-      console.error(e);
+      setSyncNotice({ type: 'error', message: 'Could not update the working tree. Retry after refreshing the repository.' });
     }
   };
 
@@ -201,6 +224,11 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [file] })
       });
+      if (!res.ok) {
+        const failure = await res.json();
+        setSyncNotice({ type: 'error', message: failure.error || 'The Git operation failed.' });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setDetails(data.updated);
@@ -209,7 +237,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         onRefreshParent();
       }
     } catch (e) {
-      console.error(e);
+      setSyncNotice({ type: 'error', message: 'Could not update the working tree. Retry after refreshing the repository.' });
     }
   };
 
@@ -221,6 +249,11 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: ['.'] })
       });
+      if (!res.ok) {
+        const failure = await res.json();
+        setSyncNotice({ type: 'error', message: failure.error || 'The Git operation failed.' });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setDetails(data.updated);
@@ -229,7 +262,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         onRefreshParent();
       }
     } catch (e) {
-      console.error(e);
+      setSyncNotice({ type: 'error', message: 'Could not update the working tree. Retry after refreshing the repository.' });
     }
   };
 
@@ -241,6 +274,11 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ path: repoSummary.path, files: [] })
       });
+      if (!res.ok) {
+        const failure = await res.json();
+        setSyncNotice({ type: 'error', message: failure.error || 'The Git operation failed.' });
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         setDetails(data.updated);
@@ -249,7 +287,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         onRefreshParent();
       }
     } catch (e) {
-      console.error(e);
+      setSyncNotice({ type: 'error', message: 'Could not update the working tree. Retry after refreshing the repository.' });
     }
   };
 
@@ -261,7 +299,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const res = await apiFetch('/api/repos/pull', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path })
+        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
       });
       const data = await res.json();
       if (res.ok) {
@@ -296,7 +334,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const res = await apiFetch('/api/repos/push', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path })
+        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
       });
       const data = await res.json();
       if (res.ok) {
@@ -331,13 +369,13 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const res = await apiFetch('/api/repos/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path })
+        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
       });
       const data = await res.json();
       if (res.ok) {
         setSyncNotice({
           type: 'success',
-          message: 'Fetched latest updates from all remotes.'
+          message: data.output || `Fetched ${syncRemote}.`
         });
         setDetails(data.updated);
         onDetailsUpdated(data.updated);
@@ -539,7 +577,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 
           <button
             onClick={handlePush}
-            disabled={isPushing}
+            disabled={isPushing || syncPushIndex < 0 || !repoSummary.lastCommit}
             title={repoSummary.ahead > 0 ? `Push ${repoSummary.ahead} local commits` : 'Push to remote'}
             className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] text-xs font-semibold text-[var(--text-primary)] transition disabled:opacity-30 cursor-pointer"
           >
@@ -649,6 +687,24 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       </div>
 
       {/* Main Workspace Body */}
+      <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex flex-wrap gap-2 items-center text-xs">
+        <label>Sync remote
+          <select aria-label="Sync remote" value={syncRemote} onChange={event => {
+            const remote = repoSummary.remotes.find(remote => remote.name === event.target.value);
+            onSyncTargetChange(event.target.value, remote?.pushUrls?.length === 1 ? 0 : -1);
+          }} className="ml-2 rounded border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-1">
+            {repoSummary.remotes.map(remote => <option key={remote.name} value={remote.name}>{remote.name}</option>)}
+          </select>
+        </label>
+        <label className="min-w-0 flex-1">Push to
+          <select aria-label="Push destination" value={syncPushIndex} onChange={event => onSyncTargetChange(syncRemote, Number(event.target.value))} className="ml-2 max-w-full rounded border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-1">
+            <option value={-1}>Choose a push destination</option>
+            {repoSummary.remotes.find(remote => remote.name === syncRemote)?.pushUrls?.map((url, index) => <option key={`${url}:${index}`} value={index}>{url}</option>)}
+          </select>
+        </label>
+        <span className="w-full text-[var(--text-muted)] break-all">Fetch / pull: {repoSummary.remotes.find(remote => remote.name === syncRemote)?.fetchUrl || 'No remote'} · Push branch: {repoSummary.currentBranch} · Tracking: {details?.tracking || 'not configured'}</span>
+      </div>
+
       {activeTab === 'changes' && (
         <div className="flex-1 flex overflow-hidden">
           {/* Sub-panel 1: Files List */}
@@ -827,6 +883,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
           <div className="flex-1 min-w-0 h-full p-2.5 overflow-hidden bg-[var(--bg-canvas)] flex flex-col">
             <DiffViewer
               diff={diff}
+              preview={imagePreview}
               filename={selectedFile || 'All Files'}
               staged={selectedDiffStaged}
             />

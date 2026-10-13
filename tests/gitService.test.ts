@@ -127,5 +127,5 @@ test('repository read checks report the fetch provider when push uses another ho
   await git('remote', 'set-url', '--push', 'origin', 'https://github.com/fixture/repository.git');
   const result = await testRemoteConnection(dir, 'origin');
   assert.equal(result.success, true); assert.equal(result.detectedProvider, 'generic');
-  assert.match(result.message, /Repository read access verified/);
+  assert.match(result.message, /Read access verified/);
 });

@@ -8,7 +8,8 @@ export interface RepoSummary {
   stagedCount: number;
   unstagedCount: number;
   tracking?: string | null;
-  remotes: { name: string; fetchUrl?: string; pushUrl?: string }[];
+  remotes: { name: string; fetchUrl?: string; pushUrl?: string; pushUrls: string[]; hasEmbeddedCredentials: boolean }[];
+  sync?: { pullRemote?: string; pullBranch?: string; pushRemote?: string; pushBranch?: string };
   lastCommit?: {
     hash: string;
     message: string;

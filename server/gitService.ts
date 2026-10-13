@@ -7,6 +7,7 @@ import { promisify } from 'node:util';
 import { isIP } from 'node:net';
 import { validateFilePath } from './security';
 const runFile = promisify(execFile);
+import { redactRemote, shellQuote } from './remoteSafety';
 
 export interface RepoSummary {
   name: string;
@@ -18,7 +19,8 @@ export interface RepoSummary {
   stagedCount: number;
   unstagedCount: number;
   tracking?: string | null;
-  remotes: { name: string; fetchUrl?: string; pushUrl?: string }[];
+  remotes: { name: string; fetchUrl?: string; pushUrl?: string; pushUrls: string[]; hasEmbeddedCredentials: boolean }[];
+  sync?: { pullRemote?: string; pullBranch?: string; pushRemote?: string; pushBranch?: string };
   lastCommit?: {
     hash: string;
     message: string;
@@ -79,15 +81,60 @@ export function getGit(repoPath: string): SimpleGit {
     baseDir: repoPath,
     maxConcurrentProcesses: 4,
     unsafe: { allowUnsafeSshCommand: true },
-    allowEnvironment: ['GIT_SSH_COMMAND']
+    allowEnvironment: ['GIT_SSH_COMMAND', 'GIT_TERMINAL_PROMPT']
   }).env({
     PATH: process.env.PATH,
     HOME: os.homedir(),
     TMPDIR: process.env.TMPDIR,
     SSH_AUTH_SOCK: process.env.SSH_AUTH_SOCK,
     LANG: process.env.LANG,
-    GIT_SSH_COMMAND: getGitSshCommand()
+    GIT_TERMINAL_PROMPT: '0',
+    GIT_SSH_COMMAND: getGitSshCommand(),
+    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => /^(https?|all|no)_proxy$/i.test(key)))
   });
+}
+
+export async function getNetworkGit(repoPath: string): Promise<SimpleGit> {
+  const git = getGit(repoPath);
+  let helpers: string[] = [];
+  try { helpers = (await git.raw(['config', '--get-all', 'credential.helper'])).trim().split('\n').filter(Boolean); } catch {}
+  const directory = typeof __dirname === 'undefined' ? path.resolve('server') : __dirname.replace('app.asar', 'app.asar.unpacked');
+  const helper = `!${shellQuote(process.execPath)} ${shellQuote(path.join(directory, 'git-credential-helper.cjs'))}`;
+  // Reset only this invocation's helper chain; keep existing helpers after the app's helper.
+  const config = ['credential.helper=', `credential.helper=${helper}`, ...helpers.map(value => `credential.helper=${value}`), 'credential.useHttpPath=true'];
+  return simpleGit({ baseDir: repoPath, config, maxConcurrentProcesses: 4,
+    unsafe: { allowUnsafeSshCommand: true, allowUnsafeCredentialHelper: true },
+    allowEnvironment: ['GIT_SSH_COMMAND', 'GIT_TERMINAL_PROMPT']
+  }).env({ PATH: process.env.PATH, HOME: os.homedir(), TMPDIR: process.env.TMPDIR,
+    SSH_AUTH_SOCK: process.env.SSH_AUTH_SOCK, LANG: process.env.LANG,
+    GITLER_CONFIG_DIR: process.env.GITLER_CONFIG_DIR, ELECTRON_RUN_AS_NODE: '1',
+    GIT_TERMINAL_PROMPT: '0', GIT_SSH_COMMAND: getGitSshCommand(),
+    ...Object.fromEntries(Object.entries(process.env).filter(([key]) => /^(https?|all|no)_proxy$/i.test(key)))
+  });
+}
+
+async function configValue(git: SimpleGit, key: string) {
+  try { return (await git.raw(['config', '--get', key])).trim(); } catch { return ''; }
+}
+export async function getSyncTargets(repoPath: string) {
+  const git = getGit(repoPath);
+  const branch = (await git.status()).current || '';
+  const remotes = await git.getRemotes(true);
+  const [upstream, merge, branchPush, defaultPush] = await Promise.all([
+    configValue(git, `branch.${branch}.remote`), configValue(git, `branch.${branch}.merge`),
+    configValue(git, `branch.${branch}.pushRemote`), configValue(git, 'remote.pushDefault')
+  ]);
+  const pushRemote = branchPush || defaultPush || upstream || (remotes.length === 1 ? remotes[0].name : remotes.find(remote => remote.name === 'origin')?.name);
+  return { pullRemote: upstream || (remotes.length === 1 ? remotes[0].name : remotes.find(remote => remote.name === 'origin')?.name),
+    pullBranch: merge.replace(/^refs\/heads\//, '') || branch,
+    pushRemote, pushBranch: branch };
+}
+export async function getPushUrls(git: SimpleGit, remote: string): Promise<string[]> {
+  return (await git.raw(['remote', 'get-url', '--push', '--all', remote])).trim().split('\n').filter(Boolean);
+}
+async function requireRemote(git: SimpleGit, name: string | undefined) {
+  if (!name || !(await git.getRemotes()).some(remote => remote.name === name)) throw new Error('Choose a configured remote before syncing.');
+  validateArgument(name, 'remote'); return name;
 }
 
 function statusFiles(status: StatusResult): FileChange[] {
@@ -138,11 +185,12 @@ export async function getRepoSummary(repoPath: string): Promise<RepoSummary> {
       stagedCount,
       unstagedCount,
       tracking: status.tracking || null,
-      remotes: remotes.map(r => ({
-        name: r.name,
-        fetchUrl: r.refs.fetch,
-        pushUrl: r.refs.push
+      remotes: await Promise.all(remotes.map(async r => {
+        const urls = await getPushUrls(git, r.name);
+        return { name: r.name, fetchUrl: redactRemote(r.refs.fetch), pushUrl: redactRemote(urls[0] || r.refs.push),
+          pushUrls: urls.map(redactRemote), hasEmbeddedCredentials: /https?:\/\/[^/]+@/.test([r.refs.fetch, ...urls].join(' ')) };
       })),
+      sync: await getSyncTargets(repoPath),
       lastCommit
     };
   } catch (error: any) {
@@ -279,7 +327,7 @@ export async function commit(repoPath: string, message: string): Promise<string>
 }
 
 function formatRemoteError(err: any, remoteName?: string): Error {
-  const msg = err?.message || String(err);
+  const msg = redactRemote(err?.message || String(err));
   if (/No route to host|Network is unreachable/i.test(msg)) {
     return new Error(`Network unreachable: Cannot route to host${remoteName ? ` for "${remoteName}"` : ''}. Check your Wi-Fi, local network, VPN, or verify that the server is online.`);
   }
@@ -301,134 +349,67 @@ function formatRemoteError(err: any, remoteName?: string): Error {
   return new Error(msg);
 }
 
-export async function push(repoPath: string, remote?: string, branch?: string): Promise<string> {
+export async function push(repoPath: string, remote?: string, branch?: string, pushIndex?: number): Promise<string> {
   if (remote !== undefined) validateArgument(remote, 'remote');
   if (branch !== undefined) validateArgument(branch, 'branch');
-  const git = getGit(repoPath);
+  const git = await getNetworkGit(repoPath);
   const status = await git.status();
-  const currentBranch = branch || status.current;
-
-  if (!currentBranch) {
-    throw new Error('Cannot push: detached HEAD or no active branch found.');
-  }
-
-  const remotes = await git.getRemotes(true);
-  if (!remotes || remotes.length === 0) {
-    throw new Error('No remote repository configured (e.g. origin). Please configure a remote URL first.');
-  }
-
-  // Find target remote: prefer requested remote, or 'origin', or first available
-  const targetRemote = remote && remotes.some(r => r.name === remote)
-    ? remote
-    : (remotes.find(r => r.name === 'origin')?.name || remotes[0].name);
-
+  if (!status.current || status.detached) throw new Error('Select a branch before pushing.');
+  try { await git.revparse(['--verify', 'HEAD']); } catch { throw new Error('Create a local commit before pushing.'); }
+  const sync = await getSyncTargets(repoPath);
+  const targetRemote = await requireRemote(git, remote || sync.pushRemote);
+  const urls = await getPushUrls(git, targetRemote);
+  if (pushIndex === undefined && urls.length > 1) throw new Error(`Remote "${targetRemote}" has ${urls.length} push destinations. Select one push destination; Gitler will not silently push to multiple servers.`);
+  const index = pushIndex ?? 0;
+  if (!Number.isInteger(index) || index < 0 || index >= urls.length) throw new Error('Invalid push destination.');
+  const destinationBranch = branch || (targetRemote === sync.pushRemote ? sync.pushBranch : status.current);
+  validateArgument(destinationBranch, 'branch');
+  const ref = `refs/heads/${destinationBranch}`;
+  await git.raw(['check-ref-format', ref]);
   try {
-    if (status.tracking) {
-      await git.push(targetRemote, currentBranch);
-      return `Pushed ${currentBranch} to ${targetRemote}`;
-    } else {
-      await git.push(targetRemote, currentBranch, ['-u']);
-      return `Pushed ${currentBranch} to ${targetRemote} (upstream configured)`;
+    await git.raw(['push', '--porcelain', urls[index], `${status.current}:${ref}`]);
+    const localHash = (await git.revparse(['HEAD'])).trim();
+    const result = (await git.raw(['ls-remote', urls[index], ref])).trim().split(/\s+/)[0];
+    if (result !== localHash) throw new Error('The push command finished, but the remote commit could not be verified. Refresh and test the destination before retrying.');
+    const configuredFetch = (await git.raw(['remote', 'get-url', targetRemote])).trim();
+    if (redactRemote(configuredFetch) === redactRemote(urls[index])) {
+      await git.raw(['update-ref', `refs/remotes/${targetRemote}/${destinationBranch}`, localHash]);
+      if (!status.tracking) await git.raw(['branch', `--set-upstream-to=${targetRemote}/${destinationBranch}`, status.current]);
     }
-  } catch (err: any) {
-    const msg = err.message || String(err);
-    if (msg.includes('non-fast-forward') || msg.includes('fetch first')) {
-      throw new Error('Remote contains commits you do not have locally. Please Pull first.');
-    }
-    throw formatRemoteError(err, targetRemote);
-  }
+    return `Verified ${localHash.slice(0, 7)} on ${targetRemote} → ${redactRemote(urls[index])} (${destinationBranch}).`;
+  } catch (error) { throw formatRemoteError(error, targetRemote); }
 }
 
 export async function pull(repoPath: string, remote?: string, branch?: string): Promise<string> {
   if (remote !== undefined) validateArgument(remote, 'remote');
   if (branch !== undefined) validateArgument(branch, 'branch');
-  const git = getGit(repoPath);
+  const git = await getNetworkGit(repoPath);
   const status = await git.status();
-  const currentBranch = branch || status.current;
-
-  if (!currentBranch) {
-    throw new Error('Cannot pull: detached HEAD or no active branch found.');
-  }
-
-  const remotes = await git.getRemotes(true);
-  if (!remotes || remotes.length === 0) {
-    throw new Error('No remote repository configured. Please configure a remote URL first.');
-  }
-
-  const targetRemote = remote && remotes.some(r => r.name === remote)
-    ? remote
-    : (remotes.find(r => r.name === 'origin')?.name || remotes[0].name);
-
+  if (!status.current || status.detached) throw new Error('Select a branch before pulling.');
+  const sync = await getSyncTargets(repoPath);
+  const targetRemote = await requireRemote(git, remote || sync.pullRemote);
+  const destinationBranch = branch || (targetRemote === sync.pullRemote ? sync.pullBranch : status.current);
+  validateArgument(destinationBranch, 'branch');
   try {
-    let result;
-    if (status.tracking) {
-      result = await git.pull();
-    } else {
-      result = await git.pull(targetRemote, currentBranch);
-    }
-    const changes = result?.summary?.changes ?? 0;
-    const insertions = result?.summary?.insertions ?? 0;
-    const deletions = result?.summary?.deletions ?? 0;
-    return `Pulled successfully (${changes} changes, +${insertions}/-${deletions})`;
-  } catch (err: any) {
-    const msg = err.message || String(err);
-    if (msg.includes('divergent branches') || msg.includes('Need to specify how to reconcile')) {
-      throw new Error(`Branches have diverged (${status.ahead} local, ${status.behind} remote). Please reconcile with "git pull --rebase" or stash and merge.`);
-    }
-    if (msg.includes('overwritten by merge') || msg.includes('local changes')) {
-      throw new Error('Cannot pull: you have uncommitted local changes that would be overwritten. Please commit or stash them first.');
-    }
-    if (msg.includes('no tracking information') || msg.includes('Please specify which branch')) {
-      try {
-        const fallbackRes = await git.pull(targetRemote, currentBranch);
-        const changes = fallbackRes?.summary?.changes ?? 0;
-        return `Pulled from ${targetRemote}/${currentBranch} (${changes} changes)`;
-      } catch (fallbackErr: any) {
-        throw new Error(`No tracking information found for branch "${currentBranch}". Run "git branch --set-upstream-to=${targetRemote}/${currentBranch}".`);
-      }
-    }
-    throw formatRemoteError(err, targetRemote);
+    const result = await git.pull(targetRemote, destinationBranch, ['--ff-only']);
+    return `Pulled ${targetRemote}/${destinationBranch} (${result.summary.changes} file changes).`;
+  } catch (error: any) {
+    if (/diverg|fast-forward|reconcile/.test(error.message)) throw new Error('Local and remote history differ. Pull requires a fast-forward; review the branches before merging or rebasing.');
+    throw formatRemoteError(error, targetRemote);
   }
 }
 
-export async function fetchAll(repoPath: string): Promise<string> {
-  const git = getGit(repoPath);
-  const remotes = await git.getRemotes(true);
-  if (!remotes || remotes.length === 0) {
-    return 'No remotes configured.';
+export async function fetchAll(repoPath: string, remote?: string): Promise<string> {
+  const git = await getNetworkGit(repoPath);
+  const remotes = remote ? [{ name: await requireRemote(git, remote) }] : await git.getRemotes();
+  if (!remotes.length) throw new Error('No remote is configured. Add a remote before fetching.');
+  const succeeded: string[] = [], failed: string[] = [];
+  for (const target of remotes) {
+    try { await git.fetch(target.name); succeeded.push(target.name); }
+    catch (error) { failed.push(`${target.name}: ${formatRemoteError(error, target.name).message}`); }
   }
-
-  if (remotes.length === 1) {
-    try {
-      await git.fetch(remotes[0].name);
-      return `Fetched ${remotes[0].name}`;
-    } catch (err: any) {
-      throw formatRemoteError(err, remotes[0].name);
-    }
-  }
-
-  const succeeded: string[] = [];
-  const failed: { name: string; message: string }[] = [];
-
-  for (const r of remotes) {
-    try {
-      await git.fetch(r.name);
-      succeeded.push(r.name);
-    } catch (err: any) {
-      const formatted = formatRemoteError(err, r.name);
-      failed.push({ name: r.name, message: formatted.message });
-    }
-  }
-
-  if (failed.length === remotes.length) {
-    throw new Error(`Failed to fetch remotes:\n${failed.map(f => `${f.name}: ${f.message}`).join('\n')}`);
-  }
-
-  if (failed.length > 0) {
-    return `Fetched ${succeeded.join(', ')} (Unreachable: ${failed.map(f => f.name).join(', ')})`;
-  }
-
-  return `Fetched ${succeeded.join(', ')}`;
+  if (!succeeded.length) throw new Error(`Fetch failed. ${failed.join(' ')}`);
+  return `Fetched ${succeeded.join(', ')}.${failed.length ? ` Other remotes failed: ${failed.join(' ')}` : ''}`;
 }
 
 export async function checkout(repoPath: string, branchName: string, createNew = false): Promise<string> {
@@ -443,12 +424,47 @@ export async function checkout(repoPath: string, branchName: string, createNew =
   return `Switched to ${branchName}`;
 }
 
-export async function setRemoteUrl(repoPath: string, remoteName: string, newUrl: string): Promise<string> {
+export async function setRemoteUrl(repoPath: string, remoteName: string, newUrl: string, direction: 'fetch' | 'push' = 'fetch', pushIndex = 0): Promise<string> {
   validateArgument(remoteName, 'remote');
   validateArgument(newUrl, 'remote URL');
   const git = getGit(repoPath);
-  await git.remote(['set-url', remoteName, newUrl]);
-  return `Updated remote "${remoteName}" to ${newUrl}`;
+  if (/https?:\/\/[^/]+@/.test(newUrl)) throw new Error('Do not put credentials in remote URLs. Use Authorize instead.');
+  if (direction === 'push') {
+    const urls = await getPushUrls(git, remoteName);
+    const previous = urls[pushIndex];
+    if (!previous) throw new Error('Choose a valid push destination.');
+    let explicit = '';
+    try { explicit = await git.raw(['config', '--get-all', `remote.${remoteName}.pushurl`]); } catch {}
+    const regex = '^' + previous.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$';
+    if (explicit.trim()) await git.remote(['set-url', '--push', remoteName, newUrl, regex]);
+    else await git.remote(['set-url', '--add', '--push', remoteName, newUrl]);
+  } else await git.remote(['set-url', remoteName, newUrl]);
+  return `Updated ${direction} URL for "${remoteName}" to ${redactRemote(newUrl)}.`;
+}
+
+export async function authorizeHttpsRemote(repoPath: string, remoteName: string, provider: 'github' | 'gitlab' | 'gitea', token: string, direction: 'fetch' | 'push' = 'fetch', pushIndex = 0) {
+  const git = getGit(repoPath);
+  const remote = (await git.getRemotes(true)).find(remote => remote.name === remoteName);
+  if (!remote) throw new Error('Select a configured remote.');
+  const destinations = await getPushUrls(git, remoteName);
+  let pushUrls: string[] = [];
+  try { pushUrls = (await git.raw(['config', '--get-all', `remote.${remoteName}.pushurl`])).trim().split('\n').filter(Boolean); } catch {}
+  const selected = direction === 'push' ? destinations[pushIndex] : remote.refs.fetch;
+  if (!selected || !/^https?:\/\//.test(selected)) throw new Error('Token authorization requires an HTTPS or HTTP remote.');
+  const url = new URL(selected);
+  const { connectProvider, readProvidersConfig } = await import('./providerService');
+  const configured = readProvidersConfig()[provider]?.instanceUrl;
+  const instanceUrl = configured && new URL(configured).origin === url.origin ? configured : url.origin;
+  await connectProvider({ provider, token, instanceUrl, syncSshKey: false });
+  if (/^https?:\/\//.test(remote.refs.fetch) && new URL(remote.refs.fetch).origin === url.origin) {
+    await git.remote(['set-url', remoteName, redactRemote(remote.refs.fetch)]);
+  }
+  for (let index = 0; index < pushUrls.length; index++) {
+    if (/^https?:\/\//.test(pushUrls[index]) && new URL(pushUrls[index]).origin === url.origin && /https?:\/\/[^/]+@/.test(pushUrls[index])) {
+      await setRemoteUrl(repoPath, remoteName, redactRemote(pushUrls[index]), 'push', index);
+    }
+  }
+  return 'Account verified. Git credentials are provided privately; remote URLs contain no token.';
 }
 
 export async function getOrCreateGitlerSshKey(
@@ -518,14 +534,14 @@ export async function getOrCreateGitlerSshKey(
   return { hasKey: true, publicKey: content, keyPath: selectedPath, keyType };
 }
 
-export async function testRemoteConnection(repoPath: string, remoteName = 'origin'): Promise<{
+export async function testRemoteConnection(repoPath: string, remoteName = 'origin', direction: 'fetch' | 'push' = 'fetch', pushIndex = 0): Promise<{
   success: boolean;
   message: string;
   rawError?: string;
   detectedProvider?: string;
 }> {
   validateArgument(remoteName, 'remote');
-  const git = getGit(repoPath);
+  const git = await getNetworkGit(repoPath);
   try {
     const remotes = await git.getRemotes(true);
     const target = remotes.find(r => r.name === remoteName) || remotes[0];
@@ -534,7 +550,9 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
     }
 
     // ls-remote checks the fetch URL; the push URL may be a different provider.
-    const remoteUrl = target.refs.fetch || target.refs.push || '';
+    const urls = await getPushUrls(git, target.name);
+    const remoteUrl = direction === 'push' ? urls[pushIndex] : target.refs.fetch;
+    if (!remoteUrl) throw new Error('Choose a valid remote destination.');
     let detectedProvider = 'generic';
     if (remoteUrl.includes('github.com')) {
       detectedProvider = 'github';
@@ -544,14 +562,20 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
       detectedProvider = 'gitea';
     }
 
-    await git.listRemote([target.name]);
+    if (direction === 'push') {
+      const status = await git.status();
+      if (!status.current || !status.files.every(file => !file.index.includes('U'))) throw new Error('Select a branch and resolve conflicts before testing push.');
+      const targets = await getSyncTargets(repoPath);
+      const branch = target.name === targets.pushRemote ? targets.pushBranch : status.current;
+      await git.raw(['push', '--dry-run', '--porcelain', remoteUrl, `HEAD:refs/heads/${branch}`]);
+    } else await git.raw(['ls-remote', remoteUrl]);
     return {
       success: true,
-      message: `Connected to "${target.name}" (${detectedProvider.toUpperCase()}) successfully. Repository read access verified.`,
+      message: direction === 'push' ? `Push preflight passed for ${redactRemote(remoteUrl)}. No commits were written. Branch protection is checked during the actual push.` : `Read access verified for ${redactRemote(remoteUrl)} (${detectedProvider.toUpperCase()}).`,
       detectedProvider
     };
   } catch (err: any) {
-    const rawError = err.message || String(err);
+    const rawError = redactRemote(err.message || String(err));
     let friendly = rawError;
 
     if (rawError.includes('Permission denied') || rawError.includes('publickey')) {

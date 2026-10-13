@@ -165,3 +165,13 @@ Local repositories work offline. Remote Git operations use the repository's fetc
 For local servers, macOS may ask for **Local Network** permission on the first connection. Allow Gitler to reach your server. If access was denied, enable Gitler in **System Settings → Privacy & Security → Local Network** and retry. Gitler does not change the Mac's privacy settings or use a child process to bypass permission.
 
 Provider requests verify TLS certificates and reject redirects to other origins before forwarding a token. Packaged executables use a stable app-specific UUID to support macOS permission tracking.
+
+## Sync and working-tree previews
+
+Gitler opens maximized. Choose **Sync remote** before fetching or pulling, and choose a single **Push destination** before pushing. A remote can have a fetch URL and several push URLs on different servers; these are shown separately. Pull follows the selected remote and uses a fast-forward, so it does not silently merge diverged history.
+
+**Commit Changes** saves a commit locally. **Commit & Push** then publishes to the selected destination. Gitler reads that remote branch back and compares its commit with the local commit before reporting a verified push. A rejected push leaves the local commit intact.
+
+Connected provider tokens are supplied privately to Git through a credential helper. Existing Git helpers remain available as fallback. The interface hides legacy credentials embedded in URLs. Use **Authorize** with a replacement token to verify the account and remove credentials from the selected server's remote URLs. Revoke any token that has appeared in a screenshot or shared log.
+
+Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image preview. Staged previews read the Git index; working-tree previews read the current file. **Show diff** switches back to text. SVG files are loaded as images, without inserting their markup into the application. Previews are limited to 10 MiB and stay inside the selected repository.

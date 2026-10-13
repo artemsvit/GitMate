@@ -1,3 +1,5 @@
+import { getFilePreview } from './filePreview';
+import { redactRemote } from './remoteSafety';
 import express from 'express';
 import { execFile } from 'node:child_process';
 import { installAccessControl, RepositoryAccess } from './security';
@@ -14,6 +16,7 @@ const appRoot = typeof __dirname !== 'undefined'
   : process.cwd();
 import { scanForRepositories } from './scanner';
 import {
+  authorizeHttpsRemote,
   getRepoSummary,
   getRepoDetails,
   getDiff,
@@ -46,6 +49,13 @@ const PORT = Number(process.env.PORT || 3001);
 if (!Number.isInteger(PORT) || PORT < 1 || PORT > 65535) throw new Error('Invalid server port.');
 installAccessControl(app, PORT);
 app.use(express.json({ limit: '1mb' }));
+// Never return credentials embedded in legacy Git URLs or error output to the interface.
+app.use((_req, res, next) => {
+  const original = res.json.bind(res);
+  const safe = (value: any): any => typeof value === 'string' ? redactRemote(value) : Array.isArray(value) ? value.map(safe) : value && typeof value === 'object' ? Object.fromEntries(Object.entries(value).map(([key, item]) => [key, safe(item)])) : value;
+  res.json = ((value: any) => original(safe(value))) as typeof res.json;
+  next();
+});
 const access = new RepositoryAccess();
 app.use('/api', (req, res, next) => {
   const isSuggestion = req.path === '/ai/generate-commit';
@@ -194,6 +204,19 @@ app.get('/api/repos/diff', async (req, res) => {
   }
 });
 
+app.get('/api/repos/preview', async (req, res) => {
+  try { res.json(await getFilePreview(res.locals.repoPath, req.query.file as string, req.query.staged === 'true')); }
+  catch (error: any) { res.status(400).json({ error: error.code === 'ENOENT' ? 'The selected file no longer exists in the working tree.' : error.message }); }
+});
+
+app.post('/api/repos/remotes/authorize', async (req, res) => {
+  try {
+    const { path: repoPath, remoteName, provider, token, direction = 'fetch', pushIndex = 0 } = req.body;
+    const message = await authorizeHttpsRemote(repoPath, remoteName, provider, token, direction, pushIndex);
+    res.json({ success: true, message, updated: await getRepoDetails(repoPath) });
+  } catch (error: any) { res.status(400).json({ error: error.message }); }
+});
+
 // 5. Stage files
 app.post('/api/repos/stage', async (req, res) => {
   try {
@@ -241,10 +264,10 @@ app.post('/api/repos/commit', async (req, res) => {
 // 8. Push
 app.post('/api/repos/push', async (req, res) => {
   try {
-    const { path: repoPath, remote = 'origin', branch } = req.body;
+    const { path: repoPath, remote, branch, pushIndex } = req.body;
     if (!repoPath) return res.status(400).json({ error: 'path is required' });
 
-    const output = await push(repoPath, remote, branch);
+    const output = await push(repoPath, remote, branch, pushIndex);
     const updated = await getRepoDetails(repoPath);
     res.json({ success: true, output, updated });
   } catch (err: any) {
@@ -269,10 +292,10 @@ app.post('/api/repos/pull', async (req, res) => {
 // 10. Fetch
 app.post('/api/repos/fetch', async (req, res) => {
   try {
-    const { path: repoPath } = req.body;
+    const { path: repoPath, remote } = req.body;
     if (!repoPath) return res.status(400).json({ error: 'path is required' });
 
-    const output = await fetchAll(repoPath);
+    const output = await fetchAll(repoPath, remote);
     const updated = await getRepoDetails(repoPath);
     res.json({ success: true, output, updated });
   } catch (err: any) {
@@ -309,11 +332,11 @@ app.get('/api/auth/diagnostics', async (_req, res) => {
 // 11c. Update Remote URL (e.g. switch between HTTPS and SSH)
 app.post('/api/repos/remotes/update-url', async (req, res) => {
   try {
-    const { path: repoPath, remoteName = 'origin', newUrl } = req.body;
+    const { path: repoPath, remoteName = 'origin', newUrl, direction = 'fetch', pushIndex = 0 } = req.body;
     if (!repoPath || !newUrl) {
       return res.status(400).json({ error: 'path and newUrl are required' });
     }
-    const output = await setRemoteUrl(repoPath, remoteName, newUrl);
+    const output = await setRemoteUrl(repoPath, remoteName, newUrl, direction, pushIndex);
     const updated = await getRepoDetails(repoPath);
     res.json({ success: true, output, updated });
   } catch (err: any) {
@@ -324,9 +347,9 @@ app.post('/api/repos/remotes/update-url', async (req, res) => {
 // 11d. Test Remote Connection
 app.post('/api/repos/remotes/test', async (req, res) => {
   try {
-    const { path: repoPath, remoteName = 'origin' } = req.body;
+    const { path: repoPath, remoteName = 'origin', direction = 'fetch', pushIndex = 0 } = req.body;
     if (!repoPath) return res.status(400).json({ error: 'path is required' });
-    const result = await testRemoteConnection(repoPath, remoteName);
+    const result = await testRemoteConnection(repoPath, remoteName, direction, pushIndex);
     res.json(result);
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Test connection failed' });

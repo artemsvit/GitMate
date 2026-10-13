@@ -17,6 +17,8 @@ import {
 import { RepoDetails, RepoSummary, LocalAIStatus, AICommitResult } from '../types';
 
 interface AICopilotPanelProps {
+  syncRemote: string;
+  syncPushIndex: number;
   repoSummary: RepoSummary;
   details: RepoDetails | null;
   aiStatus: LocalAIStatus | null;
@@ -30,6 +32,7 @@ interface AICopilotPanelProps {
 
 export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   repoSummary,
+  syncRemote, syncPushIndex,
   details,
   aiStatus,
   onOpenSettings,
@@ -132,12 +135,12 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             const pushRes = await apiFetch('/api/repos/push', {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ path: repoSummary.path })
+              body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: syncPushIndex })
             });
             const pushData = await pushRes.json();
             if (pushRes.ok) {
               setStatusMessage({
-                text: `Committed & Pushed to remote! (${data.commitHash.slice(0, 7)})`,
+                text: pushData.output || `Commit ${data.commitHash.slice(0, 7)} pushed to ${syncRemote}.`,
                 type: 'success'
               });
             } else {
@@ -153,7 +156,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             });
           }
         } else {
-          setStatusMessage({ text: `Committed: ${data.commitHash.slice(0, 7)}`, type: 'success' });
+          setStatusMessage({ text: `Committed locally: ${data.commitHash.slice(0, 7)}. Push to publish it.`, type: 'success' });
         }
 
         onCommitSuccess();
@@ -383,7 +386,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
         <button
           onClick={() => handleCommit(true)}
-          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim()}
+          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim() || syncPushIndex < 0}
           className="w-full py-2.5 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
         >
           <Send className="w-3.5 h-3.5" />
