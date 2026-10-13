@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { downloadArtifact, hashFile } from './modelDownload';
 export { hashFile } from './modelDownload';
 import { gatherContext } from './copilotContext';
+import { buildCommitPrompt, commitInstructions, finalizeCommitMessage } from './commitMessage';
 
 export const modelSpec = {
   name: 'Qwen3.5-9B Q4_K_M', size: 5680522464, repository: 'unsloth/Qwen3.5-9B-GGUF',
@@ -82,6 +83,33 @@ export function recentHistory(messages: ChatMessage[], budget: number) {
   }
   return lines.join('\n');
 }
+function scheduleUnload() {
+  if (idleTimer) clearTimeout(idleTimer);
+  idleTimer = setTimeout(async () => { if (!generating && model) { const previous = model; model = null; await previous.dispose(); } }, 5 * 60 * 1000); idleTimer.unref();
+}
+// Commit messages use the on-device model when it is downloaded and idle; callers fall back to rules otherwise.
+export function commitModelReady() { return chatSupported() && !generating && fs.existsSync(modelPath()); }
+export async function generateCommitWithModel(options: { repoName: string; diff: string; changedFiles: string[]; recentSubjects?: string[] }) {
+  if (!commitModelReady()) throw new Error('The on-device model is not available.');
+  generating = true; let context: any; let session: any;
+  try {
+    const loaded = await loadModel();
+    context = await loaded.createContext({ contextSize: { min: 4096, max: 16384 } });
+    const budget = Math.max(6000, (context.contextSize - 1500) * charsPerToken - commitInstructions.length);
+    const { LlamaChatSession } = await import('node-llama-cpp');
+    session = new LlamaChatSession({ contextSequence: context.getSequence(), systemPrompt: commitInstructions });
+    const prompt = buildCommitPrompt({ ...options, budget });
+    let message = finalizeCommitMessage(await session.prompt(prompt, { maxTokens: 400, budgets: { thoughtTokens: 0 }, temperature: 0.2 }));
+    // A header copied from an earlier commit describes a different change; ask once more.
+    const header = (text: string) => text.split('\n')[0].trim().toLowerCase();
+    if ((options.recentSubjects || []).some(subject => header(subject) === header(message))) {
+      session.resetChatHistory();
+      message = finalizeCommitMessage(await session.prompt(`${prompt}\n\nDo not reuse any recent commit subject. Describe only this diff.`, { maxTokens: 400, budgets: { thoughtTokens: 0 }, temperature: 0.4 }));
+    }
+    if (!message) throw new Error('The model returned an empty commit message.');
+    return message;
+  } finally { session?.dispose(); await context?.dispose(); generating = false; scheduleUnload(); }
+}
 export async function chat(options: { repo: string; repos: string[]; id?: string; question: string; commit?: string; signal: AbortSignal; emit: (event: object) => void }) {
   if (!chatSupported()) throw new Error('Copilot Chat requires macOS 14 or newer.');
   if (generating) throw new Error('Copilot is answering another question. Wait or stop that reply.');
@@ -114,7 +142,6 @@ export async function chat(options: { repo: string; repos: string[]; id?: string
     }
     throw error;
   } finally {
-    session?.dispose(); await context?.dispose(); generating = false;
-    idleTimer = setTimeout(async () => { if (!generating && model) { const previous = model; model = null; await previous.dispose(); } }, 5 * 60 * 1000); idleTimer.unref();
+    session?.dispose(); await context?.dispose(); generating = false; scheduleUnload();
   }
 }

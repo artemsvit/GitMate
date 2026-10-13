@@ -1,4 +1,6 @@
 import path from 'path';
+import { buildCommitPrompt, commitInstructions, finalizeCommitMessage, splitDiff } from './commitMessage';
+import { commitModelReady, generateCommitWithModel, modelSpec } from './copilotService';
 
 export interface LocalAIStatus {
   available: boolean;
@@ -100,8 +102,9 @@ export async function generateCommitMessage(options: {
   provider?: string;
   model?: string;
   endpoint?: string;
+  recentSubjects?: string[];
 }): Promise<{ message: string; source: 'embedded' | 'local-ai' | 'smart-heuristic'; provider: string; model: string }> {
-  const { diff, repoName, changedFiles = [], provider, model, endpoint } = options;
+  const { diff, repoName, changedFiles = [], provider, model, endpoint, recentSubjects = [] } = options;
 
   if (endpoint !== undefined && !['http://127.0.0.1:11434', 'http://127.0.0.1:1234'].includes(endpoint)) {
     throw new Error('Only the supported local model endpoints are allowed.');
@@ -116,23 +119,7 @@ export async function generateCommitMessage(options: {
       if (!targetModel) throw new Error('No local model is selected.');
       const targetEndpoint = aiStatus.externalEndpoint;
 
-      const trimmedDiff = diff.length > 5000 ? diff.slice(0, 5000) + '\n...[diff truncated for length]' : diff;
-      const prompt = `You are an expert Git assistant. Generate a clean, conventional commit message based on the following diff for repository "${repoName}".
-
-Rules:
-1. Conventional Commits format: <type>(<scope>): <concise subject in imperative mood>
-2. Keep the subject line lowercase, under 72 characters, with no trailing period.
-3. Separate the subject line and body with one blank line.
-4. Follow with 2-3 concise bullet points explaining what was changed and why.
-5. Each bullet must start with a hyphen, space, and capital letter: "- Action description"
-6. Do not include markdown code fences, quotes, backticks, or conversational preamble.
-
-Changed files:
-${changedFiles.join('\n')}
-
-Diff:
-${trimmedDiff}
-`;
+      const prompt = `${commitInstructions}\n\n${buildCommitPrompt({ repoName, diff, changedFiles, recentSubjects, budget: 12000 })}`;
 
       try {
         if (targetProvider === 'ollama') {
@@ -145,16 +132,16 @@ ${trimmedDiff}
               prompt: prompt,
               stream: false,
               think: false,
-              options: { temperature: 0.2, num_predict: 120 }
+              options: { temperature: 0.2, num_predict: 400 }
             }),
-            signal: AbortSignal.timeout(10000)
+            signal: AbortSignal.timeout(60000)
           });
           if (response.ok) {
             const data = await response.json() as any;
             const msg = (data.response || data.thinking || '').trim();
             if (msg) {
               return {
-                message: cleanCommitMessage(msg),
+                message: finalizeCommitMessage(msg),
                 source: 'local-ai',
                 provider: `Ollama (${targetModel})`,
                 model: targetModel
@@ -171,14 +158,14 @@ ${trimmedDiff}
               messages: [{ role: 'user', content: prompt }],
               temperature: 0.3
             }),
-            signal: AbortSignal.timeout(10000)
+            signal: AbortSignal.timeout(60000)
           });
           if (response.ok) {
             const data = await response.json() as any;
             const msg = data.choices?.[0]?.message?.content?.trim();
             if (msg) {
               return {
-                message: cleanCommitMessage(msg),
+                message: finalizeCommitMessage(msg),
                 source: 'local-ai',
                 provider: `LM Studio (${targetModel})`,
                 model: targetModel
@@ -192,7 +179,17 @@ ${trimmedDiff}
     }
   }
 
-  // Primary: Gitler Incorporated Built-in Commit Suggestions
+  // Primary: the downloaded on-device Copilot model.
+  if (commitModelReady()) {
+    try {
+      const message = await generateCommitWithModel({ repoName, diff, changedFiles, recentSubjects });
+      return { message, source: 'local-ai', provider: 'Gitler Copilot (on-device)', model: modelSpec.name };
+    } catch (err) {
+      console.warn('On-device commit generation failed, falling back to Gitler Commit Suggestions:', err);
+    }
+  }
+
+  // Fallback: rule-based suggestions that need no model.
   const embeddedMsg = generateEmbeddedCommit(changedFiles, diff, repoName);
   return {
     message: embeddedMsg,
@@ -200,12 +197,6 @@ ${trimmedDiff}
     provider: 'Gitler Commit Suggestions',
     model: 'Built-in Heuristics'
   };
-}
-
-function cleanCommitMessage(raw: string): string {
-  let cleaned = raw.replace(/^```[a-z]*\n?/i, '').replace(/```$/i, '').trim();
-  cleaned = cleaned.replace(/^["']|["']$/g, '').trim();
-  return cleaned;
 }
 
 function sanitizeScope(val: string): string {
@@ -309,25 +300,6 @@ export function generateEmbeddedCommit(files: string[], diff: string, _repoName:
   const uniqueFiles = [...new Set(files.filter(Boolean))];
   if (!uniqueFiles.length) return 'chore: update staged changes';
 
-  // 1. High-confidence Gitler repository build detections
-  const hasBuildTooling = uniqueFiles.some(f => /package\.json|electron-builder\.yml|vite\.config|tsconfig/.test(f));
-  const hasElectronUpgrade = diff.includes('"electron":') || diff.includes('electron@') || diff.includes('notarize') || diff.includes('verify-package');
-  if (hasBuildTooling && hasElectronUpgrade) {
-    return formatCommitMessage('feat', 'build', 'update Electron packaging and build configuration', [
-      'Upgrade build toolchain and packaging configurations',
-      'Ensure hardened runtime, code signing, and bundle verification'
-    ]);
-  }
-
-  const hasProviderSync = (diff.includes('providerService') || diff.includes('/api/auth/providers') || diff.includes('sync-ssh-key')) &&
-    uniqueFiles.some(f => /providerService|SettingsModal|RemoteAuthModal/i.test(f));
-  if (hasProviderSync) {
-    return formatCommitMessage('feat', 'auth', 'add Git provider integration and automated SSH key synchronization', [
-      'Add 1-click authentication flows for GitHub, GitLab, and Gitea accounts',
-      'Automate SSH key installation via provider REST APIs'
-    ]);
-  }
-
   // 2. File and path categorization
   const isImageOrMedia = (f: string) => /\.(jpe?g|png|gif|svg|webp|ico|bmp|avif|mp4|webm)$/i.test(f);
   const isDoc = (f: string) => /\.(md|markdown|txt|rst|adoc)$/i.test(f) || /^(README|LICENSE|CHANGELOG|CONTRIBUTING)(\..+)?$/i.test(path.basename(f));
@@ -363,7 +335,6 @@ export function generateEmbeddedCommit(files: string[], diff: string, _repoName:
   // 5. Determine type, subject, and bullets
   let type = 'chore';
   let subject = '';
-  const bullets: string[] = [];
 
   // Branch A: Media / Artifacts files (e.g. .codex/artifacts/web-actor-*.jpg)
   if (mediaFiles.length === uniqueFiles.length) {
@@ -372,53 +343,40 @@ export function generateEmbeddedCommit(files: string[], diff: string, _repoName:
     const commonTopic = extractCommonTopic(uniqueFiles);
     if (commonTopic) {
       subject = `${isAllNew ? 'add' : 'update'} ${commonTopic} preview artifacts`;
-      bullets.push(`Add and update visual capture assets for ${commonTopic}`);
     } else {
       subject = `${isAllNew ? 'add' : 'update'} visual previews and media assets`;
-      bullets.push('Update image previews and graphic assets');
     }
-    const sampleNames = uniqueFiles.map(f => path.basename(f, path.extname(f))).slice(0, 3).join(', ');
-    bullets.push(`Refresh captured previews for ${sampleNames}${uniqueFiles.length > 3 ? ` and ${uniqueFiles.length - 3} other files` : ''}`);
   }
   // Branch B: Documentation only
   else if (docFiles.length === uniqueFiles.length) {
     type = 'docs';
     scope = scope || (uniqueFiles.length === 1 ? sanitizeScope(path.basename(uniqueFiles[0], path.extname(uniqueFiles[0]))) : 'docs');
     const mainDoc = uniqueFiles.length === 1 ? path.basename(uniqueFiles[0]) : 'documentation';
-    subject = `update ${mainDoc} and specifications`;
-    bullets.push(`Update project documentation in ${uniqueFiles.slice(0, 2).map(f => path.basename(f)).join(', ')}`);
-    bullets.push('Clarify system instructions, configurations, and technical details');
+    subject = `update ${mainDoc}`;
   }
   // Branch C: Tests only
   else if (testFiles.length === uniqueFiles.length) {
     type = 'test';
     scope = scope || 'tests';
     subject = hasFixKeywords ? 'fix regression tests and assertions' : 'add automated test coverage and assertions';
-    bullets.push(`Update test suites across ${uniqueFiles.slice(0, 2).map(f => path.basename(f)).join(', ')}`);
-    bullets.push('Verify edge cases, error handling, and expected behaviors');
   }
   // Branch D: CI / Workflows only
   else if (ciFiles.length === uniqueFiles.length) {
     type = 'ci';
     scope = scope || 'workflows';
     subject = hasFixKeywords ? 'fix automated workflow pipeline configuration' : 'update CI automation and build pipelines';
-    bullets.push('Update GitHub Actions workflow triggers and step definitions');
-    bullets.push('Ensure consistent CI testing and release automation');
   }
   // Branch E: Config / Dependencies only
   else if (configFiles.length === uniqueFiles.length) {
     type = 'build';
     scope = scope || 'deps';
     subject = hasFixKeywords ? 'fix dependency configuration and build scripts' : 'update project dependencies and configuration';
-    bullets.push(`Update configuration files in ${uniqueFiles.slice(0, 3).map(f => path.basename(f)).join(', ')}`);
-    bullets.push('Synchronize package dependencies and build toolchain settings');
   }
   // Branch F: Styles only
   else if (styleFiles.length === uniqueFiles.length) {
     type = 'style';
     scope = scope || 'styles';
     subject = 'refine stylesheet rules and theme appearance';
-    bullets.push('Update CSS classes, layout styling, and color contrast tokens');
   }
   // Branch G: UI components
   else if (uiFiles.length > 0 && serverFiles.length === 0) {
@@ -427,19 +385,12 @@ export function generateEmbeddedCommit(files: string[], diff: string, _repoName:
     if (hasFixKeywords) {
       type = 'fix';
       subject = `resolve ${componentNames} interaction issues`;
-      bullets.push(`Fix component behavior and edge-case handling in ${componentNames}`);
-      if (hasStyleKeywords) bullets.push('Refine visual styles, focus contrast, and container layout');
     } else if (isAllNew || hasNewFeatureKeywords) {
       type = 'feat';
       subject = `add ${componentNames} component`;
-      bullets.push(`Implement ${componentNames} interface and user controls`);
     } else {
       type = hasRefactorKeywords ? 'refactor' : 'feat';
       subject = `enhance ${componentNames} controls and layout`;
-      bullets.push(`Update ${componentNames} component logic and appearance`);
-    }
-    if (bullets.length < 2) {
-      bullets.push('Improve interactive responsiveness and visual consistency');
     }
   }
   // Branch H: Server / Backend code
@@ -449,18 +400,12 @@ export function generateEmbeddedCommit(files: string[], diff: string, _repoName:
     if (hasFixKeywords) {
       type = 'fix';
       subject = `resolve ${moduleNames} error handling and execution`;
-      bullets.push(`Fix issue handling and runtime fallbacks in ${moduleNames}`);
     } else if (hasNewFeatureKeywords || isAllNew) {
       type = 'feat';
       subject = `add ${moduleNames} endpoint and service logic`;
-      bullets.push(`Implement service capabilities and API handlers in ${moduleNames}`);
     } else {
       type = hasRefactorKeywords ? 'refactor' : 'feat';
       subject = `enhance ${moduleNames} backend processing`;
-      bullets.push(`Update request processing and service logic in ${moduleNames}`);
-    }
-    if (bullets.length < 2) {
-      bullets.push('Ensure robust error handling and API contract compatibility');
     }
   }
   // Branch I: Mixed or General Codebase
@@ -469,28 +414,28 @@ export function generateEmbeddedCommit(files: string[], diff: string, _repoName:
     if (hasFixKeywords) {
       type = 'fix';
       subject = scope ? `resolve ${scope} issues and improve reliability` : 'resolve application bugs and edge cases';
-      bullets.push('Fix identified runtime errors and edge-case boundary conditions');
-      bullets.push(`Update affected modules across ${uniqueFiles.slice(0, 3).map(f => path.basename(f)).join(', ')}`);
     } else if (isAllNew || hasNewFeatureKeywords) {
       type = 'feat';
       subject = scope ? `add ${scope} feature and supporting logic` : 'implement new features and capabilities';
-      bullets.push('Add new modules and functionality');
-      bullets.push(`Expand codebase capabilities across ${uniqueFiles.slice(0, 3).map(f => path.basename(f)).join(', ')}`);
     } else if (hasRefactorKeywords) {
       type = 'refactor';
       subject = scope ? `restructure ${scope} architecture and flow` : 'refactor codebase structure and simplify logic';
-      bullets.push('Clean up module structure and improve maintainability');
-      bullets.push(`Refactor components across ${uniqueFiles.slice(0, 3).map(f => path.basename(f)).join(', ')}`);
     } else if (hasPerfKeywords) {
       type = 'perf';
       subject = scope ? `optimize ${scope} performance and responsiveness` : 'optimize application performance and resource usage';
-      bullets.push('Reduce unnecessary recomputations and optimize memory usage');
     } else {
       type = 'chore';
       subject = scope ? `update ${scope} components and configurations` : 'update project components and assets';
-      bullets.push(`Update changes across ${uniqueFiles.slice(0, 3).map(f => path.basename(f)).join(', ')}${uniqueFiles.length > 3 ? ` and ${uniqueFiles.length - 3} other files` : ''}`);
     }
   }
 
-  return formatCommitMessage(type, scope, subject, bullets);
+  // The body lists only facts from the diff: which files changed and by how much.
+  const stats = splitDiff(diff);
+  const facts = uniqueFiles.length > 1 ? uniqueFiles.slice(0, 5).map(file => {
+    const stat = stats.find(entry => entry.path === file);
+    if (!stat) return `Change ${file}`;
+    const verb = /^new file mode/m.test(stat.text) ? 'Add' : /^deleted file mode/m.test(stat.text) ? 'Remove' : 'Change';
+    return `${verb} ${file}${stat.binary ? '' : ` (+${stat.added} -${stat.removed})`}`;
+  }).concat(uniqueFiles.length > 5 ? [`Change ${uniqueFiles.length - 5} more files`] : []) : [];
+  return formatCommitMessage(type, scope, subject, facts);
 }

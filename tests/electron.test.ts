@@ -66,9 +66,10 @@ test('application and Dock menus offer Check for Updates', async () => {
   const module = { exports: {} as any }; runInNewContext(fs.readFileSync('electron/menu.cjs', 'utf8'), { module });
   let appMenu: any; let dockMenu: any; let checks = 0;
   const Menu = { buildFromTemplate: (template: any) => template, setApplicationMenu: (menu: any) => { appMenu = menu; } };
-  module.exports.installMenu({ name: 'Gitler', dock: { setMenu: (menu: any) => { dockMenu = menu; } } }, Menu, () => checks++);
+  module.exports.installMenu({ name: 'gitler', dock: { setMenu: (menu: any) => { dockMenu = menu; } } }, Menu, () => checks++);
   const appItem = appMenu[0].submenu.find((item: any) => item.label === 'Check for Updates…'); const dockItem = dockMenu.find((item: any) => item.label === 'Check for Updates…');
   appItem.click(); dockItem.click(); assert.equal(checks, 2);
+  assert.deepEqual([...appMenu[0].submenu].filter((item: any) => /Gitler/i.test(item.label || '')).map((item: any) => item.label), ['About Gitler', 'Hide Gitler', 'Quit Gitler']);
 });
 
 test('closing the last window quits Gitler on macOS', async () => {

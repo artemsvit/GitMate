@@ -505,7 +505,8 @@ app.post('/api/ai/generate-commit', async (req, res) => {
       changedFiles,
       provider,
       model,
-      endpoint
+      endpoint,
+      recentSubjects: details.recentCommits.map((commit: any) => String(commit.message || '').split('\n')[0]).slice(0, 8)
     });
 
     res.json(result);
