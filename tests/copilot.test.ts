@@ -67,3 +67,8 @@ test('an interrupted model download can resume and a complete partial file is ve
   assert.ok((await fs.stat(file+'.partial')).size<bytes.length); await downloadArtifact(spec,file,new AbortController().signal,()=>{}); assert.deepEqual(await fs.readFile(file),bytes);
   const complete=path.join(root,'complete'); await fs.writeFile(complete+'.partial',bytes); const previous=requests; await downloadArtifact(spec,complete,new AbortController().signal,()=>{}); assert.equal(requests,previous); assert.deepEqual(await fs.readFile(complete),bytes);
 });
+
+test('commit context treats wildcard filenames literally and cannot include excluded secret diffs', async t => {
+  const {repo,git}=await fixture(t);await fs.writeFile(path.join(repo,'*'),'public marker');await fs.writeFile(path.join(repo,'.env'),'PRIVATE_VALUE=fixture-hidden-value');await git('add','.');await git('commit','-m','fixture');const hash=(await git('rev-parse','HEAD')).stdout.trim();
+  const context=await gatherContext([repo],'Explain this commit',hash);assert.match(context.text,/public marker/);assert.equal(context.text.includes('fixture-hidden-value'),false);
+});

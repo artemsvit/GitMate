@@ -31,8 +31,8 @@ export async function gatherContext(repos: string[], question: string, commit?: 
       const full = (await git.raw(['rev-parse', '--verify', `${hash}^{commit}`])).trim();
       const changed = (await git.raw(['diff-tree', '--no-commit-id', '--name-only', '-r', '--root', full])).split('\n').filter(Boolean);
       const safeFiles = changed.filter(file => { try { safeContextFile(repo, file); return true; } catch { return false; } });
-      add(await git.raw(['show', '--format=fuller', '--stat', full]), { repository: repo, commit: full, kind: 'commit summary' });
-      if (safeFiles.length) add(await git.raw(['show', '--format=', full, '--', ...safeFiles.slice(0, 12)]), { repository: repo, commit: full, kind: 'commit diff' });
+      add(await git.raw(['--literal-pathspecs', 'show', '--format=fuller', '--stat', full]), { repository: repo, commit: full, kind: 'commit summary' });
+      if (safeFiles.length) add(await git.raw(['--literal-pathspecs', 'show', '--format=', full, '--', ...safeFiles.slice(0, 12)]), { repository: repo, commit: full, kind: 'commit diff' });
     }
     for (const staged of (!hash && /change|review|diff|working|staged|uncommitted/i.test(question) ? [true, false] : [])) {
       const files = details.files.filter(file => staged ? file.isStaged : file.isUnstaged);
