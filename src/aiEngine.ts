@@ -35,9 +35,14 @@ export function useAIEngine() {
   const [localLabel, setLocalLabel] = useState('');
   const refresh = useCallback(async () => {
     setMode(readAIMode()); setExternal(readExternalChoice());
-    try { const res = await apiFetch('/api/copilot/model'); if (res.ok) setLocalLabel((await res.json()).label || ''); } catch {}
+    // Only a downloaded, ready model is named; a suggestion that is not downloaded yet is not "in use".
+    try { const res = await apiFetch('/api/copilot/model'); if (res.ok) { const data = await res.json(); setLocalLabel(['ready', 'loaded', 'loading'].includes(data.state) ? data.label || '' : ''); } } catch {}
   }, []);
-  useEffect(() => { void refresh(); window.addEventListener(changed, refresh); return () => window.removeEventListener(changed, refresh); }, [refresh]);
+  useEffect(() => {
+    void refresh(); window.addEventListener(changed, refresh);
+    const timer = setInterval(refresh, 5000);
+    return () => { window.removeEventListener(changed, refresh); clearInterval(timer); };
+  }, [refresh]);
   const label = mode === 'external' ? (external ? friendlyModelName(external.model) : '') : localLabel;
   return { mode, external, label };
 }

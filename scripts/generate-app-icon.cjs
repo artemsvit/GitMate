@@ -39,22 +39,23 @@ app.whenReady().then(async () => {
         justify-content: center;
         overflow: hidden;
       }
+      /* One wide, soft glow with a gradual falloff; two stacked glows made the center look muddy. */
       .inner-glow {
         position: absolute;
         top: 50%;
         left: 50%;
         transform: translate(-50%, -50%);
-        width: 520px;
-        height: 520px;
-        background: radial-gradient(circle, rgba(192, 132, 252, 0.18) 0%, transparent 70%);
+        width: 760px;
+        height: 760px;
+        background: radial-gradient(circle, rgba(192, 132, 252, 0.16) 0%, rgba(192, 132, 252, 0.09) 28%, rgba(168, 85, 247, 0.04) 50%, transparent 70%);
         pointer-events: none;
       }
       .terminal-svg {
         position: relative;
-        width: 440px;
-        height: 440px;
+        width: 540px;
+        height: 540px;
         z-index: 2;
-        filter: drop-shadow(0 0 24px rgba(192, 132, 252, 0.45));
+        filter: drop-shadow(0 0 36px rgba(192, 132, 252, 0.22));
       }
     </style>
   </head>

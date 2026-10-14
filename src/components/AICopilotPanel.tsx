@@ -54,7 +54,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   isCollapsed = false,
   onToggleCollapse
 }) => {
-  const [activeTab, setActiveTab] = useState<'commit' | 'chat'>('commit');
+  // The panel is rebuilt for each repository so its draft never leaks between them; the chosen tab is remembered.
+  const [activeTab, setActiveTabState] = useState<'commit' | 'chat'>(() => { try { return localStorage.getItem('gitmate_copilot_tab') === 'chat' ? 'chat' : 'commit'; } catch { return 'commit'; } });
+  const setActiveTab = (tab: 'commit' | 'chat') => { setActiveTabState(tab); try { localStorage.setItem('gitmate_copilot_tab', tab); } catch {} };
   const engine = useAIEngine();
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
@@ -309,6 +311,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
             ref={textareaRef}
             aria-label="Commit message"
             value={commitMessage}
+            onKeyDown={event => {
+              // ⌘↩ commits; ⇧⌘↩ commits and pushes.
+              if (event.key === 'Enter' && event.metaKey) { event.preventDefault(); void handleCommit(event.shiftKey); }
+            }}
             onChange={e => {
               setCommitMessage(e.target.value);
               e.target.style.height = 'auto';

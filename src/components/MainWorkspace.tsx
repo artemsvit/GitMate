@@ -51,6 +51,10 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 }) => {
   const [details, setDetails] = useState<RepoDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'changes' | 'history' | 'branches' | 'graph'>('changes');
+  useEffect(() => {
+    const switchTab = (event: Event) => { const tab = (event as CustomEvent).detail; if (['changes', 'history', 'branches', 'graph'].includes(tab)) setActiveTab(tab); };
+    window.addEventListener('gitmate-workspace-tab', switchTab); return () => window.removeEventListener('gitmate-workspace-tab', switchTab);
+  }, []);
 
   const [diff, setDiff] = useState<string>('');
   const [loadingDiff, setLoadingDiff] = useState(false);
@@ -378,7 +382,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   };
 
   // Switch branch
-  const handleSwitchBranch = async (branchName: string) => {
+  const handleSwitchBranch = async (branchName: string, remote = false) => {
     setIsBranchDropdownOpen(false);
     const active = details?.currentBranch || repoSummary.currentBranch;
     if (branchName === active) return;
@@ -387,14 +391,14 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const res = await apiFetch('/api/repos/checkout', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path, branch: branchName, createNew: false })
+        body: JSON.stringify({ path: repoSummary.path, branch: branchName, createNew: false, remote })
       });
       const data = await res.json().catch(() => ({}));
       if (res.ok) {
         setDetails(data.updated);
         onDetailsUpdated(data.updated);
         onRefreshParent();
-        setSyncNotice({ type: 'success', message: `Switched to branch "${branchName}"` });
+        setSyncNotice({ type: 'success', message: data.output || `Switched to branch "${branchName}"` });
       } else {
         setSyncNotice({ type: 'error', message: data.error || `Failed to switch to "${branchName}"` });
       }
@@ -441,6 +445,10 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   const stagedFiles = details?.files.filter(f => f.isStaged) || [];
   const unstagedFiles = details?.files.filter(f => f.isUnstaged) || [];
   const currentActiveBranch = details?.currentBranch || repoSummary.currentBranch;
+  // Remote branches without a local copy yet; choosing one creates a tracking branch.
+  const remoteOnlyBranches = (details?.branches?.remote || [])
+    .map(name => name.replace(/^remotes\//, ''))
+    .filter(name => !name.endsWith('/HEAD') && !name.includes(' -> ') && !(details?.branches?.local || []).includes(name.slice(name.indexOf('/') + 1)));
   const availableBranches = Array.from(
     new Set([
       ...(details?.branches?.local || []),
@@ -481,11 +489,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 
             {isBranchDropdownOpen && (
               <div className="absolute top-full left-0 mt-1.5 z-50 w-72 bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl p-2.5 text-xs shadow-2xl animate-in fade-in duration-150">
-                <div className="px-2 py-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono flex items-center justify-between">
-                  <span>Branches ({availableBranches.length})</span>
-                  <span className="text-[10px] lowercase text-[var(--accent-violet)]">esc to close</span>
-                </div>
-                <div className="max-h-56 overflow-y-auto space-y-0.5 my-1">
+                <div className="max-h-72 overflow-y-auto space-y-0.5 my-1">
+                  <p className="px-2 py-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono">Local</p>
                   {availableBranches.map(b => (
                     <button
                       key={b}
@@ -499,6 +504,18 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                     >
                       <span className="truncate">{b}</span>
                       {b === currentActiveBranch && <Check className="w-3.5 h-3.5 text-[var(--accent-violet)] shrink-0" />}
+                    </button>
+                  ))}
+                  {remoteOnlyBranches.length > 0 && <p className="px-2 pt-2 pb-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono">Remote</p>}
+                  {remoteOnlyBranches.map(b => (
+                    <button
+                      key={b}
+                      type="button"
+                      onClick={() => handleSwitchBranch(b, true)}
+                      title={`Create a local branch that tracks ${b}`}
+                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left font-mono text-[11px] transition cursor-pointer select-none hover:bg-[var(--bg-card)] text-[var(--text-secondary)]"
+                    >
+                      <span className="truncate"><span className="text-[var(--text-muted)]">{b.slice(0, b.indexOf('/') + 1)}</span>{b.slice(b.indexOf('/') + 1)}</span>
                     </button>
                   ))}
                 </div>

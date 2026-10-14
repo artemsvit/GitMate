@@ -47,3 +47,19 @@ test('graph service lists commits, refs, details, and file diffs for a real repo
     { name: 'HEAD', type: 'head' }, { name: 'main', type: 'branch' }, { name: 'origin/main', type: 'remote' }, { name: 'v2', type: 'tag' }
   ]);
 });
+
+test('choosing a remote branch creates a local tracking branch once', async () => {
+  const { checkout, getRepoDetails } = await import('../server/gitService');
+  const origin = fs.mkdtempSync(path.join(os.tmpdir(), 'gitmate-origin-')); const clone = fs.mkdtempSync(path.join(os.tmpdir(), 'gitmate-clone-'));
+  const git = (dir: string, ...args: string[]) => run('git', ['-C', dir, '-c', 'user.name=Ada', '-c', 'user.email=ada@example.com', ...args]);
+  await git(origin, 'init', '-q', '-b', 'main'); fs.writeFileSync(path.join(origin, 'a.txt'), 'a'); await git(origin, 'add', '.'); await git(origin, 'commit', '-q', '-m', 'a');
+  await git(origin, 'branch', 'feature');
+  await run('git', ['clone', '-q', origin, clone]);
+  const before = await getRepoDetails(clone);
+  assert.ok(before.branches.remote.some((name: string) => name.endsWith('origin/feature')));
+  assert.equal(await checkout(clone, 'origin/feature', false, true), 'Switched to feature');
+  assert.equal((await git(clone, 'rev-parse', '--abbrev-ref', '--symbolic-full-name', '@{u}')).stdout.trim(), 'origin/feature');
+  await git(clone, 'checkout', '-q', 'main');
+  assert.equal(await checkout(clone, 'origin/feature', false, true), 'Switched to feature', 'an existing local branch is reused');
+  await assert.rejects(checkout(clone, 'origin/missing', false, true), /Unknown remote branch/);
+});

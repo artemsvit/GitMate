@@ -332,12 +332,12 @@ app.post('/api/repos/fetch', async (req, res) => {
 // 11. Switch / Create Branch
 app.post('/api/repos/checkout', async (req, res) => {
   try {
-    const { path: repoPath, branch, createNew = false } = req.body;
+    const { path: repoPath, branch, createNew = false, remote = false } = req.body;
     if (!repoPath || !branch) {
       return res.status(400).json({ error: 'path and branch are required' });
     }
 
-    const output = await checkout(repoPath, branch, createNew);
+    const output = await checkout(repoPath, branch, createNew, remote);
     const updated = await getRepoDetails(repoPath);
     res.json({ success: true, output, updated });
   } catch (err: any) {

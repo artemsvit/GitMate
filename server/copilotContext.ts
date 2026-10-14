@@ -15,14 +15,18 @@ export function safeContextFile(repoPath: string, file: string) {
 }
 export async function gatherContext(repos: string[], question: string, commit?: string, maxChars = 18000) {
   const sources: { repository: string; file?: string; commit?: string; kind: string }[] = [];
-  let budget = maxChars; const itemLimit = Math.max(6500, Math.floor(maxChars / 4)); let truncated = false; const parts: string[] = [];
+  let budget = maxChars; let truncated = false; const parts: string[] = [];
+  // Each repository gets an equal share, so the first ones cannot use up the space when many are selected.
+  const share = Math.floor(maxChars / Math.max(1, repos.length)); let repoBudget = share;
+  const itemLimit = Math.max(Math.min(6500, share), Math.floor(share / 4));
   const add = (value: string, source: typeof sources[number]) => {
-    if (budget <= 0) { truncated = true; return; }
+    if (budget <= 0 || repoBudget <= 0) { truncated = true; return; }
     const clean = redactRemote(value).replace(/((?:api[_-]?key|password|secret|token)\s*[:=]\s*)["']?[^\s"',;]+/gi, '$1[redacted]');
-    const limit = Math.min(budget, itemLimit); parts.push(clean.slice(0, limit)); sources.push(source);
-    if (clean.length > limit) truncated = true; budget -= Math.min(limit, clean.length);
+    const limit = Math.min(budget, repoBudget, itemLimit); parts.push(clean.slice(0, limit)); sources.push(source);
+    if (clean.length > limit) truncated = true; const used = Math.min(limit, clean.length); budget -= used; repoBudget -= used;
   };
   for (const repo of repos) {
+    repoBudget = share;
     const details = await getRepoDetails(repo); const git = simpleGit(repo);
     add(`REPOSITORY ${details.name}\nBranch: ${details.currentBranch}\nTracking: ${details.tracking}\nRemotes: ${JSON.stringify(details.remotes)}\nFiles: ${JSON.stringify(details.files)}\nRecent commits: ${JSON.stringify(details.recentCommits)}`, { repository: repo, kind: 'status and history' });
     const hash = commit || question.match(/\b[0-9a-f]{7,40}\b/i)?.[0] || (/latest|last commit/i.test(question) ? details.recentCommits[0]?.hash : undefined);

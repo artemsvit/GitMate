@@ -28,7 +28,8 @@ test('local models can be chosen, listed, and deleted without touching other mod
   const light = service.modelCatalog.find(model => model.id === 'light')!; const balanced = service.modelCatalog.find(model => model.id === 'balanced')!;
   fs.writeFileSync(path.join(models, light.file), 'x'); fs.writeFileSync(path.join(models, balanced.file + '.partial'), 'xy');
   const listed = service.listModels();
-  assert.deepEqual(listed.models.map(model => model.id), ['light', 'balanced', 'powerful']);
+  assert.deepEqual(listed.models.map(model => model.id), ['tiny', 'mini', 'light', 'balanced', 'powerful']);
+  assert.deepEqual(listed.models.filter(model => model.active).map(model => model.id), ['light'], 'only a downloaded model is in use');
   assert.equal(listed.models.find(model => model.id === 'light')!.state, 'ready');
   assert.equal(listed.models.find(model => model.id === 'balanced')!.state, 'paused');
   assert.equal(listed.models.find(model => model.id === 'powerful')!.fits, os.totalmem() / 1024 ** 3 >= 31.5);
@@ -37,7 +38,12 @@ test('local models can be chosen, listed, and deleted without touching other mod
   await assert.rejects(service.selectModel('huge'), /Unknown model/);
   await service.deleteModel('balanced');
   assert.equal(fs.existsSync(path.join(models, balanced.file + '.partial')), false); assert.equal(fs.existsSync(path.join(models, light.file)), true);
+  const tiny = service.modelCatalog.find(model => model.id === 'tiny')!; fs.writeFileSync(path.join(models, tiny.file), 'x');
   await service.deleteModel('light'); assert.equal(service.listModels().models.find(model => model.id === 'light')!.state, 'missing');
+  assert.equal(service.activeModelSpec().id, 'tiny', 'deleting the model in use moves to another downloaded model');
+  await service.deleteModel('tiny');
+  assert.deepEqual(service.listModels().models.filter(model => model.active), [], 'with nothing downloaded, no model is marked in use');
+  assert.equal(service.listModels().models.filter(model => model.suggested).length, 1);
 });
 
 test('data from the earlier Gitler locations moves once and never overwrites new data', async () => {

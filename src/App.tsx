@@ -1,7 +1,7 @@
 import { UpdateWindow } from './components/UpdateWindow';
 import { useRepositoryPush } from './useRepositoryPush';
 import { apiFetch } from './api';
-import React, { useState, useEffect, useSyncExternalStore } from 'react';
+import React, { useState, useEffect, useRef, useSyncExternalStore } from 'react';
 import { Sidebar } from './components/Sidebar';
 import { MainWorkspace } from './components/MainWorkspace';
 import { AICopilotPanel } from './components/AICopilotPanel';
@@ -88,6 +88,23 @@ export function App() {
       return next;
     });
   };
+
+  // Menu bar commands (see electron/menu.cjs). Workspace tabs are switched through a window event.
+  const menuActions = useRef<Record<string, () => void>>({});
+  menuActions.current = {
+    settings: () => handleOpenSettings('providers'),
+    'open-folder': () => { void handleBrowseFolder(); },
+    rescan: () => { if (currentPath) void handleScan(currentPath); },
+    find: () => document.querySelector<HTMLInputElement>('input[aria-label="Search repositories"]')?.focus(),
+    'toggle-copilot': handleToggleCopilotCollapse
+  };
+  useEffect(() => {
+    const api = (window as any).electronAPI;
+    return api?.onMenuCommand?.((name: string) => {
+      if (name.startsWith('tab-')) window.dispatchEvent(new CustomEvent('gitmate-workspace-tab', { detail: name.slice(4) }));
+      else menuActions.current[name]?.();
+    });
+  }, []);
 
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [isResizingCopilot, setIsResizingCopilot] = useState(false);

@@ -414,10 +414,23 @@ async function fetchAllUnlocked(repoPath: string, remote?: string): Promise<stri
   return `Fetched ${succeeded.join(', ')}.${failed.length ? ` Other remotes failed: ${failed.join(' ')}` : ''}`;
 }
 
-async function checkoutUnlocked(repoPath: string, branchName: string, createNew = false): Promise<string> {
+async function checkoutUnlocked(repoPath: string, branchName: string, createNew = false, remote = false): Promise<string> {
   validateArgument(branchName, 'branch');
-  if (typeof createNew !== 'boolean') throw new Error('createNew must be a boolean.');
+  if (typeof createNew !== 'boolean' || typeof remote !== 'boolean') throw new Error('createNew and remote must be booleans.');
   const git = getGit(repoPath);
+  if (remote) {
+    // A remote branch such as origin/feature becomes a local branch "feature" that tracks it.
+    const remotes = (await git.raw(['remote'])).split('\n').filter(Boolean);
+    const owner = remotes.find(name => branchName.startsWith(name + '/'));
+    const refs = (await git.raw(['for-each-ref', '--format=%(refname)', 'refs/remotes'])).split('\n');
+    if (!owner || !refs.includes(`refs/remotes/${branchName}`)) throw new Error('Unknown remote branch.');
+    const local = branchName.slice(owner.length + 1);
+    validateArgument(local, 'branch');
+    const exists = (await git.raw(['for-each-ref', '--format=%(refname)', `refs/heads/${local}`])).trim();
+    if (exists) await git.checkout(local);
+    else await git.raw(['checkout', '--track', '-b', local, `refs/remotes/${branchName}`]);
+    return `Switched to ${local}`;
+  }
   if (createNew) {
     await git.checkoutLocalBranch(branchName);
   } else {

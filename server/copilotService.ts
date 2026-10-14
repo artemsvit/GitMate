@@ -9,12 +9,18 @@ import { configDir } from './paths';
 import { buildCommitPrompt, commitInstructions, finalizeCommitMessage } from './commitMessage';
 import { externalContextTokens, streamExternalChat, type ExternalProvider } from './externalModels';
 
-export interface ModelSpec { id: 'light' | 'balanced' | 'powerful'; label: string; name: string; size: number; repository: string; sha256: string; revision: string; file: string; minMemoryGB: number; summary: string }
+export interface ModelSpec { id: 'tiny' | 'mini' | 'light' | 'balanced' | 'powerful'; label: string; name: string; size: number; repository: string; sha256: string; revision: string; file: string; minMemoryGB: number; summary: string }
 // Downloadable on-device models. All use the qwen35 architecture that the bundled runtime supports.
 export const modelCatalog: ModelSpec[] = [
+  { id: 'tiny', label: 'Qwen3.5 0.8B', name: 'Qwen3.5-0.8B Q4_K_M', size: 532517120, repository: 'unsloth/Qwen3.5-0.8B-GGUF',
+    sha256: 'bd258782e35f7f458f8aced1adc053e6e92e89bc735ba3be89d38a06121dc517', revision: '6ab461498e2023f6e3c1baea90a8f0fe38ab64d0', file: 'Qwen3.5-0.8B-Q4_K_M.gguf',
+    minMemoryGB: 4, summary: 'Smallest and fastest. Short answers and simple commit messages.' },
+  { id: 'mini', label: 'Qwen3.5 2B', name: 'Qwen3.5-2B Q4_K_M', size: 1280835840, repository: 'unsloth/Qwen3.5-2B-GGUF',
+    sha256: 'aaf42c8b7c3cab2bf3d69c355048d4a0ee9973d48f16c731c0520ee914699223', revision: 'f6d5376be1edb4d416d56da11e5397a961aca8ae', file: 'Qwen3.5-2B-Q4_K_M.gguf',
+    minMemoryGB: 8, summary: 'Small and quick. A good start for Macs with 8 GB memory.' },
   { id: 'light', label: 'Qwen3.5 4B', name: 'Qwen3.5-4B Q4_K_M', size: 2740937888, repository: 'unsloth/Qwen3.5-4B-GGUF',
     sha256: '00fe7986ff5f6b463e62455821146049db6f9313603938a70800d1fb69ef11a4', revision: 'e87f176479d0855a907a41277aca2f8ee7a09523', file: 'Qwen3.5-4B-Q4_K_M.gguf',
-    minMemoryGB: 8, summary: 'Fast and light. Good for Macs with 8–16 GB memory.' },
+    minMemoryGB: 8, summary: 'Light. Better answers for Macs with 8–16 GB memory.' },
   { id: 'balanced', label: 'Qwen3.5 9B', name: 'Qwen3.5-9B Q4_K_M', size: 5680522464, repository: 'unsloth/Qwen3.5-9B-GGUF',
     sha256: '03b74727a860a56338e042c4420bb3f04b2fec5734175f4cb9fa853daf52b7e8', revision: '3885219b6810b007914f3a7950a8d1b469d598a5', file: 'Qwen3.5-9B-Q4_K_M.gguf',
     minMemoryGB: 16, summary: 'Recommended. Strong answers with a 32K context.' },
@@ -23,16 +29,24 @@ export const modelCatalog: ModelSpec[] = [
     minMemoryGB: 32, summary: 'Best quality, slower. Needs a Mac with 32 GB memory or more.' }
 ];
 const legacyModelFiles = ['Qwen3-4B-Q4_K_M.gguf'];
+const pathFor = (spec: ModelSpec) => path.join(configDir(), 'models', spec.file);
 // The runtime picks the largest context that fits in memory within these bounds.
 const contextBounds = { min: 8192, max: 32768 }; const replyTokens = 2048; const charsPerToken = 2.5;
 const memoryGB = () => Math.round(os.totalmem() / 1024 ** 3);
 const settingsFile = () => path.join(configDir(), 'copilot.json');
 const fitsMemory = (spec: ModelSpec) => memoryGB() >= spec.minMemoryGB;
+const installed = (spec: ModelSpec) => fs.existsSync(pathFor(spec));
+const saveActive = (id: string | null) => {
+  fs.mkdirSync(configDir(), { recursive: true, mode: 0o700 });
+  if (id === null) { fs.rmSync(settingsFile(), { force: true }); return; }
+  fs.writeFileSync(settingsFile() + '.tmp', JSON.stringify({ model: id }), { mode: 0o600 }); fs.renameSync(settingsFile() + '.tmp', settingsFile());
+};
+// The saved choice wins. Without one, a downloaded model is used, and otherwise the default suggestion for this Mac.
 export function activeModelSpec(): ModelSpec {
   try { const id = JSON.parse(fs.readFileSync(settingsFile(), 'utf8')).model; const spec = modelCatalog.find(item => item.id === id); if (spec) return spec; } catch {}
-  return modelCatalog.find(item => item.id === (memoryGB() >= 16 ? 'balanced' : 'light'))!;
+  const preferred = ['balanced', 'light', 'mini', 'tiny', 'powerful'].map(id => modelCatalog.find(item => item.id === id)!);
+  return preferred.find(spec => installed(spec) && fitsMemory(spec)) || modelCatalog.find(item => item.id === (memoryGB() >= 16 ? 'balanced' : memoryGB() >= 8 ? 'mini' : 'tiny'))!;
 }
-const pathFor = (spec: ModelSpec) => path.join(configDir(), 'models', spec.file);
 const modelPath = () => pathFor(activeModelSpec());
 let download: { controller: AbortController; id: string } | null = null;
 const states = new Map<string, { state: string; downloaded: number; error?: string }>();
@@ -50,7 +64,8 @@ export function listModels() {
   const active = activeModelSpec().id;
   return { memoryGB: memoryGB(), active, generating, supported: chatSupported(), models: modelCatalog.map(spec => ({
     id: spec.id, label: spec.label, name: spec.name, size: spec.size, summary: spec.summary, minMemoryGB: spec.minMemoryGB,
-    fits: fitsMemory(spec), active: spec.id === active, ...statusOf(spec)
+    // "In use" means downloaded and chosen; a default suggestion that is not downloaded is not in use.
+    fits: fitsMemory(spec), active: spec.id === active && installed(spec), suggested: spec.id === active, ...statusOf(spec)
   })) };
 }
 export function getModelStatus() {
@@ -62,8 +77,7 @@ async function unloadModel() { if (idleTimer) clearTimeout(idleTimer); const pre
 export async function selectModel(id: string) {
   const spec = modelCatalog.find(item => item.id === id); if (!spec) throw new Error('Unknown model.');
   if (generating) throw new Error('Wait for Copilot to finish answering before you change the model.');
-  fs.mkdirSync(configDir(), { recursive: true, mode: 0o700 });
-  fs.writeFileSync(settingsFile() + '.tmp', JSON.stringify({ model: spec.id }), { mode: 0o600 }); fs.renameSync(settingsFile() + '.tmp', settingsFile());
+  saveActive(spec.id);
   if (loadedId && loadedId !== spec.id) await unloadModel();
   return listModels();
 }
@@ -72,8 +86,11 @@ export async function deleteModel(id: string) {
   if (download?.id === id) throw new Error('Cancel the download before you delete this model.');
   if (generating && loadedId === id) throw new Error('Wait for Copilot to finish answering before you delete this model.');
   if (loadedId === id) await unloadModel();
+  const wasActive = activeModelSpec().id === id;
   for (const suffix of ['', '.partial', '.invalid']) fs.rmSync(pathFor(spec) + suffix, { force: true });
   states.delete(id);
+  // Deleting the model in use moves to another downloaded model, or back to the default suggestion.
+  if (wasActive) saveActive(modelCatalog.find(item => item.id !== id && installed(item) && fitsMemory(item))?.id ?? null);
   return listModels();
 }
 export function cancelModelDownload() { download?.controller.abort(); }
@@ -92,6 +109,8 @@ export async function downloadModel(id: string = activeModelSpec().id) {
     const url = `https://huggingface.co/${spec.repository}/resolve/${spec.revision}/${spec.file}`;
     await downloadArtifact({ ...spec, url }, file, controller.signal, (bytes, verifying) => { states.set(id, { state: verifying ? 'verifying' : 'downloading', downloaded: bytes }); });
     states.set(id, { state: 'ready', downloaded: spec.size });
+    // The first usable download becomes the model in use, so the user does not need a second step.
+    if (!installed(activeModelSpec()) || activeModelSpec().id === id) saveActive(id);
     for (const legacy of legacyModelFiles) for (const suffix of ['', '.partial', '.invalid']) fs.rmSync(path.join(path.dirname(file), legacy + suffix), { force: true });
   } catch (error: any) {
     states.set(id, { state: controller.signal.aborted ? 'paused' : 'error', downloaded: fs.existsSync(partial) ? fs.statSync(partial).size : 0, error: controller.signal.aborted ? undefined : error.message });

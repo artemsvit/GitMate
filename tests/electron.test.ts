@@ -102,10 +102,17 @@ test('application and Dock menus offer Check for Updates', async () => {
   const module = { exports: {} as any }; runInNewContext(fs.readFileSync('electron/menu.cjs', 'utf8'), { module });
   let appMenu: any; let dockMenu: any; let checks = 0;
   const Menu = { buildFromTemplate: (template: any) => template, setApplicationMenu: (menu: any) => { appMenu = menu; } };
-  module.exports.installMenu({ name: 'gitmate', dock: { setMenu: (menu: any) => { dockMenu = menu; } } }, Menu, () => checks++);
+  const sent: string[] = [];
+  module.exports.installMenu({ name: 'gitmate', dock: { setMenu: (menu: any) => { dockMenu = menu; } } }, Menu, () => checks++, (name: string) => sent.push(name));
   const appItem = appMenu[0].submenu.find((item: any) => item.label === 'Check for Updates…'); const dockItem = dockMenu.find((item: any) => item.label === 'Check for Updates…');
   appItem.click(); dockItem.click(); assert.equal(checks, 2);
   assert.deepEqual([...appMenu[0].submenu].filter((item: any) => /Git Mate/i.test(item.label || '')).map((item: any) => item.label), ['About Git Mate', 'Hide Git Mate', 'Quit Git Mate']);
+  const items = [...appMenu].flatMap((menu: any) => [...(menu.submenu || [])]);
+  const byKey = (key: string) => items.find((item: any) => item.accelerator === key);
+  byKey('Command+,').click(); byKey('Command+R').click(); byKey('Command+4').click();
+  assert.deepEqual(sent, ['settings', 'rescan', 'tab-graph']);
+  assert.ok(!items.some((item: any) => ['reload', 'forceReload', 'toggleDevTools'].includes(item.role)), 'no reload or developer tools shortcuts');
+  assert.equal(byKey('Command+0').registerAccelerator, false, 'zoom keys are handled once, by zoom.cjs');
 });
 
 test('closing the last window quits Git Mate on macOS', async () => {

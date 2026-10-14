@@ -28,7 +28,7 @@ export function installCopilotRoutes(app: Express, access: RepositoryAccess) {
     let repo: string; let repos: string[];
     try {
       repo = access.resolve(req.body.path);
-      if (!Array.isArray(req.body.additionalRepos || []) || (req.body.additionalRepos || []).length > 3) throw new Error('Choose at most three additional repositories.');
+      if (!Array.isArray(req.body.additionalRepos || []) || (req.body.additionalRepos || []).length > 200) throw new Error('Choose fewer repositories for chat context.');
       repos = [...new Set([repo, ...(req.body.additionalRepos || []).map((item: unknown) => access.resolve(item))])];
       if (typeof req.body.question !== 'string') throw new Error('A question is required.');
       if (req.body.engine !== undefined && (!['lmstudio', 'ollama'].includes(req.body.engine?.provider) || typeof req.body.engine?.model !== 'string' || !req.body.engine.model)) throw new Error('Choose an LM Studio or Ollama model in Settings → AI.');

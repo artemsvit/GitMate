@@ -14,5 +14,6 @@ contextBridge.exposeInMainWorld('electronAPI', {
   setAutoDownload: value => ipcRenderer.invoke('set-auto-download', value === true),
   onUpdatePrompt: callback => { const handler = (_event, value) => callback(value); ipcRenderer.on('update-prompt', handler); return () => ipcRenderer.removeListener('update-prompt', handler); },
   onUpdateState: callback => { const handler = (_event, value) => callback(value); ipcRenderer.on('update-state', handler); return () => ipcRenderer.removeListener('update-state', handler); },
+  onMenuCommand: callback => { const handler = (_event, value) => callback(value); ipcRenderer.on('menu-command', handler); return () => ipcRenderer.removeListener('menu-command', handler); },
   selectFolder: (defaultPath) => ipcRenderer.invoke('select-folder', defaultPath)
 });

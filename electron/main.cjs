@@ -104,7 +104,7 @@ else {
       providerSession.setPermissionCheckHandler((_contents, permission) => networkPermissions.has(permission));
       globalThis.__electronNetFetch = (url, options) => providerSession.fetch(url, options);
       updates = require('./updates.cjs').installUpdates(app, ipcMain, checkSender, () => mainWindow, dialog);
-      require('./menu.cjs').installMenu(app, Menu, () => updates.checkInteractive());
+      require('./menu.cjs').installMenu(app, Menu, () => updates.checkInteractive(), name => mainWindow?.webContents.send('menu-command', name));
       attachZoom = require('./zoom.cjs').installZoom(app, ipcMain, checkSender, () => mainWindow);
       await startBackendServer();
       createWindow();
