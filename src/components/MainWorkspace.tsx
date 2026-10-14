@@ -20,10 +20,18 @@ import {
   ChevronDown,
   AlertCircle,
   Globe,
-  GitFork
+  GitFork,
+  RotateCcw,
+  Archive,
+  Trash2,
+  GitMerge,
+  AlertTriangle
 } from 'lucide-react';
 import { RepoDetails, RepoSummary } from '../types';
 import { GitGraph } from './GitGraph';
+import { ConfirmDialog } from './ConfirmDialog';
+import { NewWorktreeDialog } from './NewWorktreeDialog';
+import type { ActionResult } from '../types';
 import { DiffViewer } from './DiffViewer';
 
 interface MainWorkspaceProps {
@@ -37,6 +45,7 @@ interface MainWorkspaceProps {
   selectedDiffStaged: boolean;
   onDetailsUpdated: (details: RepoDetails) => void;
   onOpenRemoteAuth?: () => void;
+  onOpenRepository?: (path: string) => void;
 }
 
 export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
@@ -47,7 +56,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   onSelectFile,
   selectedDiffStaged,
   onDetailsUpdated,
-  onOpenRemoteAuth
+  onOpenRemoteAuth,
+  onOpenRepository
 }) => {
   const [details, setDetails] = useState<RepoDetails | null>(null);
   const [activeTab, setActiveTab] = useState<'changes' | 'history' | 'branches' | 'graph'>('changes');
@@ -64,6 +74,37 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   const [isFetching, setIsFetching] = useState(false);
   const [copiedHash, setCopiedHash] = useState<string | null>(null);
   const [syncNotice, setSyncNotice] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
+  // Fork-style actions: discard, stash, merge, branch deletion, worktrees. Each asks first when it changes or removes data.
+  const [confirm, setConfirm] = useState<{ title: string; message: React.ReactNode; label: string; destructive?: boolean; run: () => void } | null>(null);
+  const [stashOpen, setStashOpen] = useState(false);
+  const [stashMessage, setStashMessage] = useState('');
+  const [stashUntracked, setStashUntracked] = useState(true);
+  const [newWorktreeOpen, setNewWorktreeOpen] = useState(false);
+  const runAction = async (url: string, body: Record<string, unknown>): Promise<ActionResult['result'] | null> => {
+    try {
+      const res = await apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: repoSummary.path, ...body }) });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error);
+      setDetails(data.updated); onDetailsUpdated(data.updated); onRefreshParent();
+      if (data.result?.message) setSyncNotice({ type: data.result.ok === false && !data.result.needsConfirmation ? 'error' : 'success', message: data.result.message });
+      return data.result;
+    } catch (error: any) { setSyncNotice({ type: 'error', message: error.message || 'The action failed.' }); return null; }
+  };
+  const askDiscard = (files: string[] | 'all') => setConfirm({
+    title: files === 'all' ? 'Discard all changes?' : `Discard changes to ${files[0].split('/').pop()}?`, label: 'Discard', destructive: true,
+    message: <>Edited files return to the last commit. A backup is kept as a stash named “Git Mate discard backup”. New files that Git does not track yet are deleted permanently.</>,
+    run: () => { void runAction('/api/repos/discard', { files }).then(result => { if (result) setSyncNotice({ type: 'success', message: `Discarded ${result.discarded} ${result.discarded === 1 ? 'file' : 'files'}.${result.backup ? ' A backup stash was saved.' : ''}` }); }); }
+  });
+  const askMerge = (branch: string) => setConfirm({
+    title: `Merge ${branch}?`, label: 'Merge',
+    message: <>Commits from <span className="font-mono">{branch}</span> are merged into <span className="font-mono">{details?.currentBranch || repoSummary.currentBranch}</span>. If files conflict, Git Mate stops so you can resolve them or abort.</>,
+    run: () => { void runAction('/api/repos/merge', { branch }); }
+  });
+  const askDeleteBranch = (branch: string, force = false) => setConfirm({
+    title: force ? `Delete ${branch} anyway?` : `Delete branch ${branch}?`, label: force ? 'Delete anyway' : 'Delete', destructive: true,
+    message: force ? <>This branch has commits that are not merged anywhere. Deleting it can lose them.</> : <>The local branch is removed. Remote branches are not changed.</>,
+    run: () => { void runAction('/api/repos/branch/delete', { branch, force }).then(result => { if (result?.needsConfirmation) askDeleteBranch(branch, true); }); }
+  });
 
   useEffect(() => {
     if (!syncNotice) return;
@@ -445,6 +486,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   const stagedFiles = details?.files.filter(f => f.isStaged) || [];
   const unstagedFiles = details?.files.filter(f => f.isUnstaged) || [];
   const currentActiveBranch = details?.currentBranch || repoSummary.currentBranch;
+  // A local branch checked out in another worktree opens that worktree; Git cannot check out one branch twice.
+  const worktreeOwner = (branch: string) => (details?.worktreeList || []).find(entry => entry.branch === branch && entry.path !== repoSummary.path && entry.prunable === null);
   // Remote branches without a local copy yet; choosing one creates a tracking branch.
   const remoteOnlyBranches = (details?.branches?.remote || [])
     .map(name => name.replace(/^remotes\//, ''))
@@ -491,32 +534,38 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
               <div className="absolute top-full left-0 mt-1.5 z-50 w-72 bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl p-2.5 text-xs shadow-2xl animate-in fade-in duration-150">
                 <div className="max-h-72 overflow-y-auto space-y-0.5 my-1">
                   <p className="px-2 py-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono">Local</p>
-                  {availableBranches.map(b => (
-                    <button
-                      key={b}
-                      type="button"
-                      onClick={() => handleSwitchBranch(b)}
-                      className={`w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left font-mono text-[11px] transition cursor-pointer select-none ${
-                        b === currentActiveBranch
-                          ? 'bg-[var(--bg-card)] text-[var(--text-primary)] font-semibold'
-                          : 'hover:bg-[var(--bg-card)] text-[var(--text-secondary)]'
-                      }`}
-                    >
-                      <span className="truncate">{b}</span>
-                      {b === currentActiveBranch && <Check className="w-3.5 h-3.5 text-[var(--accent-violet)] shrink-0" />}
-                    </button>
-                  ))}
+                  {availableBranches.map(b => {
+                    const owner = b !== currentActiveBranch ? worktreeOwner(b) : undefined;
+                    const current = b === currentActiveBranch;
+                    return <div key={b} className={`group flex items-center gap-1 rounded-lg ${current ? 'bg-[var(--bg-card)]' : 'hover:bg-[var(--bg-card)]'}`}>
+                      <button
+                        type="button"
+                        onClick={() => { if (owner) { setIsBranchDropdownOpen(false); onOpenRepository?.(owner.path); } else handleSwitchBranch(b); }}
+                        title={owner ? `Open the worktree at ${owner.path}` : undefined}
+                        className={`flex-1 min-w-0 flex items-center gap-2 px-2.5 py-1.5 text-left font-mono text-[11px] cursor-pointer select-none ${current ? 'text-[var(--text-primary)] font-semibold' : 'text-[var(--text-secondary)]'}`}
+                      >
+                        <span className="truncate">{b}</span>
+                        {owner && <span className="shrink-0 px-1.5 rounded-full border border-[var(--border-interactive)] text-[9px] text-[var(--text-muted)] font-sans">worktree</span>}
+                      </button>
+                      {current ? <Check className="w-3.5 h-3.5 mr-2.5 text-[var(--accent-violet)] shrink-0" /> : <span className="flex items-center gap-0.5 pr-1.5 opacity-0 group-hover:opacity-100 focus-within:opacity-100">
+                        <button type="button" onClick={() => { setIsBranchDropdownOpen(false); askMerge(b); }} aria-label={`Merge ${b} into ${currentActiveBranch}`} title={`Merge into ${currentActiveBranch}`} className="p-1 rounded text-[var(--text-muted)] hover:text-[var(--accent-violet)]"><GitMerge className="w-3 h-3" /></button>
+                        {!owner && <button type="button" onClick={() => { setIsBranchDropdownOpen(false); askDeleteBranch(b); }} aria-label={`Delete branch ${b}`} title="Delete branch" className="p-1 rounded text-[var(--text-muted)] hover:text-rose-500"><Trash2 className="w-3 h-3" /></button>}
+                      </span>}
+                    </div>;
+                  })}
                   {remoteOnlyBranches.length > 0 && <p className="px-2 pt-2 pb-1 text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono">Remote</p>}
                   {remoteOnlyBranches.map(b => (
-                    <button
-                      key={b}
-                      type="button"
-                      onClick={() => handleSwitchBranch(b, true)}
-                      title={`Create a local branch that tracks ${b}`}
-                      className="w-full flex items-center justify-between px-2.5 py-1.5 rounded-lg text-left font-mono text-[11px] transition cursor-pointer select-none hover:bg-[var(--bg-card)] text-[var(--text-secondary)]"
-                    >
-                      <span className="truncate"><span className="text-[var(--text-muted)]">{b.slice(0, b.indexOf('/') + 1)}</span>{b.slice(b.indexOf('/') + 1)}</span>
-                    </button>
+                    <div key={b} className="group flex items-center gap-1 rounded-lg hover:bg-[var(--bg-card)]">
+                      <button
+                        type="button"
+                        onClick={() => handleSwitchBranch(b, true)}
+                        title={`Create a local branch that tracks ${b}`}
+                        className="flex-1 min-w-0 px-2.5 py-1.5 text-left font-mono text-[11px] cursor-pointer select-none text-[var(--text-secondary)]"
+                      >
+                        <span className="block truncate"><span className="text-[var(--text-muted)]">{b.slice(0, b.indexOf('/') + 1)}</span>{b.slice(b.indexOf('/') + 1)}</span>
+                      </button>
+                      <button type="button" onClick={() => { setIsBranchDropdownOpen(false); askMerge(b); }} aria-label={`Merge ${b} into ${currentActiveBranch}`} title={`Merge into ${currentActiveBranch}`} className="p-1 mr-1.5 rounded opacity-0 group-hover:opacity-100 focus:opacity-100 text-[var(--text-muted)] hover:text-[var(--accent-violet)]"><GitMerge className="w-3 h-3" /></button>
+                    </div>
                   ))}
                 </div>
 
@@ -537,6 +586,9 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </form>
+                <button type="button" onClick={() => { setIsBranchDropdownOpen(false); setNewWorktreeOpen(true); }} className="mt-2 w-full flex items-center gap-2 px-2.5 py-1.5 rounded-lg text-left text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-card)] hover:text-[var(--text-primary)]">
+                  <GitFork className="w-3.5 h-3.5 text-[var(--accent-violet)]" /> New Worktree…
+                </button>
               </div>
             )}
           </div>
@@ -660,6 +712,14 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         </div>
       </div>
 
+      {details?.pending && (
+        <div role="status" className="px-5 py-2.5 text-xs flex items-center justify-between gap-3 border-b bg-amber-50 text-amber-900 border-amber-200 dark:bg-amber-950/40 dark:border-amber-500/30 dark:text-amber-200 shrink-0">
+          <span className="flex items-center gap-2 min-w-0"><AlertTriangle className="w-4 h-4 shrink-0" /><span className="text-pretty">A {details.pending} stopped on conflicts. Resolve the conflicted files, stage them, and commit — or abort to go back.</span></span>
+          <button type="button" onClick={() => setConfirm({ title: `Abort the ${details.pending}?`, label: 'Abort', destructive: true, message: <>The repository returns to how it was before the {details.pending}. Conflict resolutions you made are lost.</>, run: () => { void runAction('/api/repos/abort', {}); } })}
+            className="shrink-0 px-3 py-1 rounded-full border border-current/30 hover:bg-black/5 dark:hover:bg-white/10 font-medium">Abort</button>
+        </div>
+      )}
+
       {syncNotice && (
         <div className={`px-5 py-2.5 text-xs flex items-center justify-between border-b transition-all shrink-0 ${
           syncNotice.type === 'success'
@@ -712,22 +772,41 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
               <span className="font-semibold text-[var(--text-primary)] text-[11px] uppercase tracking-wider whitespace-nowrap shrink-0">
                 Working Tree
               </span>
-              <div className="flex items-center gap-2 text-[11px] font-mono whitespace-nowrap shrink-0">
-                <button
-                  type="button"
-                  onClick={handleStageAll}
-                  className="hover:text-[var(--text-primary)] transition cursor-pointer"
-                >
-                  Stage All
-                </button>
-                <span className="text-[var(--border-interactive)]">|</span>
-                <button
-                  type="button"
-                  onClick={handleUnstageAll}
-                  className="hover:text-[var(--text-primary)] transition cursor-pointer"
-                >
-                  Unstage
-                </button>
+              {/* Compact icon actions keep the header on one line in a narrow column. */}
+              <div className="flex items-center gap-0.5 whitespace-nowrap shrink-0">
+                <button type="button" onClick={handleStageAll} title="Stage all" aria-label="Stage all" className="p-1.5 rounded-md hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)] transition cursor-pointer"><CheckSquare className="w-3.5 h-3.5" /></button>
+                <button type="button" onClick={handleUnstageAll} title="Unstage all" aria-label="Unstage all" className="p-1.5 rounded-md hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)] transition cursor-pointer"><Square className="w-3.5 h-3.5" /></button>
+                <button type="button" disabled={!(details?.files.length)} onClick={() => askDiscard('all')} title="Discard all changes" aria-label="Discard all changes" className="p-1.5 rounded-md hover:bg-[var(--bg-surface)] hover:text-rose-500 transition cursor-pointer disabled:opacity-40"><RotateCcw className="w-3.5 h-3.5" /></button>
+                <div className="relative">
+                  <button type="button" onClick={() => setStashOpen(!stashOpen)} aria-expanded={stashOpen} title="Stash" aria-label="Stash" className="flex items-center gap-1 p-1.5 rounded-md hover:bg-[var(--bg-surface)] hover:text-[var(--text-primary)] transition cursor-pointer">
+                    <Archive className="w-3.5 h-3.5" />{details?.stashes?.length ? <span className="text-[10px] font-mono">{details.stashes.length}</span> : null}
+                  </button>
+                  {stashOpen && <>
+                    <div className="fixed inset-0 z-40" onClick={() => setStashOpen(false)} />
+                    <div className="absolute right-0 top-full mt-1.5 z-50 w-72 bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl p-3 shadow-2xl font-sans space-y-3 whitespace-normal">
+                      <form onSubmit={event => { event.preventDefault(); void runAction('/api/repos/stash', { message: stashMessage.trim() || undefined, includeUntracked: stashUntracked }).then(result => { if (result) { setStashMessage(''); } }); }} className="space-y-2">
+                        <p className="text-[11px] font-semibold text-[var(--text-primary)]">Stash changes</p>
+                        <input value={stashMessage} onChange={event => setStashMessage(event.target.value)} placeholder="Description (optional)" className="w-full bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-full px-3 py-1.5 text-[11px] text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]" />
+                        <div className="flex items-center justify-between gap-2">
+                          <label className="flex items-center gap-1.5 text-[10px] text-[var(--text-secondary)]"><input type="checkbox" checked={stashUntracked} onChange={event => setStashUntracked(event.target.checked)} className="accent-[var(--accent-violet)]" />Include new files</label>
+                          <button type="submit" disabled={!(details?.files.length)} className="px-3 py-1 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-[11px] font-medium disabled:opacity-40">Stash</button>
+                        </div>
+                      </form>
+                      <div className="border-t border-[var(--border-subtle)] pt-2">
+                        <p className="text-[9px] uppercase font-bold tracking-widest text-[var(--text-muted)] font-mono mb-1">Saved stashes</p>
+                        {!details?.stashes?.length && <p className="text-[11px] text-[var(--text-muted)] py-1">No stashes.</p>}
+                        <ul className="max-h-56 overflow-y-auto space-y-0.5">
+                          {details?.stashes?.map(stash => <li key={stash.ref} className="group flex items-center gap-2 px-2 py-1.5 rounded-lg hover:bg-[var(--bg-card)]">
+                            <span className="flex-1 min-w-0"><span className="block truncate text-[11px] text-[var(--text-primary)]" title={stash.subject}>{stash.subject}</span><span className="block text-[10px] text-[var(--text-muted)]">{new Date(stash.date * 1000).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</span></span>
+                            <button type="button" onClick={() => runAction('/api/repos/stash/action', { action: 'pop', ref: stash.ref })} title="Apply and remove" className="text-[10px] text-[var(--accent-violet)] hover:underline">Pop</button>
+                            <button type="button" onClick={() => runAction('/api/repos/stash/action', { action: 'apply', ref: stash.ref })} title="Apply and keep" className="text-[10px] text-[var(--text-secondary)] hover:underline">Apply</button>
+                            <button type="button" aria-label={`Delete stash ${stash.subject}`} onClick={() => setConfirm({ title: 'Delete this stash?', label: 'Delete', destructive: true, message: <>“{stash.subject}” is deleted. Its changes cannot be restored afterwards.</>, run: () => { void runAction('/api/repos/stash/action', { action: 'drop', ref: stash.ref }); } })} className="text-[var(--text-muted)] hover:text-rose-500"><Trash2 className="w-3 h-3" /></button>
+                          </li>)}
+                        </ul>
+                      </div>
+                    </div>
+                  </>}
+                </div>
               </div>
             </div>
 
@@ -826,6 +905,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                               {file.path}
                             </button>
                           </div>
+                          <button type="button" onClick={event => { event.stopPropagation(); askDiscard([file.path]); }} aria-label={`Discard changes to ${file.path}`} title="Discard changes"
+                            className="opacity-0 group-hover:opacity-100 focus:opacity-100 text-[var(--text-muted)] hover:text-rose-500 p-0.5 shrink-0"><RotateCcw className="w-3 h-3" /></button>
                           <span className="text-[10px] font-bold text-[var(--text-muted)] shrink-0">
                             {file.workingDirStatus === '?' ? 'U' : file.workingDirStatus}
                           </span>
@@ -915,11 +996,40 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         </div>
       )}
 
-      {activeTab === 'graph' && <GitGraph repoPath={repoSummary.path} />}
+      {activeTab === 'graph' && <GitGraph repoPath={repoSummary.path} currentBranch={currentActiveBranch} onChanged={() => { void fetchDetails(); onRefreshParent(); }} onNotice={(type, message) => setSyncNotice({ type, message })} />}
 
       {/* Tab: Remotes */}
       {activeTab === 'branches' && (
         <div className="flex-1 overflow-y-auto p-5 space-y-5 bg-[var(--bg-canvas)]">
+          <div>
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">Worktrees</h3>
+              <div className="flex items-center gap-1.5">
+                {(details?.worktreeList || []).some(entry => entry.prunable !== null && entry.locked === null) && <button type="button" onClick={() => runAction('/api/repos/worktrees/prune', {})} className="px-3 py-1 rounded-full border border-[var(--border-interactive)] text-[11px] text-[var(--text-secondary)] hover:bg-[var(--bg-surface)]">Clean up missing</button>}
+                <button type="button" onClick={() => setNewWorktreeOpen(true)} className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--border-interactive)] text-[11px] text-[var(--text-primary)] hover:bg-[var(--bg-surface)]"><Plus className="w-3 h-3" />New Worktree</button>
+              </div>
+            </div>
+            <p className="text-[11px] text-[var(--text-muted)] mb-3 text-pretty">Extra folders that share this repository, each with its own branch. AI coding agents often create them; open one to review its changes.</p>
+            <div className="space-y-2">
+              {(details?.worktreeList || []).map(entry => {
+                const here = entry.path === repoSummary.path;
+                return <div key={entry.path} className="p-3.5 bg-[var(--bg-surface)] border border-[var(--border-subtle)] rounded-2xl text-xs flex items-center gap-3">
+                  <GitFork className="w-4 h-4 shrink-0 text-[var(--accent-violet)]" />
+                  <div className="flex-1 min-w-0">
+                    <p className="flex items-center gap-1.5 flex-wrap font-mono text-[var(--text-primary)]">
+                      <span className="truncate">{entry.branch || `detached · ${(entry.head || '').slice(0, 7)}`}</span>
+                      {entry.main && <span className="px-1.5 rounded-full border border-[var(--border-interactive)] text-[9px] text-[var(--text-muted)] font-sans">main</span>}
+                      {here && <span className="px-1.5 rounded-full bg-[var(--accent-violet)]/15 text-[9px] text-[var(--accent-violet)] font-sans">open</span>}
+                      {entry.locked !== null && <span className="px-1.5 rounded-full border border-[var(--border-interactive)] text-[9px] text-[var(--text-muted)] font-sans" title={entry.locked || undefined}>locked</span>}
+                      {entry.prunable !== null && <span className="px-1.5 rounded-full border border-amber-500/40 text-[9px] text-amber-500 font-sans">missing</span>}
+                    </p>
+                    <p className="text-[10px] text-[var(--text-muted)] truncate font-mono mt-0.5" title={entry.path}>{entry.path}</p>
+                  </div>
+                  {!here && entry.prunable === null && <button type="button" onClick={() => onOpenRepository?.(entry.path)} className="shrink-0 px-3 py-1 rounded-full border border-[var(--border-interactive)] text-[11px] text-[var(--text-primary)] hover:bg-[var(--bg-card)]">Open</button>}
+                </div>;
+              })}
+            </div>
+          </div>
           <div>
             <h3 className="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)] mb-3">
               Configured Remotes
@@ -938,6 +1048,12 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
           </div>
         </div>
       )}
+
+      <ConfirmDialog open={!!confirm} title={confirm?.title || ''} message={confirm?.message} confirmLabel={confirm?.label || 'OK'} destructive={confirm?.destructive}
+        onCancel={() => setConfirm(null)} onConfirm={() => { const pending = confirm; setConfirm(null); pending?.run(); }} />
+      <NewWorktreeDialog open={newWorktreeOpen} repoPath={repoSummary.path} repoName={(details?.worktreeList?.[0]?.path || repoSummary.path).split('/').pop() || repoSummary.name}
+        mainPath={details?.worktreeList?.[0]?.path || repoSummary.path} currentBranch={currentActiveBranch} localBranches={details?.branches?.local || []} worktrees={details?.worktreeList || []}
+        onClose={() => setNewWorktreeOpen(false)} onCreated={created => { setNewWorktreeOpen(false); onOpenRepository?.(created); }} />
     </div>
   );
 };

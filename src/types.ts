@@ -16,7 +16,15 @@ export interface RepoSummary {
     author: string;
     date: string;
   } | null;
+  // Linked worktrees of this repository (main repositories only). A missing one has no summary fields beyond path and name.
+  worktrees?: WorktreeSummary[];
+  // Set when this summary describes a linked worktree.
+  worktree?: Worktree;
 }
+
+export interface Worktree { path: string; head: string | null; branch: string | null; detached: boolean; bare: boolean; locked: string | null; prunable: string | null; main: boolean }
+export type WorktreeSummary = RepoSummary & { worktree: Worktree; missing?: boolean };
+export interface Stash { ref: string; hash: string; date: number; subject: string }
 
 export interface FileChange {
   path: string;
@@ -41,7 +49,12 @@ export interface RepoDetails extends RepoSummary {
     author_name: string;
     date: string;
   }[];
+  pending?: 'merge' | 'cherry-pick' | 'revert' | null;
+  worktreeList?: Worktree[];
+  stashes?: Stash[];
 }
+// Result of a repository action: what happened, and the refreshed details.
+export interface ActionResult { result: { ok?: boolean; message?: string; needsConfirmation?: boolean; conflict?: string } & Record<string, any>; updated: RepoDetails }
 
 export interface LocalAIStatus {
   available: boolean;

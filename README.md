@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.1/GitMate-1.4.1-arm64.dmg"><b>Download v1.4.1 for Apple Silicon</b></a>
+  <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.2/GitMate-1.4.2-arm64.dmg"><b>Download v1.4.2 for Apple Silicon</b></a>
   &nbsp;·&nbsp;
   <a href="https://gitmate.artsvit.com">Website</a>
   &nbsp;·&nbsp;
@@ -35,7 +35,9 @@
 | --- | --- |
 | **Repository workspace** | Scan a folder, find repositories, and see changes and commits ahead or behind. |
 | **Changes and history** | Stage individual files, review text and image previews, and inspect commit details. |
-| **Branches and graph** | Switch local branches, check out remote branches, and follow branches, merges, and tags in the graph. |
+| **Branches and graph** | Switch, merge, and delete branches, check out remote branches, and follow branches, merges, and tags in the graph. Right-click a commit to cherry-pick, revert, tag, or branch from it. |
+| **Worktrees** | See every worktree of a repository — including ones created by AI coding agents — open it to review changes, and create, lock, or remove worktrees. |
+| **Stash, discard, amend** | Stash work in progress, discard changes with a backup, and amend the last commit. |
 | **Verified pushes** | Commit once and push to several destinations. Each remote is checked for the exact commit; failed destinations can be retried. |
 | **Local AI Copilot** | Suggest commit messages from staged changes, explain commits, and ask questions about repository code. |
 | **Accounts and connections** | Connect GitHub, GitLab, Gitea, or Forgejo. Set up a dedicated SSH key and test access. |
@@ -43,7 +45,7 @@
 
 ## Get started
 
-1. [Download the DMG](https://github.com/artemsvit/GitMate/releases/download/v1.4.1/GitMate-1.4.1-arm64.dmg), open it, and drag **Git Mate** to **Applications**.
+1. [Download the DMG](https://github.com/artemsvit/GitMate/releases/download/v1.4.2/GitMate-1.4.2-arm64.dmg), open it, and drag **Git Mate** to **Applications**.
 2. Open Git Mate and choose a folder to scan for Git repositories.
 3. Select a repository to review changes, stage files, and commit. Configure remote access when you are ready to fetch or push.
 
@@ -84,6 +86,7 @@ Without a model, commit suggestions use built-in rules. Copilot Chat can read re
 | Open Changes / History / Remotes / Graph | ⌘1 / ⌘2 / ⌘3 / ⌘4 |
 | Show or hide AI Copilot | ⌥⌘C |
 | Open Settings | ⌘, |
+| Commit / Commit & Push (message box) | ⌘↩ / ⇧⌘↩ |
 | Zoom in / out / reset | ⌘+ / ⌘− / ⌘0 |
 
 ## Development

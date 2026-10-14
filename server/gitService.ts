@@ -314,7 +314,7 @@ async function unstageFilesUnlocked(repoPath: string, files?: string[]): Promise
   else await git.raw(['--literal-pathspecs', 'rm', '--cached', '-r', '--ignore-unmatch', '--', ...selected]);
 }
 
-function validateArgument(value: unknown, name: string): asserts value is string {
+export function validateArgument(value: unknown, name: string): asserts value is string {
   if (typeof value !== 'string' || !value || value.startsWith('-') || /[\0\r\n]/.test(value)) {
     throw new Error(`Invalid ${name}.`);
   }

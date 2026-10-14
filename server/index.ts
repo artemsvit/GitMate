@@ -17,6 +17,8 @@ const appRoot = typeof __dirname !== 'undefined'
   : process.cwd();
 import { scanForRepositories } from './scanner';
 import { migrateLegacyStorage } from './paths';
+import { listWorktrees, createWorktree, removeWorktree, lockWorktree, pruneWorktrees, type Worktree } from './worktreeService';
+import { discardChanges, amendCommit, saveStash, stashAction, listStashes, commitAction, mergeBranch, deleteBranch, deleteTag, abortOperation, pendingOperation } from './gitActions';
 import { getCommitDetails, getCommitFileDiff, getGraph } from './graphService';
 import {
   authorizeHttpsRemote,
@@ -154,16 +156,25 @@ app.post('/api/repos/scan', async (req, res) => {
 
     const { repos: repoPaths, error: scanError } = await scanForRepositories(rootDir, Number(maxDepth));
     
-    // Fetch summary for all found repos concurrently
-    const summaries = await Promise.all(
-      repoPaths.map(async p => {
-        try {
-          return await getRepoSummary(access.register(p));
-        } catch {
-          return null;
-        }
-      })
-    );
+    // Group linked worktrees under their main repository. A worktree may live outside the scanned folder (for example
+    // one created by an AI coding agent); it is allowed only because an allowed repository's `git worktree list` reports it.
+    const groups = new Map<string, Worktree[]>();
+    await Promise.all(repoPaths.map(async p => {
+      try {
+        const list = await listWorktrees(p); const main = fs.realpathSync(list[0].path);
+        if (!groups.has(main)) groups.set(main, list);
+      } catch { if (!groups.has(fs.realpathSync(p))) groups.set(fs.realpathSync(p), []); }
+    }));
+    const summaries = await Promise.all([...groups].map(async ([main, list]) => {
+      try {
+        const summary: any = await getRepoSummary(access.register(main));
+        summary.worktrees = (await Promise.all(list.filter(entry => !entry.main && !entry.bare).map(async entry => {
+          if (entry.prunable !== null || !fs.existsSync(entry.path)) return { path: entry.path, name: path.basename(entry.path), worktree: entry, missing: true };
+          try { return { ...(await getRepoSummary(access.register(entry.path))), worktree: entry }; } catch { return null; }
+        }))).filter(Boolean);
+        return summary;
+      } catch { return null; }
+    }));
 
     const validSummaries = summaries.filter(Boolean);
     res.json({
@@ -185,17 +196,46 @@ app.get('/api/repos/details', async (req, res) => {
       return res.status(400).json({ error: 'path is required' });
     }
 
-    const details = await getRepoDetails(repoPath);
-    res.json(details);
+    res.json(await detailsWithExtras(repoPath));
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to get repo details' });
   }
 });
 
+// Details plus the state needed by the newer screens: a stopped merge, this repository's worktrees, and stashes.
+async function detailsWithExtras(repoPath: string) {
+  const [details, worktrees, stashes] = await Promise.all([getRepoDetails(repoPath), listWorktrees(repoPath).catch(() => []), listStashes(repoPath).catch(() => [])]);
+  return { ...details, pending: pendingOperation(repoPath), worktreeList: worktrees, stashes };
+}
+// Runs a repository action and returns its result with refreshed details.
+const action = (run: (repoPath: string, body: any) => Promise<any>) => async (req: express.Request, res: express.Response) => {
+  try { const repoPath = req.body.path as string; const result = await run(repoPath, req.body); res.json({ result, updated: await detailsWithExtras(repoPath) }); }
+  catch (err: any) { res.status(400).json({ error: redactRemote(err.message || 'The action failed.') }); }
+};
+app.post('/api/repos/discard', action((repo, body) => discardChanges(repo, body.files)));
+app.post('/api/repos/amend', action((repo, body) => amendCommit(repo, body.message, body.allowPublished)));
+app.post('/api/repos/stash', action((repo, body) => saveStash(repo, body.message, body.includeUntracked)));
+app.post('/api/repos/stash/action', action((repo, body) => stashAction(repo, body.action, body.ref)));
+app.post('/api/repos/commit-action', action((repo, body) => commitAction(repo, body.action, body.hash, body.name)));
+app.post('/api/repos/merge', action((repo, body) => mergeBranch(repo, body.branch)));
+app.post('/api/repos/branch/delete', action((repo, body) => deleteBranch(repo, body.branch, body.force)));
+app.post('/api/repos/tag/delete', action((repo, body) => deleteTag(repo, body.tag)));
+app.post('/api/repos/abort', action(repo => abortOperation(repo)));
+// A new worktree is allowed because it was just created from an allowed repository.
+app.post('/api/repos/worktrees/create', action(async (repo, body) => {
+  const created = await createWorktree(repo, { path: body.target, branch: body.branch, newBranch: body.newBranch, base: body.base });
+  return { path: created, summary: { ...(await getRepoSummary(access.register(created))), worktree: (await listWorktrees(repo)).find(entry => fs.realpathSync(entry.path) === created) } };
+}));
+app.post('/api/repos/worktrees/remove', action((repo, body) => removeWorktree(repo, body.target, body.force)));
+app.post('/api/repos/worktrees/lock', action((repo, body) => lockWorktree(repo, body.target, body.locked === true, body.reason)));
+app.post('/api/repos/worktrees/prune', action(repo => pruneWorktrees(repo)));
+
 // 3b. Commit graph across branches, with details and per-file diffs for one commit
 app.get('/api/repos/graph', async (req, res) => {
   try {
-    res.json(await getGraph(res.locals.repoPath as string, { limit: Number(req.query.limit), skip: Number(req.query.skip), branch: typeof req.query.branch === 'string' && req.query.branch ? req.query.branch : undefined }));
+    const repoPath = res.locals.repoPath as string;
+    const graph = await getGraph(repoPath, { limit: Number(req.query.limit), skip: Number(req.query.skip), branch: typeof req.query.branch === 'string' && req.query.branch ? req.query.branch : undefined });
+    res.json({ ...graph, worktrees: (await listWorktrees(repoPath).catch(() => [])).map(entry => ({ path: entry.path, head: entry.head, branch: entry.branch, main: entry.main })) });
   } catch (err: any) { res.status(400).json({ error: err.message || 'Failed to read the commit graph' }); }
 });
 app.get('/api/repos/commit', async (req, res) => {

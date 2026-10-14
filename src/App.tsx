@@ -17,6 +17,13 @@ function subscribeToViewport(listener: () => void) {
 }
 const getViewportWidth = () => window.innerWidth;
 
+// Finds a repository or one of its linked worktrees by path.
+function findRepository(repos: RepoSummary[], target?: string): RepoSummary | undefined {
+  if (!target) return undefined;
+  for (const repo of repos) { if (repo.path === target) return repo; const tree = repo.worktrees?.find(item => item.path === target && !item.missing); if (tree) return tree; }
+  return undefined;
+}
+
 export function App() {
   const [currentPath, setCurrentPath] = useState('');
   const [presets, setPresets] = useState<{ name: string; path: string }[]>([]);
@@ -105,6 +112,15 @@ export function App() {
       else menuActions.current[name]?.();
     });
   }, []);
+
+  // Opens a repository or worktree by path, rescanning once if it is not in the list yet (for example a new worktree).
+  const openRepositoryPath = async (target: string) => {
+    const found = findRepository(repositories, target);
+    if (found) { handleSelectRepo(found); return; }
+    const res = await apiFetch('/api/repos/scan', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ rootDir: currentPath, maxDepth: 3 }) });
+    const data = await res.json(); if (!res.ok) return;
+    setRepositories(data.repositories); const fresh = findRepository(data.repositories, target); if (fresh) handleSelectRepo(fresh);
+  };
 
   const [isResizingSidebar, setIsResizingSidebar] = useState(false);
   const [isResizingCopilot, setIsResizingCopilot] = useState(false);
@@ -250,7 +266,7 @@ export function App() {
 
         // Keep or select first repository
         if (repos.length > 0) {
-          const matching = repos.find(r => r.path === selectedRepo?.path);
+          const matching = findRepository(repos, selectedRepo?.path);
           if (matching) {
             setSelectedRepo(matching);
           } else {
@@ -370,6 +386,7 @@ export function App() {
         selectedDiffStaged={selectedDiffStaged}
         onDetailsUpdated={details => setSelectedRepoDetails(details)}
         onOpenRemoteAuth={() => setAuthModalRepo(selectedRepo)}
+        onOpenRepository={target => { void openRepositoryPath(target); }}
       />
     ) : scanError ? (
       <div className="flex-1 flex flex-col items-center justify-center bg-[var(--bg-canvas)] text-[var(--text-muted)] p-8 text-center font-mono transition-colors">

@@ -15,5 +15,7 @@ contextBridge.exposeInMainWorld('electronAPI', {
   onUpdatePrompt: callback => { const handler = (_event, value) => callback(value); ipcRenderer.on('update-prompt', handler); return () => ipcRenderer.removeListener('update-prompt', handler); },
   onUpdateState: callback => { const handler = (_event, value) => callback(value); ipcRenderer.on('update-state', handler); return () => ipcRenderer.removeListener('update-state', handler); },
   onMenuCommand: callback => { const handler = (_event, value) => callback(value); ipcRenderer.on('menu-command', handler); return () => ipcRenderer.removeListener('menu-command', handler); },
+  showInFinder: folder => ipcRenderer.invoke('show-in-finder', folder),
+  openInTerminal: folder => ipcRenderer.invoke('open-in-terminal', folder),
   selectFolder: (defaultPath) => ipcRenderer.invoke('select-folder', defaultPath)
 });

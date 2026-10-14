@@ -5,6 +5,8 @@ import { apiFetch } from '../api';
 import { layoutGraph, type LayoutRow } from '../graphLayout';
 import { DiffViewer } from './DiffViewer';
 import { Dropdown } from './Dropdown';
+import { ContextMenu, type MenuItem } from './ContextMenu';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface Ref { name: string; type: 'head' | 'branch' | 'remote' | 'tag' }
 interface Commit { hash: string; parents: string[]; author: string; email: string; date: number; subject: string; refs: Ref[] }
@@ -41,7 +43,16 @@ function RefBadge({ item, current }: { item: Ref; current: boolean }) {
   </span>;
 }
 
-export function GitGraph({ repoPath }: { repoPath: string }) {
+interface WorktreeHead { path: string; head: string | null; branch: string | null; main: boolean }
+// Actions on a commit or one of its labels. Each change asks first and then refreshes the graph and the workspace.
+type Ask = { title: string; message: React.ReactNode; label: string; destructive?: boolean; name?: { placeholder: string; checkout?: boolean }; run: (name: string, checkout: boolean) => void };
+
+export function GitGraph({ repoPath, currentBranch, onChanged, onNotice }: { repoPath: string; currentBranch?: string; onChanged?: () => void; onNotice?: (type: 'success' | 'error', message: string) => void }) {
+  const [worktrees, setWorktrees] = useState<WorktreeHead[]>([]);
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  const [ask, setAsk] = useState<Ask | null>(null);
+  const [name, setName] = useState('');
+  const [checkoutNew, setCheckoutNew] = useState(true);
   const [commits, setCommits] = useState<Commit[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
   const [local, setLocal] = useState<string[]>([]);
@@ -59,11 +70,40 @@ export function GitGraph({ repoPath }: { repoPath: string }) {
     try {
       const res = await apiFetch(`/api/repos/graph?path=${encodeURIComponent(repoPath)}&limit=${PAGE}&skip=${skip}${branch ? `&branch=${encodeURIComponent(branch)}` : ''}`);
       const data = await res.json(); if (!res.ok) throw new Error(data.error);
-      setCommits(previous => skip ? [...previous, ...data.commits] : data.commits); setBranches(data.branches); setLocal(data.local || []); setHasMore(data.hasMore);
+      setCommits(previous => skip ? [...previous, ...data.commits] : data.commits); setBranches(data.branches); setLocal(data.local || []); setHasMore(data.hasMore); setWorktrees(data.worktrees || []);
     } catch (err: any) { setError(err.message || 'Could not read the commit graph.'); } finally { setLoading(false); }
   }, [repoPath, branch]);
   useEffect(() => { setSelected(null); setFile(null); void load(0); }, [load]);
 
+  const post = async (url: string, body: Record<string, unknown>) => {
+    try {
+      const res = await apiFetch(url, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: repoPath, ...body }) });
+      const data = await res.json(); if (!res.ok) throw new Error(data.error);
+      if (data.result?.message) onNotice?.(data.result.ok === false && !data.result.needsConfirmation ? 'error' : 'success', data.result.message);
+      onChanged?.(); void load(0); return data.result;
+    } catch (err: any) { onNotice?.('error', err.message || 'The action failed.'); return null; }
+  };
+  const copy = (text: string) => navigator.clipboard.writeText(text).then(() => onNotice?.('success', 'Copied.')).catch(() => {});
+  const openAsk = (next: Ask) => { setName(''); setCheckoutNew(true); setAsk(next); };
+  const itemsFor = (commit: Commit): MenuItem[] => {
+    const short = commit.hash.slice(0, 7);
+    const localRefs = commit.refs.filter(item => item.type === 'branch' && item.name !== currentBranch);
+    const tags = commit.refs.filter(item => item.type === 'tag');
+    return [
+      { label: 'Check Out This Commit…', onSelect: () => openAsk({ title: `Check out ${short}?`, label: 'Check Out', message: <>Your files switch to this commit without a branch (detached). New commits here need a branch to keep them; create one first if you plan to change code.</>, run: () => { void post('/api/repos/commit-action', { action: 'checkout', hash: commit.hash }); } }) },
+      { label: 'Create Branch Here…', onSelect: () => openAsk({ title: `New branch at ${short}`, label: 'Create Branch', message: <>A branch that starts at this commit.</>, name: { placeholder: 'feature/name', checkout: true }, run: (value, checkout) => { void post('/api/repos/commit-action', { action: checkout ? 'branch-checkout' : 'branch', hash: commit.hash, name: value }); } }) },
+      { label: 'Create Tag Here…', onSelect: () => openAsk({ title: `New tag at ${short}`, label: 'Create Tag', message: <>A lightweight tag that marks this commit, for example a release.</>, name: { placeholder: 'v1.0.0' }, run: value => { void post('/api/repos/commit-action', { action: 'tag', hash: commit.hash, name: value }); } }) },
+      { label: `Cherry-pick into ${currentBranch || 'current branch'}…`, separatorBefore: true, onSelect: () => openAsk({ title: `Cherry-pick ${short}?`, label: 'Cherry-pick', message: <>A copy of this commit’s changes is committed on <span className="font-mono">{currentBranch}</span>. If files conflict, Git Mate stops so you can resolve them or abort.</>, run: () => { void post('/api/repos/commit-action', { action: 'cherry-pick', hash: commit.hash }); } }) },
+      { label: 'Revert Commit…', onSelect: () => openAsk({ title: `Revert ${short}?`, label: 'Revert', message: <>A new commit undoes this commit’s changes. History is not rewritten.</>, run: () => { void post('/api/repos/commit-action', { action: 'revert', hash: commit.hash }); } }) },
+      ...localRefs.map((item, index) => ({ label: `Merge ${item.name} into ${currentBranch}…`, separatorBefore: index === 0, onSelect: () => openAsk({ title: `Merge ${item.name}?`, label: 'Merge', message: <>Commits from <span className="font-mono">{item.name}</span> are merged into <span className="font-mono">{currentBranch}</span>.</>, run: () => { void post('/api/repos/merge', { branch: item.name }); } }) })),
+      ...localRefs.map(item => ({ label: `Delete Branch ${item.name}…`, destructive: true, onSelect: () => openAsk({ title: `Delete branch ${item.name}?`, label: 'Delete', destructive: true, message: <>The local branch is removed. Remote branches are not changed.</>, run: () => { void post('/api/repos/branch/delete', { branch: item.name, force: false }).then(result => { if (result?.needsConfirmation) openAsk({ title: `Delete ${item.name} anyway?`, label: 'Delete anyway', destructive: true, message: <>This branch has commits that are not merged anywhere. Deleting it can lose them.</>, run: () => { void post('/api/repos/branch/delete', { branch: item.name, force: true }); } }); }); } }) })),
+      ...tags.map(item => ({ label: `Delete Tag ${item.name}…`, destructive: true, onSelect: () => openAsk({ title: `Delete tag ${item.name}?`, label: 'Delete', destructive: true, message: <>The local tag is removed. Tags already pushed stay on the remote.</>, run: () => { void post('/api/repos/tag/delete', { tag: item.name }); } }) })),
+      { label: 'Copy Commit Hash', separatorBefore: true, onSelect: () => copy(commit.hash) },
+      { label: 'Copy Message', onSelect: () => copy(commit.subject) }
+    ];
+  };
+  // Other worktrees' current commits, labeled by folder name.
+  const worktreeAt = (hash: string) => worktrees.filter(entry => entry.head === hash && entry.path !== repoPath);
   const layout = useMemo(() => layoutGraph(commits), [commits]);
   const graphWidth = Math.max(1, Math.min(layout.lanes, 16)) * LANE + 6;
   const needle = query.trim().toLowerCase();
@@ -112,11 +152,12 @@ export function GitGraph({ repoPath }: { repoPath: string }) {
         </div>
         {commits.map((commit, index) => {
           const current = commit.refs.some(item => item.type === 'head');
-          return <button key={commit.hash} onClick={() => open(commit.hash)} aria-current={selected?.hash === commit.hash ? 'true' : undefined}
+          return <button key={commit.hash} onClick={() => open(commit.hash)} onContextMenu={event => { event.preventDefault(); setMenu({ x: event.clientX, y: event.clientY, items: itemsFor(commit) }); }} aria-current={selected?.hash === commit.hash ? 'true' : undefined}
             className={cn('w-full flex items-center gap-3 px-5 text-left text-xs transition', selected?.hash === commit.hash ? 'bg-[var(--accent-violet)]/10' : 'hover:bg-[var(--bg-surface)]', !matches(commit) && 'opacity-30')} style={{ height: ROW }}>
             <span style={{ width: graphWidth }} className="shrink-0 overflow-hidden"><GraphCell row={layout.rows[index]} width={graphWidth} /></span>
             <span className="flex-1 min-w-0 flex items-center gap-1.5">
               {commit.refs.map(item => <RefBadge key={item.type + item.name} item={item} current={current && item.type === 'branch'} />)}
+              {worktreeAt(commit.hash).map(entry => <span key={entry.path} title={`Checked out in the worktree at ${entry.path}`} className="inline-flex items-center gap-1 px-1.5 py-px rounded-full border border-sky-500/40 text-sky-500 text-[10px] font-medium shrink-0 max-w-[10rem]"><span className="truncate">⧉ {entry.path.split('/').pop()}</span></span>)}
               <span className={cn('truncate', current ? 'text-[var(--text-primary)] font-medium' : 'text-[var(--text-secondary)]')}>{commit.subject}</span>
             </span>
             <span className="w-36 shrink-0 text-[11px] text-[var(--text-muted)] tabular-nums truncate">{formatDate(commit.date)}</span>
@@ -157,5 +198,13 @@ export function GitGraph({ repoPath }: { repoPath: string }) {
         {file ? <DiffViewer diff={file.diff} filename={file.path} source={`Commit ${selected.hash.slice(0, 7)}`} /> : <p className="p-4 text-[11px] text-[var(--text-muted)]">Choose a file to see its changes in this commit.</p>}
       </div>
     </section>}
+    {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+    <ConfirmDialog open={!!ask} title={ask?.title || ''} message={ask?.message} confirmLabel={ask?.label || 'OK'} destructive={ask?.destructive}
+      onCancel={() => setAsk(null)} onConfirm={() => { if (ask?.name && !name.trim()) return; const pending = ask; setAsk(null); pending?.run(name.trim(), checkoutNew); }}>
+      {ask?.name && <div className="space-y-2">
+        <input autoFocus value={name} onChange={event => setName(event.target.value)} placeholder={ask.name.placeholder} aria-label="Name" className="w-full bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]" />
+        {ask.name.checkout && <label className="flex items-center gap-1.5 text-[11px] text-[var(--text-secondary)]"><input type="checkbox" checked={checkoutNew} onChange={event => setCheckoutNew(event.target.checked)} className="accent-[var(--accent-violet)]" />Switch to the new branch</label>}
+      </div>}
+    </ConfirmDialog>
   </div>;
 }

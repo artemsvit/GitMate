@@ -1,6 +1,6 @@
 {
   "name": "gitmate",
-  "version": "1.4.1",
+  "version": "1.4.2",
   "description": "A local Git client for macOS",
   "homepage": "https://gitmate.artsvit.com",
   "main": "electron/main.cjs",

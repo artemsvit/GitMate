@@ -44,6 +44,14 @@ ipcMain.handle('select-folder', async (event, defaultPath) => {
   return result.canceled ? null : (result.filePaths[0] || null);
 });
 
+// Finder and Terminal shortcuts for a repository or worktree folder. Only existing absolute directories are accepted.
+const existingFolder = value => typeof value === 'string' && path.isAbsolute(value) && require('node:fs').existsSync(value) && require('node:fs').statSync(value).isDirectory();
+ipcMain.handle('show-in-finder', (event, folder) => { checkSender(event); if (!existingFolder(folder)) throw new Error('Folder not found.'); shell.openPath(folder); });
+ipcMain.handle('open-in-terminal', (event, folder) => {
+  checkSender(event); if (!existingFolder(folder)) throw new Error('Folder not found.');
+  require('node:child_process').execFile('open', ['-a', 'Terminal', folder]);
+});
+
 async function startBackendServer() {
   if (isDev) return;
   backendServer = require('../server/index.cjs').server;

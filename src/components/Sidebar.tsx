@@ -15,9 +15,14 @@ import {
   Filter,
   Check,
   ArrowRight,
-  Settings
+  Settings,
+  CornerDownRight,
+  Lock
 } from 'lucide-react';
-import { RepoSummary } from '../types';
+import { RepoSummary, WorktreeSummary } from '../types';
+import { apiFetch } from '../api';
+import { ContextMenu, type MenuItem } from './ContextMenu';
+import { ConfirmDialog } from './ConfirmDialog';
 
 interface SidebarProps {
   repositories: RepoSummary[];
@@ -51,6 +56,36 @@ export const Sidebar: React.FC<SidebarProps> = ({
   width = 420
 }) => {
   const [search, setSearch] = useState('');
+  const [menu, setMenu] = useState<{ x: number; y: number; items: MenuItem[] } | null>(null);
+  const [removing, setRemoving] = useState<{ repo: RepoSummary; tree: WorktreeSummary; force: boolean } | null>(null);
+  const [actionError, setActionError] = useState('');
+  const electron = (window as any).electronAPI;
+  const folderItems = (folder: string): MenuItem[] => [
+    { label: 'Show in Finder', onSelect: () => { electron?.showInFinder(folder).catch(() => {}); }, disabled: !electron },
+    { label: 'Open in Terminal', onSelect: () => { electron?.openInTerminal(folder).catch(() => {}); }, disabled: !electron }
+  ];
+  const worktreeAction = async (repo: RepoSummary, action: 'remove' | 'lock' | 'prune', body: Record<string, unknown> = {}) => {
+    setActionError('');
+    try {
+      const res = await apiFetch(`/api/repos/worktrees/${action}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: repo.path, ...body }) });
+      const data = await res.json(); if (!res.ok) throw new Error(data.error);
+      onScan(currentPath, 3);
+    } catch (error: any) {
+      // A worktree with uncommitted changes needs a second, explicit confirmation.
+      if (action === 'remove' && body.force !== true && /modified|untracked|contains|not clean/i.test(error.message)) {
+        const tree = (repo.worktrees || []).find(item => item.path === body.target);
+        if (tree) { setRemoving({ repo, tree, force: true }); return; }
+      }
+      setActionError(error.message || 'The worktree action failed.');
+    }
+  };
+  const worktreeItems = (repo: RepoSummary, tree: WorktreeSummary): MenuItem[] => tree.missing
+    ? [{ label: 'Clean up missing worktrees', onSelect: () => { void worktreeAction(repo, 'prune'); } }]
+    : [
+      ...folderItems(tree.path),
+      { label: tree.worktree.locked !== null ? 'Unlock' : 'Lock', separatorBefore: true, onSelect: () => { void worktreeAction(repo, 'lock', { target: tree.path, locked: tree.worktree.locked === null, reason: 'Locked in Git Mate' }); } },
+      { label: 'Remove Worktree…', destructive: true, disabled: tree.worktree.locked !== null, onSelect: () => setRemoving({ repo, tree, force: false }) }
+    ];
   const [filter, setFilter] = useState<'all' | 'dirty' | 'ahead' | 'behind' | 'clean'>('all');
   const [isFolderDropdownOpen, setIsFolderDropdownOpen] = useState(false);
   const [customPathInput, setCustomPathInput] = useState(currentPath);
@@ -115,7 +150,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Terminal className="w-3.5 h-3.5 stroke-[2.2]" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs text-[var(--text-primary)] tracking-tight">Git Mate</span>
+            <span className="font-semibold text-xs text-[var(--text-primary)] tracking-tight whitespace-nowrap">Git Mate</span>
             {/* Version Tag */}
             <span className="px-2 py-0.5 rounded-[50px] border border-[var(--border-interactive)] bg-[var(--bg-surface)] text-[var(--accent-violet)] text-[10px] font-mono tracking-wider">
               v{appVersion}
@@ -378,9 +413,10 @@ export const Sidebar: React.FC<SidebarProps> = ({
             const changes = repo.stagedCount + repo.unstagedCount;
 
             return (
+              <React.Fragment key={repo.path}>
               <button
                 type="button"
-                key={repo.path}
+                onContextMenu={event => { event.preventDefault(); setMenu({ x: event.clientX, y: event.clientY, items: folderItems(repo.path) }); }}
                 aria-pressed={isSelected}
                 aria-label={`Select repository ${repo.name}, branch ${repo.currentBranch}`}
                 onClick={() => onSelectRepo(repo)}
@@ -451,10 +487,41 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 </div>
               </button>
+              {/* Linked worktrees, for example ones created by AI coding agents, sit under their repository. */}
+              {(repo.worktrees || []).map(tree => {
+                const treeChanges = tree.missing ? 0 : tree.stagedCount + tree.unstagedCount;
+                const selected = selectedRepo?.path === tree.path;
+                return <button
+                  type="button"
+                  key={tree.path}
+                  disabled={tree.missing}
+                  title={tree.path}
+                  aria-label={`Select worktree ${tree.name}`}
+                  onClick={() => onSelectRepo(tree)}
+                  onContextMenu={event => { event.preventDefault(); setMenu({ x: event.clientX, y: event.clientY, items: worktreeItems(repo, tree) }); }}
+                  className={`w-full text-left flex items-center gap-2 pl-7 pr-3 py-1.5 rounded-xl transition border ${selected ? 'bg-[var(--bg-card)] border-[var(--border-interactive)]' : 'border-transparent hover:bg-[var(--bg-surface)]'} disabled:opacity-50`}
+                >
+                  <CornerDownRight className="w-3 h-3 shrink-0 text-[var(--text-dim)]" />
+                  <span className="flex-1 min-w-0">
+                    <span className="flex items-center gap-1.5 text-[11px] text-[var(--text-primary)]">
+                      <span className="truncate">{tree.name}</span>
+                      {tree.worktree.locked !== null && <Lock className="w-2.5 h-2.5 shrink-0 text-[var(--text-muted)]" aria-label="Locked" />}
+                    </span>
+                    <span className="block text-[10px] font-mono text-[var(--text-muted)] truncate">{tree.missing ? 'missing · right-click to clean up' : tree.worktree.branch || `detached · ${(tree.worktree.head || '').slice(0, 7)}`}</span>
+                  </span>
+                  {treeChanges > 0 && <span className="text-[10px] font-mono px-1.5 py-0.5 rounded-[50px] border border-[var(--status-dirty)]/30 bg-[var(--status-dirty-bg)] text-[var(--status-dirty)] font-semibold">{treeChanges}</span>}
+                </button>;
+              })}
+              </React.Fragment>
             );
           })
         )}
       </div>
+      {menu && <ContextMenu x={menu.x} y={menu.y} items={menu.items} onClose={() => setMenu(null)} />}
+      <ConfirmDialog open={!!removing} title="Remove this worktree?" destructive confirmLabel={removing?.force ? 'Remove with changes' : 'Remove'}
+        message={<>The folder <span className="font-mono break-all">{removing?.tree.path}</span> is deleted. The branch {removing?.tree.worktree.branch ? <span className="font-mono">{removing.tree.worktree.branch}</span> : ''} and its commits stay in the repository.{removing?.force ? ' Its uncommitted changes are lost.' : ''}</>}
+        onCancel={() => setRemoving(null)} onConfirm={() => { const target = removing!; setRemoving(null); void worktreeAction(target.repo, 'remove', { target: target.tree.path, force: target.force }); }} />
+      {actionError && <p role="alert" className="mx-3 mb-2 text-[10px] text-rose-500 text-pretty">{actionError}</p>}
     </aside>
   );
 };

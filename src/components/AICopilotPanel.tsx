@@ -5,6 +5,7 @@ import { PushResults } from './PushResults';
 import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
 import { readAIMode, readExternalChoice, useAIEngine } from '../aiEngine';
+import { ConfirmDialog } from './ConfirmDialog';
 import { ModelSetupCard, useModelStatus } from './ModelSetupCard';
 
 // Commit messages run on the same local model as Chat, so the Commit tab offers the same download.
@@ -121,11 +122,28 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
     }
   };
 
+  // Amend replaces the last commit with the staged changes and this message; a published commit asks first.
+  const [amend, setAmend] = useState(false);
+  const [amendPublished, setAmendPublished] = useState(false);
+  const toggleAmend = (next: boolean) => { setAmend(next); if (next && !commitMessage.trim()) setCommitMessage(details?.recentCommits?.[0]?.message || repoSummary.lastCommit?.message || ''); };
+  const handleAmend = async (allowPublished = false) => {
+    setIsCommitting(true); setStatusMessage(null);
+    try {
+      const res = await apiFetch('/api/repos/amend', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: repoSummary.path, message: commitMessage.trim(), allowPublished }) });
+      const data = await res.json(); if (!res.ok) throw new Error(data.error);
+      if (data.result.needsConfirmation) { setAmendPublished(true); return; }
+      setCommitMessage(''); setAmend(false); setAiResult(null);
+      setStatusMessage({ text: data.result.message, type: 'success' }); onCommitSuccess();
+    } catch (error: any) { setStatusMessage({ text: error.message || 'Could not amend the commit.', type: 'error' }); }
+    finally { setIsCommitting(false); }
+  };
+
   const handleCommit = async (andPush = false) => {
     if (!commitMessage.trim()) {
       setStatusMessage({ text: 'Please enter a commit message', type: 'error' });
       return;
     }
+    if (amend) { await handleAmend(); return; }
 
     setIsCommitting(true);
     setStatusMessage(null);
@@ -377,23 +395,31 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
       {/* Action Buttons */}
       {activeTab === 'commit' && <div className="p-4 border-t border-[var(--border-subtle)] space-y-2 shrink-0">
+        <label className="flex items-center gap-2 px-1 text-[11px] text-[var(--text-secondary)] cursor-pointer select-none" title="Replace the last commit with the staged changes and this message">
+          <input type="checkbox" checked={amend} onChange={event => toggleAmend(event.target.checked)} disabled={!repoSummary.lastCommit} className="accent-[var(--accent-violet)]" />
+          Amend last commit
+        </label>
         <button
           onClick={() => handleCommit(false)}
-          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim()}
+          disabled={isCommitting || (!hasStagedChanges && !amend) || !commitMessage.trim()}
           className="w-full py-2.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-[var(--text-primary)] text-xs font-medium transition disabled:opacity-30"
         >
-          {isCommitting ? 'Committing...' : 'Commit Changes'}
+          {isCommitting ? 'Committing...' : amend ? 'Amend Commit' : 'Commit Changes'}
         </button>
 
         <button
           onClick={() => handleCommit(true)}
-          disabled={isCommitting || !hasStagedChanges || !commitMessage.trim() || !pushState.destinations.length || pushState.pushing}
+          title={amend ? 'An amended commit replaces one that may be pushed; push it separately.' : undefined}
+          disabled={amend || isCommitting || !hasStagedChanges || !commitMessage.trim() || !pushState.destinations.length || pushState.pushing}
           className="w-full py-2.5 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
         >
           <Send className="w-3.5 h-3.5" />
           <span>Commit & Push{pushState.destinations.length > 1 ? ` to ${pushState.destinations.length}` : ''}</span>
         </button>
       </div>}
+      <ConfirmDialog open={amendPublished} title="Amend a pushed commit?" confirmLabel="Amend" destructive
+        message={<>The last commit is already on a remote. Amending rewrites it, so the next push to that branch must be forced and can disrupt others who use it.</>}
+        onCancel={() => setAmendPublished(false)} onConfirm={() => { setAmendPublished(false); void handleAmend(true); }} />
     </aside>
   );
 };
