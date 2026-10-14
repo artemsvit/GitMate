@@ -17,6 +17,7 @@ const appRoot = typeof __dirname !== 'undefined'
   : process.cwd();
 import { scanForRepositories } from './scanner';
 import { migrateLegacyStorage } from './paths';
+import { getCommitDetails, getCommitFileDiff, getGraph } from './graphService';
 import {
   authorizeHttpsRemote,
   getRepoSummary,
@@ -189,6 +190,21 @@ app.get('/api/repos/details', async (req, res) => {
   } catch (err: any) {
     res.status(500).json({ error: err.message || 'Failed to get repo details' });
   }
+});
+
+// 3b. Commit graph across branches, with details and per-file diffs for one commit
+app.get('/api/repos/graph', async (req, res) => {
+  try {
+    res.json(await getGraph(res.locals.repoPath as string, { limit: Number(req.query.limit), skip: Number(req.query.skip), branch: typeof req.query.branch === 'string' && req.query.branch ? req.query.branch : undefined }));
+  } catch (err: any) { res.status(400).json({ error: err.message || 'Failed to read the commit graph' }); }
+});
+app.get('/api/repos/commit', async (req, res) => {
+  try { res.json(await getCommitDetails(res.locals.repoPath as string, String(req.query.hash || ''))); }
+  catch (err: any) { res.status(400).json({ error: err.message || 'Failed to read the commit' }); }
+});
+app.get('/api/repos/commit-diff', async (req, res) => {
+  try { res.json({ diff: await getCommitFileDiff(res.locals.repoPath as string, String(req.query.hash || ''), String(req.query.file || '')) }); }
+  catch (err: any) { res.status(400).json({ error: err.message || 'Failed to read the file diff' }); }
 });
 
 // 4. Get diff for file or entire repo

@@ -8,8 +8,9 @@ export const sshKeyPaths = () => ({ ed25519: path.join(os.homedir(), '.ssh', 'gi
 
 // Moves data from the earlier "Gitler" locations once. Existing new locations are never overwritten.
 export function migrateLegacyStorage(home = os.homedir()) {
-  const moves: [string, string][] = [];
-  if (!process.env.GITMATE_CONFIG_DIR) moves.push([path.join(home, '.gitler'), path.join(home, '.gitmate')]);
+  // A custom data folder means a test or development run; it must never move the user's real data.
+  if (process.env.GITMATE_CONFIG_DIR) return [];
+  const moves: [string, string][] = [[path.join(home, '.gitler'), path.join(home, '.gitmate')]];
   for (const type of ['ed25519', 'rsa']) for (const suffix of ['', '.pub']) {
     moves.push([path.join(home, '.ssh', `gitler_${type}${suffix}`), path.join(home, '.ssh', `gitmate_${type}${suffix}`)]);
   }

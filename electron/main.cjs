@@ -2,9 +2,10 @@ const { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } = require('e
 const path = require('node:path');
 
 // The app data folder follows the package name. Move it from the earlier "gitler" name once, before Electron opens it.
+// Only the installed app does this, so development runs never touch the user's data.
 try {
   const previous = path.join(app.getPath('appData'), 'gitler'); const current = app.getPath('userData');
-  if (current !== previous && require('node:fs').existsSync(previous) && !require('node:fs').existsSync(current)) require('node:fs').renameSync(previous, current);
+  if (app.isPackaged && current !== previous && require('node:fs').existsSync(previous) && !require('node:fs').existsSync(current)) require('node:fs').renameSync(previous, current);
 } catch {}
 const { networkPermissions, trustedInterfacePermission } = require('./permissions.cjs');
 

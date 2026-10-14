@@ -19,9 +19,11 @@ import {
   Plus,
   ChevronDown,
   AlertCircle,
-  Globe
+  Globe,
+  GitFork
 } from 'lucide-react';
 import { RepoDetails, RepoSummary } from '../types';
+import { GitGraph } from './GitGraph';
 import { DiffViewer } from './DiffViewer';
 
 interface MainWorkspaceProps {
@@ -48,7 +50,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   onOpenRemoteAuth
 }) => {
   const [details, setDetails] = useState<RepoDetails | null>(null);
-  const [activeTab, setActiveTab] = useState<'changes' | 'history' | 'branches'>('changes');
+  const [activeTab, setActiveTab] = useState<'changes' | 'history' | 'branches' | 'graph'>('changes');
 
   const [diff, setDiff] = useState<string>('');
   const [loadingDiff, setLoadingDiff] = useState(false);
@@ -626,6 +628,18 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
             <Layers className="w-3.5 h-3.5" />
             <span>Remotes</span>
           </button>
+
+          <button
+            onClick={() => setActiveTab('graph')}
+            className={`h-full text-xs font-medium flex items-center gap-2 border-b-2 transition ${
+              activeTab === 'graph'
+                ? 'border-[var(--accent-violet)] text-[var(--text-primary)]'
+                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-secondary)]'
+            }`}
+          >
+            <GitFork className="w-3.5 h-3.5" />
+            <span>Graph</span>
+          </button>
         </div>
       </div>
 
@@ -884,6 +898,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
           ))}
         </div>
       )}
+
+      {activeTab === 'graph' && <GitGraph repoPath={repoSummary.path} />}
 
       {/* Tab: Remotes */}
       {activeTab === 'branches' && (

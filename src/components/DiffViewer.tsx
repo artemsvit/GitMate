@@ -6,9 +6,11 @@ interface DiffViewerProps {
   diff: string;
   filename?: string;
   staged?: boolean;
+  // Overrides the Staged / Working Tree badge, for example "Commit 1a2b3c4".
+  source?: string;
 }
 
-export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged, preview }) => {
+export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged, preview, source }) => {
   const [failedImage, setFailedImage] = useState<string | null>(null);
   const [showImage, setShowImage] = useState(true);
   const [isWrapped, setIsWrapped] = useState<boolean>(() => {
@@ -80,7 +82,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged, 
                 ? 'bg-[var(--bg-card)] border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold'
                 : 'bg-transparent border-[var(--border-subtle)] text-[var(--text-secondary)]'
             }`}>
-              {staged ? 'Staged' : 'Working Tree'}
+              {source || (staged ? 'Staged' : 'Working Tree')}
             </span>
           </div>
         </div>
