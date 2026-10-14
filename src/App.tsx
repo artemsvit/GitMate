@@ -1,3 +1,4 @@
+import { UpdateWindow } from './components/UpdateWindow';
 import { useRepositoryPush } from './useRepositoryPush';
 import { apiFetch } from './api';
 import React, { useState, useEffect, useSyncExternalStore } from 'react';
@@ -469,6 +470,7 @@ export function App() {
       </div>
 
       {/* Bottom Status Bar */}
+      <UpdateWindow />
       <StatusBar
         selectedRepo={selectedRepo}
         repoCount={repositories.length}

@@ -1,7 +1,7 @@
 // The verified DMG remains available if GitHub's API is unavailable.
 async function updateDownloadLinks() {
   try {
-    const response = await fetch('https://api.github.com/repos/artemsvit/Gitler/releases/latest', {
+    const response = await fetch('https://api.github.com/repos/artemsvit/GitMate/releases/latest', {
       signal: AbortSignal.timeout(5000),
       headers: { Accept: 'application/vnd.github+json' },
     });
@@ -10,7 +10,7 @@ async function updateDownloadLinks() {
     const asset = release.assets?.find(asset => /(?:arm64|universal).*\.dmg$/i.test(asset.name));
     if (!asset) return;
     const url = new URL(asset.browser_download_url);
-    if (url.origin !== 'https://github.com' || !url.pathname.startsWith('/artemsvit/Gitler/releases/download/')) return;
+    if (url.origin !== 'https://github.com' || !url.pathname.startsWith('/artemsvit/GitMate/releases/download/')) return;
     document.querySelectorAll('[data-release-download]').forEach(link => { link.href = url.href; });
     document.querySelectorAll('[data-release-version], .version-tag').forEach(label => {
       label.textContent = release.tag_name;

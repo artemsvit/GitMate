@@ -6,11 +6,11 @@ import { apiFetch } from '../api';
 import { RepoSummary } from '../types';
 import { Dropdown } from './Dropdown';
 import { useAIEngine } from '../aiEngine';
+import { ModelSetupCard, modelReady, useModelStatus } from './ModelSetupCard';
 interface Message { id: string; role: 'user' | 'assistant'; content: string; sources?: { repository: string; file?: string; commit?: string; kind: string }[]; truncated?: boolean; stopped?: boolean }
 interface Conversation { id: string; title: string; messages: Message[] }
-interface ModelStatus { state: string; downloaded: number; size: number; model: string; label?: string; error?: string }
 export function CopilotChat({ repo, repositories }: { repo: RepoSummary; repositories: RepoSummary[] }) {
-  const [model, setModel] = useState<ModelStatus | null>(null);
+  const { model, setModel } = useModelStatus();
   const engine = useAIEngine();
   const [history, setHistory] = useState<Conversation[]>([]);
   const [id, setId] = useState('');
@@ -33,17 +33,12 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
     const res = await apiFetch(`/api/copilot/conversations?path=${encodeURIComponent(repo.path)}`, { signal });
     if (!res.ok) throw new Error('Could not load saved chats.'); const data = await res.json(); if (!signal?.aborted) setHistory(data);
   }, [repo.path]);
-  const refreshModel = useCallback(async (signal: AbortSignal) => {
-    try { const res = await apiFetch('/api/copilot/model', { signal }); const data = await res.json(); if (res.ok && !signal.aborted) setModel(data); } catch {}
-  }, []);
   useEffect(() => {
     const lifetime = new AbortController();
-    void refreshModel(lifetime.signal); void refreshHistory(lifetime.signal).catch(error => { if (!lifetime.signal.aborted) setError(error.message); });
-    const timer = setInterval(() => refreshModel(lifetime.signal), 2000);
-    return () => { lifetime.abort(); controller.current?.abort(); clearInterval(timer); };
-  }, [refreshModel, refreshHistory]);
+    void refreshHistory(lifetime.signal).catch(error => { if (!lifetime.signal.aborted) setError(error.message); });
+    return () => { lifetime.abort(); controller.current?.abort(); };
+  }, [refreshHistory]);
   useEffect(() => { if (followBottom.current && scrollArea.current) scrollArea.current.scrollTop = scrollArea.current.scrollHeight; }, [messages]);
-  const modelAction = async (action: string) => { try { setError(''); const res = await apiFetch('/api/copilot/model/' + action, { method: 'POST' }); const data = await res.json(); if (!res.ok) throw new Error(data.error); if (action === 'download') setModel(data); } catch (error: any) { setError(error.message); } };
   const send = async (text = question) => {
     if (!text.trim() || busy || !ready) return;
     followBottom.current = true;
@@ -73,8 +68,7 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
   const removeChat = async (target: string) => { try { const res = await apiFetch('/api/copilot/conversations', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: repo.path, id: target }) }); if (!res.ok) throw new Error('Could not delete chat.'); if (target === id) { setId(''); setMessages([]); } await refreshHistory(); } catch (error: any) { setError(error.message); } };
   const additionalSet = new Set(additional);
   const external = engine.mode === 'external';
-  const ready = external ? !!engine.external : ['ready', 'loaded', 'loading'].includes(model?.state || '');
-  const gb = (bytes: number) => (bytes / 1e9).toFixed(2);
+  const ready = external ? !!engine.external : modelReady(model);
   const suggest = (text: string) => { setQuestion(text); composer.current?.focus(); };
   return <section role="tabpanel" aria-label="Copilot chat" className="flex-1 min-h-0 flex flex-col overflow-hidden text-xs select-text">
     <div className="px-4 py-2 flex items-center justify-between gap-2 shrink-0 border-b border-[var(--border-subtle)]">
@@ -96,17 +90,11 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
     </div>
 
     <div ref={scrollArea} role="log" aria-label="Conversation" aria-busy={busy} onScroll={() => { const area = scrollArea.current; if (area) followBottom.current = area.scrollHeight - area.scrollTop - area.clientHeight < 80; }} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-      {!external && model?.state === 'unsupported' && <p className="text-pretty text-[var(--text-muted)]">{model.error}</p>}
       {external && !ready && <div className="p-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
         <p className="font-medium text-balance text-[var(--text-primary)]">Choose a model</p>
         <p className="text-pretty text-[var(--text-muted)]">Open Settings → AI and choose an LM Studio or Ollama model for Chat.</p>
       </div>}
-      {!external && !ready && model?.state !== 'unsupported' && <div className="p-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
-        <p className="font-medium text-balance text-[var(--text-primary)]">Set up local Copilot</p>
-        <p className="text-pretty text-[var(--text-muted)]">Download {model?.label || 'the model'} once ({model ? gb(model.size) : '…'} GB). Your code and chats stay on this Mac. You can choose another model in Settings → AI.</p>
-        {model && <><p className="text-[var(--text-muted)] tabular-nums">{model.state} · {gb(model.downloaded)} / {gb(model.size)} GB</p><progress aria-label="Model download progress" className="w-full accent-[var(--accent-violet)]" value={model.downloaded} max={model.size} />{model.error && <p className="text-rose-600">{model.error}</p>}</>}
-        <button onClick={() => modelAction(['downloading', 'verifying'].includes(model?.state || '') ? 'cancel' : 'download')} className="px-3 py-1.5 rounded-full border border-[var(--border-interactive)] text-[var(--text-primary)]">{['downloading', 'verifying'].includes(model?.state || '') ? 'Cancel download' : model?.downloaded ? 'Resume download' : 'Download model'}</button>
-      </div>}
+      {!external && <ModelSetupCard model={model} onChange={setModel} purpose="chat" />}
       {!messages.length && ready && <div className="flex-1 flex flex-col justify-center items-start gap-3 pb-8">
         <Sparkles className="size-5 text-[var(--accent-violet)]" />
         <h3 className="text-sm font-semibold text-balance text-[var(--text-primary)]">What would you like to understand?</h3>

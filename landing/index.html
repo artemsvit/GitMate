@@ -3,9 +3,9 @@
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Git Mate — Local Git Visualizer & Native AI Companion for macOS</title>
+  <title>Git Mate, Local Git Visualizer & Native AI Companion for macOS</title>
   <meta name="description" content="Visual Git workspace with on-device Apple Silicon AI for generating conventional commits. 100% offline, private, and free." />
-  <link rel="canonical" href="https://gitler.artsvit.com/" />
+  <link rel="canonical" href="https://gitmate.artsvit.com/" />
   <link rel="icon" type="image/png" href="/favicon-96x96.png" sizes="96x96" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
   <link rel="shortcut icon" href="/favicon.ico" />
@@ -14,24 +14,26 @@
 
   <!-- Open Graph / Facebook -->
   <meta property="og:type" content="website" />
-  <meta property="og:url" content="https://gitler.artsvit.com/" />
-  <meta property="og:title" content="Git Mate — Local Git Visualizer & Native AI Companion for macOS" />
+  <meta property="og:url" content="https://gitmate.artsvit.com/" />
+  <meta property="og:title" content="Git Mate, Local Git Visualizer & Native AI Companion for macOS" />
   <meta property="og:description" content="Visual Git workspace with on-device Apple Silicon AI for generating conventional commits. 100% offline, private, and free." />
-  <meta property="og:image" content="https://gitler.artsvit.com/og-image.png" />
+  <meta property="og:image" content="https://gitmate.artsvit.com/og-image.png" />
+  <meta property="og:image:alt" content="Git Mate for macOS, a visual Git workspace with a local AI Copilot" />
   <meta property="og:image:width" content="1200" />
   <meta property="og:image:height" content="630" />
 
   <!-- Twitter / X -->
   <meta name="twitter:card" content="summary_large_image" />
-  <meta name="twitter:url" content="https://gitler.artsvit.com/" />
-  <meta name="twitter:title" content="Git Mate — Local Git Visualizer & Native AI Companion for macOS" />
+  <meta name="twitter:url" content="https://gitmate.artsvit.com/" />
+  <meta name="twitter:title" content="Git Mate, Local Git Visualizer & Native AI Companion for macOS" />
   <meta name="twitter:description" content="Visual Git workspace with on-device Apple Silicon AI for generating conventional commits. 100% offline, private, and free." />
-  <meta name="twitter:image" content="https://gitler.artsvit.com/og-image.png" />
+  <meta name="twitter:image" content="https://gitmate.artsvit.com/og-image.png" />
+  <meta name="twitter:image:alt" content="Git Mate for macOS, a visual Git workspace with a local AI Copilot" />
 
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500;600&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="style.css?v=3" />
+  <link rel="stylesheet" href="style.css?v=6" />
 </head>
 <body>
   <a class="skip-link" href="#features">Skip to features</a>
@@ -46,7 +48,7 @@
           </svg>
         </div>
         <span class="brand-name">Git Mate</span>
-        <span class="version-tag">v1.2.0</span>
+        <span class="version-tag">v1.3.0</span>
       </a>
 
       <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="site-navigation">
@@ -55,8 +57,8 @@
       <nav id="site-navigation" class="nav-links" aria-label="Main navigation">
         <a href="#features">Features</a>
         <a href="#mockup">App Preview</a>
-        <a href="#architecture">Local AI</a>
-        <a href="https://github.com/artemsvit/Gitler/releases/download/v1.2.0/GitMate-1.2.0-arm64.dmg" class="nav-btn-primary" data-release-download>Download .dmg</a>
+        <a href="#architecture">AI Copilot</a>
+        <a href="https://github.com/artemsvit/GitMate/releases/download/v1.3.0/GitMate-1.3.0-arm64.dmg" class="nav-btn-primary" data-release-download>Download .dmg</a>
       </nav>
     </div>
   </header>
@@ -72,11 +74,11 @@
       <span class="gradient-text">visualized & AI-supercharged.</span>
     </h1>
     <p class="hero-subtitle">
-      See changes, branches, and remotes across your local projects. Review diffs and stage files in one workspace. Draft conventional commits with local suggestions or an on-device AI model — your code stays on your Mac.
+      See changes, branches, and remotes across your local projects. Review diffs and stage files in one workspace. Draft conventional commits with local suggestions or an on-device AI model, your code stays on your Mac.
     </p>
 
     <div class="hero-actions">
-      <a href="https://github.com/artemsvit/Gitler/releases/download/v1.2.0/GitMate-1.2.0-arm64.dmg" class="btn btn-primary" data-release-download>
+      <a href="https://github.com/artemsvit/GitMate/releases/download/v1.3.0/GitMate-1.3.0-arm64.dmg" class="btn btn-primary" data-release-download>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
@@ -84,7 +86,7 @@
         </svg>
         Download for macOS (.dmg)
       </a>
-      <a href="https://github.com/artemsvit/Gitler" target="_blank" rel="noreferrer" class="btn btn-secondary">
+      <a href="https://github.com/artemsvit/GitMate" target="_blank" rel="noreferrer" class="btn btn-secondary">
         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor">
           <path d="M12 0C5.37 0 0 5.37 0 12c0 5.31 3.435 9.795 8.205 11.385.6.105.825-.255.825-.57 0-.285-.015-1.23-.015-2.235-3.015.555-3.795-.735-4.035-1.41-.135-.345-.72-1.41-1.23-1.695-.42-.225-1.02-.78-.015-.795.945-.015 1.62.87 1.845 1.23 1.08 1.815 2.805 1.305 3.495.99.105-.78.42-1.305.765-1.605-2.67-.3-5.46-1.335-5.46-5.925 0-1.305.465-2.385 1.23-3.225-.12-.3-.54-1.53.12-3.18 0 0 1.005-.315 3.3 1.23.96-.27 1.98-.405 3-.405s2.04.135 3 .405c2.295-1.56 3.3-1.23 3.3-1.23.66 1.65.24 2.88.12 3.18.765.84 1.23 1.905 1.23 3.225 0 4.605-2.805 5.625-5.475 5.925.435.375.81 1.095.81 2.22 0 1.605-.015 2.895-.015 3.3 0 .315.225.69.825.57A12.02 12.02 0 0024 12c0-6.63-5.37-12-12-12z"/>
         </svg>
@@ -117,7 +119,7 @@
               </svg>
             </div>
             <span class="app-brand-name">Git Mate</span>
-            <span class="app-brand-badge">v1.2.0</span>
+            <span class="app-brand-badge">v1.3.0</span>
           </div>
           <div class="topbar-actions">
             <span class="icon-btn" title="Settings">
@@ -500,92 +502,7 @@
           </svg>
         </div>
         <h3>Instant Local Discovery</h3>
-        <p>Point Git Mate at your Desktop, Developer, or Projects folder. It scans recursively in milliseconds, identifying uncommitted changes, branches, and remote sync states.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
-            <rect x="9" y="9" width="6" height="6"></rect>
-            <line x1="9" y1="1" x2="9" y2="4"></line>
-            <line x1="15" y1="1" x2="15" y2="4"></line>
-            <line x1="9" y1="20" x2="9" y2="23"></line>
-            <line x1="15" y1="20" x2="15" y2="23"></line>
-            <line x1="20" y1="9" x2="23" y2="9"></line>
-            <line x1="20" y1="14" x2="23" y2="14"></line>
-            <line x1="1" y1="9" x2="4" y2="9"></line>
-            <line x1="1" y1="14" x2="4" y2="14"></line>
-          </svg>
-        </div>
-        <h3>On-Device Commit Suggestions</h3>
-        <p>Draft Conventional Commit messages from staged diffs with local Ollama or LM Studio models. Built-in suggestions work without a model. Review every message before you commit.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <rect x="2" y="2" width="20" height="8" rx="2" ry="2"></rect>
-            <rect x="2" y="14" width="20" height="8" rx="2" ry="2"></rect>
-            <line x1="6" y1="6" x2="6.01" y2="6"></line>
-            <line x1="6" y1="18" x2="6.01" y2="18"></line>
-          </svg>
-        </div>
-        <h3>Self-Hosted & Local Network Git</h3>
-        <p>Support for Gitea, Forgejo, GitLab, and GitHub. Includes dedicated auto-generated SSH keys, auto-sync, and native macOS Local Network Privacy compliance.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="4" y1="21" x2="4" y2="14"></line>
-            <line x1="4" y1="10" x2="4" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="12"></line>
-            <line x1="12" y1="8" x2="12" y2="3"></line>
-            <line x1="20" y1="21" x2="20" y2="16"></line>
-            <line x1="20" y1="12" x2="20" y2="3"></line>
-            <line x1="1" y1="14" x2="7" y2="14"></line>
-            <line x1="9" y1="8" x2="15" y2="8"></line>
-            <line x1="17" y1="16" x2="23" y2="16"></line>
-          </svg>
-        </div>
-        <h3>Warp Dev Tools Aesthetic</h3>
-        <p>Flat Obsidian palettes, high-contrast typography, pill buttons, and draggable panel dividers. Switches between Dark and Paper Light themes.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
-            <path d="m9 12 2 2 4-4"></path>
-          </svg>
-        </div>
-        <h3>Zero Cloud Telemetry</h3>
-        <p>Git Mate does not connect to any analytics or cloud databases. Your code, secrets, commit history, and diffs remain strictly on your local disk.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="16.5" y1="9.4" x2="7.5" y2="4.21"></line>
-            <path d="M21 16V8a2 2 0 0 0-1-1.73l-7-4a2 2 0 0 0-2 0l-7 4A2 2 0 0 0 3 8v8a2 2 0 0 0 1 1.73l7 4a2 2 0 0 0 2 0l7-4A2 2 0 0 0 21 16z"></path>
-            <polyline points="3.27 6.96 12 12.01 20.73 6.96"></polyline>
-            <line x1="12" y1="22.08" x2="12" y2="12"></line>
-          </svg>
-        </div>
-        <h3>Single Standalone macOS .dmg</h3>
-        <p>Download the Developer ID signed installer for Apple Silicon. Drag Git Mate to Applications and keep your repositories in one workspace.</p>
-      </div>
-
-      <div class="feature-card">
-        <div class="feature-icon">
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <polyline points="16 18 22 12 16 6"></polyline>
-            <polyline points="8 6 2 12 8 18"></polyline>
-          </svg>
-        </div>
-        <h3>100% Free & Open Source</h3>
-        <p>Built for the open source community under the MIT license. Fork it, customize the AI prompt templates, or contribute features on GitHub.</p>
+        <p>Choose your Projects folder and see your repositories together. Find uncommitted changes, check branches, and spot projects that need a push or pull.</p>
       </div>
 
       <div class="feature-card">
@@ -603,37 +520,77 @@
         <h3>Branches & Commit History</h3>
         <p>Create and switch branches without leaving your workspace. Browse recent commits, check remote sync status, and fetch, pull, or push when you are ready.</p>
       </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="4" y="4" width="16" height="16" rx="2" ry="2"></rect>
+            <rect x="9" y="9" width="6" height="6"></rect>
+            <line x1="9" y1="1" x2="9" y2="4"></line>
+            <line x1="15" y1="1" x2="15" y2="4"></line>
+            <line x1="9" y1="20" x2="9" y2="23"></line>
+            <line x1="15" y1="20" x2="15" y2="23"></line>
+            <line x1="20" y1="9" x2="23" y2="9"></line>
+            <line x1="20" y1="14" x2="23" y2="14"></line>
+            <line x1="1" y1="9" x2="4" y2="9"></line>
+            <line x1="1" y1="14" x2="4" y2="14"></line>
+          </svg>
+        </div>
+        <h3>AI Copilot for Your Repos</h3>
+        <p>Ask questions about your code, understand changes, and draft commit messages with a local model. Keep the final decisions in your hands.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"></path>
+            <path d="m9 12 2 2 4-4"></path>
+          </svg>
+        </div>
+        <h3>Zero Cloud Telemetry</h3>
+        <p>Git Mate does not connect to any analytics or cloud databases. Your code, secrets, commit history, and diffs remain strictly on your local disk.</p>
+      </div>
+
+      <div class="feature-card">
+        <div class="feature-icon">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="16 18 22 12 16 6"></polyline>
+            <polyline points="8 6 2 12 8 18"></polyline>
+          </svg>
+        </div>
+        <h3>100% Free & Open Source</h3>
+        <p>Use the full workspace without a subscription. Explore the source, adapt it to your workflow, or contribute on GitHub under the MIT license.</p>
+      </div>
     </div>
   </section>
 
-  <!-- Local AI Architecture Section -->
-  <section id="architecture" class="architecture-section">
+  <!-- AI Copilot possibilities -->
+  <section id="architecture" class="architecture-section" aria-labelledby="copilot-heading">
     <div class="architecture-box">
-      <div class="section-badge">Under the Hood</div>
-      <h2 class="section-title">Commit suggestions, kept on your Mac</h2>
-      <p class="architecture-desc">
-        Start with built-in suggestions, or connect a local AI model. Your staged changes stay on your machine, and you stay in control of the final commit.
-      </p>
-
-      <div class="arch-flow">
-        <div class="arch-step">
-          <div class="step-num">1</div>
-          <h4>Built-In Suggestions</h4>
-          <p>Local rules draft a message from your staged files and diffs. No model download or API key required.</p>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div class="arch-step">
-          <div class="step-num">2</div>
-          <h4>Optional Local AI</h4>
-          <p>Git Mate detects Ollama and LM Studio on your Mac so you can draft messages with your own local model.</p>
-        </div>
-        <div class="arch-arrow">→</div>
-        <div class="arch-step">
-          <div class="step-num">3</div>
-          <h4>Review & Commit</h4>
-          <p>Review the suggested message, adjust its type and wording, then commit your staged changes with Git.</p>
-        </div>
+      <div class="section-badge">Meet your AI Copilot</div>
+      <h2 id="copilot-heading" class="section-title">A little context. A clearer next step.</h2>
+      <p class="architecture-desc">Ask about your repository, make sense of a diff, or find the words for your next commit. Copilot uses your local project context to help you move forward.</p>
+      <p class="copilot-example-label">Example Copilot conversations</p>
+      <div class="copilot-examples">
+        <article class="copilot-example"><h3 class="example-use-case">Understand your code</h3><div class="example-app-panel">
+          <div class="example-app-header"><span class="example-app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg></span><span>AI Copilot</span><span class="example-model">On-device</span></div><div class="example-mode-tabs"><span class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 12h5m8 0h5"/></svg>Commit</span><span class="selected"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg>Chat</span></div>
+          <div class="example-repo-toolbar"><span>Git Mate</span><span class="example-toolbar-icons" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6m3-3v6l4 2"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></div>
+          <div class="example-conversation"><p class="example-question">Where does the app remember panel widths?</p><div class="example-answer"><div class="example-reply-header"><span class="example-speaker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg>Copilot</span><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4"/></svg></span></div><p>The workspace stores panel widths in <code>localStorage</code> and restores them when you open the app.</p><details class="example-source"><summary>Sources · 1</summary><p>Git Mate: src/App.tsx</p></details></div></div>
+          <div class="example-composer" aria-hidden="true"><div class="example-composer-box"><span>Ask about this repository…</span><div class="example-composer-footer"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h5m4 0h9M3 18h9m4 0h5"/><circle cx="10" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>Git Mate</span><span class="example-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span></div></div></div>
+        </div><p class="example-caption">Find your way through an unfamiliar project.</p></article>
+        <article class="copilot-example"><h3 class="example-use-case">Review your changes</h3><div class="example-app-panel">
+          <div class="example-app-header"><span class="example-app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg></span><span>AI Copilot</span><span class="example-model">On-device</span></div><div class="example-mode-tabs"><span class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 12h5m8 0h5"/></svg>Commit</span><span class="selected"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg>Chat</span></div>
+          <div class="example-repo-toolbar"><span>Git Mate</span><span class="example-toolbar-icons" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7M3 3v6h6m3-3v6l4 2"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M12 5v14M5 12h14"/></svg></span></div>
+          <div class="example-conversation"><p class="example-question">What should I check before committing this diff?</p><div class="example-answer"><div class="example-reply-header"><span class="example-speaker"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg>Copilot</span><span aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="9" y="9" width="12" height="12" rx="2"/><path d="M15 9V5a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v8a2 2 0 0 0 2 2h4"/></svg></span></div><p>The default panels are wider. Check that the center pane still fits on smaller windows and that saved widths still restore.</p><details class="example-source"><summary>Sources · 1</summary><p>Git Mate: staged diff</p></details></div></div>
+          <div class="example-composer" aria-hidden="true"><div class="example-composer-box"><span>Ask about this repository…</span><div class="example-composer-footer"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M3 6h5m4 0h9M3 18h9m4 0h5"/><circle cx="10" cy="6" r="2"/><circle cx="14" cy="18" r="2"/></svg>Git Mate</span><span class="example-send"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m22 2-7 20-4-9-9-4Z"/><path d="M22 2 11 13"/></svg></span></div></div></div>
+        </div><p class="example-caption">Get another perspective before you commit.</p></article>
+        <article class="copilot-example"><h3 class="example-use-case">Draft your commit</h3><div class="example-app-panel">
+          <div class="example-app-header"><span class="example-app-icon"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg></span><span>AI Copilot</span><span class="example-model">On-device</span></div><div class="example-mode-tabs"><span class="selected"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 12h5m8 0h5"/></svg>Commit</span><span class=""><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg>Chat</span></div>
+          <div class="example-commit-body"><span class="example-generate">ϟ &nbsp; Generate Commit Message</span><div><span class="example-types-label">Types</span><div class="example-types"><span>feat</span><span>fix</span><span>refactor</span><span>docs</span><span>chore</span></div></div><div><div class="example-message-label"><span><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M3 12h5m8 0h5"/></svg> Message</span><span>44/72</span></div><pre class="example-commit"><code>feat(ui): widen the default workspace panels</code></pre><span class="example-generated">ϟ Generated with On-device AI</span></div></div>
+          <div class="example-commit-actions" aria-hidden="true"><span>Commit</span><span>Commit &amp; Push</span></div>
+        </div><p class="example-caption">Start with a draft. Make it your own.</p></article>
       </div>
+      <div class="copilot-local-note"><div><span class="local-note-title">Your model. Your Mac.</span><p>Use an on-device model, Ollama, or LM Studio. Built-in commit suggestions also work without a model.</p></div><span class="copilot-control-note">Chat is read-only.<br/>You review and run Git actions.</span></div>
     </div>
   </section>
 
@@ -645,13 +602,13 @@
         <h2>Get Git Mate for macOS</h2>
         <p>A clear view of your repositories.<br/>A little help with your next commit.</p>
         <div class="download-buttons">
-          <a href="https://github.com/artemsvit/Gitler/releases/download/v1.2.0/GitMate-1.2.0-arm64.dmg" class="btn btn-primary btn-large" data-release-download>
+          <a href="https://github.com/artemsvit/GitMate/releases/download/v1.3.0/GitMate-1.3.0-arm64.dmg" class="btn btn-primary btn-large" data-release-download>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>
             Download for macOS (.dmg)
           </a>
         </div>
-        <div class="download-meta"><span data-release-version>v1.2.0</span><span>Apple Silicon</span><span>Free & open source</span></div>
-        <a class="release-link" href="https://github.com/artemsvit/Gitler/releases/latest" target="_blank" rel="noreferrer">Release notes <span aria-hidden="true">↗</span></a>
+        <div class="download-meta"><span data-release-version>v1.3.0</span><span>Apple Silicon</span><span>Free & open source</span></div>
+        <a class="release-link" href="https://github.com/artemsvit/GitMate/releases/latest" target="_blank" rel="noreferrer">Release notes <span aria-hidden="true">↗</span></a>
       </div>
       <div class="download-setup">
         <div class="setup-heading">From download to first commit</div>
@@ -674,9 +631,9 @@
       <div class="footer-links">
         <a href="privacy.html">Privacy Policy</a>
         <a href="terms.html">Terms of Service</a>
-        <a href="https://github.com/artemsvit/Gitler" target="_blank" rel="noreferrer">GitHub</a>
-        <a href="https://github.com/artemsvit/Gitler/releases" target="_blank" rel="noreferrer">Releases</a>
-        <a href="https://github.com/artemsvit/Gitler/issues" target="_blank" rel="noreferrer">Issues</a>
+        <a href="https://github.com/artemsvit/GitMate" target="_blank" rel="noreferrer">GitHub</a>
+        <a href="https://github.com/artemsvit/GitMate/releases" target="_blank" rel="noreferrer">Releases</a>
+        <a href="https://github.com/artemsvit/GitMate/issues" target="_blank" rel="noreferrer">Issues</a>
       </div>
     </div>
   </footer>

@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Cpu, Download, HardDrive, Pause, RefreshCw, Server, Trash2, Check } from 'lucide-react';
 import { cn } from '../cn';
 import { Dropdown } from './Dropdown';
+import { ProgressBar } from './ProgressBar';
 import { apiFetch } from '../api';
 import { LocalAIStatus } from '../types';
 import { friendlyModelName, notifyModelChanged, readAIMode, readExternalChoice, setAIMode, setExternalChoice, type AIMode, type ExternalChoice } from '../aiEngine';
@@ -104,7 +105,7 @@ export function AIModelSettings({ onChanged }: { onChanged: () => void }) {
               </div>
             </div>
             {(downloading || (model.downloaded > 0 && !installed)) && <div className="space-y-1">
-              <progress aria-label={`${model.label} download progress`} className="w-full h-1.5 accent-[var(--accent-violet)]" value={model.downloaded} max={model.size} />
+              <ProgressBar label={`${model.label} download progress`} value={model.downloaded} max={model.size} />
               <p className="text-[10px] text-[var(--text-muted)] tabular-nums">{model.state === 'verifying' ? 'Checking file…' : model.state === 'downloading' ? 'Downloading' : 'Paused'} · {gb(model.downloaded)} / {gb(model.size)} GB</p>
             </div>}
             {!model.fits && <p className="text-[10px] text-[var(--text-muted)]">This Mac has {list.memoryGB} GB memory, so this model is not available.</p>}

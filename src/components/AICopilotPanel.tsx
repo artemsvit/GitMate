@@ -5,6 +5,10 @@ import { PushResults } from './PushResults';
 import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
 import { readAIMode, readExternalChoice, useAIEngine } from '../aiEngine';
+import { ModelSetupCard, useModelStatus } from './ModelSetupCard';
+
+// Commit messages run on the same local model as Chat, so the Commit tab offers the same download.
+function CommitModelCard() { const { model, setModel } = useModelStatus(); return <ModelSetupCard model={model} onChange={setModel} purpose="commit" />; }
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Sparkles,
@@ -263,6 +267,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         </button>
 
         {!hasStagedChanges && <p className="text-xs text-[var(--text-muted)]">Stage changes before generating a message or committing.</p>}
+        {engine.mode === 'embedded' && <CommitModelCard />}
 
         {/* AI source tag if generated */}
         {aiResult && (

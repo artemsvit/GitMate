@@ -108,7 +108,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       {/* Top Header: Brand, Version Tag, Theme Switcher & Settings */}
       <div
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
-        className="h-12 pl-[78px] pr-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-canvas)] select-none"
+        className="h-12 pl-[92px] pr-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-canvas)] select-none"
       >
         <div className="flex items-center gap-2.5" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
           <div className="w-6 h-6 rounded-md bg-[var(--bg-surface)] border border-[var(--border-subtle)] flex items-center justify-center text-[var(--accent-violet)]">

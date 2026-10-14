@@ -246,6 +246,8 @@ a {
    Mockup Section
    ========================================================================== */
 .mockup-section {
+  position: relative;
+  isolation: isolate;
   --preview-sidebar-width: clamp(280px, 20vw, 320px);
   --preview-copilot-width: clamp(280px, 22vw, 360px);
   width: calc(100% - 64px);
@@ -253,12 +255,25 @@ a {
   margin: 44px auto 110px;
 }
 
+.mockup-section::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  pointer-events: none;
+  top: -80px;
+  left: 8%;
+  width: 84%;
+  height: 200px;
+  background: radial-gradient(ellipse at center, rgba(203, 176, 247, 0.16), rgba(203, 176, 247, 0.05) 45%, transparent 72%);
+  filter: blur(24px);
+}
+
 .mockup-frame {
   background: var(--bg-graphite);
   border: 1px solid var(--border-carbon);
   border-radius: 16px;
   overflow: hidden;
-  box-shadow: 0 25px 60px rgba(0, 0, 0, 0.8), 0 0 1px 1px rgba(203, 176, 247, 0.1);
+  box-shadow: none;
 }
 
 /* 3-Column Aligned Topbar (macOS Integrated Window Header) */
@@ -1212,22 +1227,6 @@ a {
   font-size: 15px;
 }
 
-.arch-flow {
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 20px;
-}
-
-.arch-step {
-  flex: 1;
-  background: var(--bg-card);
-  border: 1px solid var(--border-carbon);
-  border-radius: 14px;
-  padding: 24px;
-  text-align: left;
-}
-
 .step-num {
   width: 26px;
   height: 26px;
@@ -1241,23 +1240,6 @@ a {
   align-items: center;
   justify-content: center;
   margin-bottom: 12px;
-}
-
-.arch-step h4 {
-  font-size: 15px;
-  font-weight: 700;
-  margin-bottom: 8px;
-}
-
-.arch-step p {
-  font-size: 12px;
-  color: var(--text-secondary);
-  line-height: 1.5;
-}
-
-.arch-arrow {
-  color: var(--text-muted);
-  font-size: 20px;
 }
 
 /* ==========================================================================
@@ -1388,7 +1370,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-violet);
 }
 @media (max-width: 1000px) {
   .grid-features { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .grid-features .feature-card:last-child { grid-column: 1 / -1; }
   .download-card { padding: 36px; gap: 28px; }
   .download-setup { padding-left: 28px; }
 }
@@ -1398,8 +1379,6 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-violet);
 }
 @media (max-width: 900px) {
   .hero-title { font-size: 42px; }
-  .arch-flow { flex-direction: column; align-items: stretch; gap: 12px; }
-  .arch-arrow { transform: rotate(90deg); text-align: center; }
   .download-card { grid-template-columns: 1fr; gap: 32px; }
   .download-setup { border-left: 0; border-top: 1px solid var(--border-carbon); padding: 28px 0 0; }
   .footer-container { flex-direction: column; align-items: flex-start; gap: 20px; }
@@ -1459,4 +1438,64 @@ a:focus-visible, button:focus-visible { outline: 2px solid var(--accent-violet);
   .reveal-enter { animation: none; }
   .btn, .nav-btn-primary, .feature-card { transition: none; }
   .btn:hover, .btn:active, .nav-btn-primary:hover, .nav-btn-primary:active, .feature-card:hover { transform: none; }
+}
+
+/* Copilot previews follow AICopilotPanel and CopilotChat app tokens. */
+.architecture-box .section-title { margin-bottom: 16px; }
+.copilot-example-label { color: var(--text-muted); font-size: 11px; font-family: 'Geist Mono', monospace; text-align: left; margin-bottom: 20px; }
+.copilot-examples { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 18px; text-align: left; }
+.copilot-example { min-width: 0; display: flex; flex-direction: column; }
+.example-use-case { font-size: 15px; font-weight: 600; margin-bottom: 14px; }
+.example-app-panel { --app-surface: #121212; --app-border: #1e1e1d; --app-muted: #868684; display: flex; flex-direction: column; flex: 1; min-width: 0; background: #000; border: 1px solid #333; border-radius: 12px; overflow: hidden; color: #faf9f6; }
+.example-app-panel svg { width: 14px; height: 14px; flex-shrink: 0; }
+.example-app-header { height: 48px; padding: 0 16px; display: flex; align-items: center; gap: 8px; background: var(--app-surface); border-bottom: 1px solid var(--app-border); font-size: 12px; font-weight: 600; }
+.example-app-icon { display: flex; align-items: center; justify-content: center; width: 24px; height: 24px; border: 1px solid #333; border-radius: 6px; color: var(--accent-violet); }
+.example-model { font-size: 10px; font-weight: 400; padding: 2px 8px; border: 1px solid #333; border-radius: 50px; background: #000; color: var(--app-muted); }
+.example-mode-tabs { height: 40px; padding: 0 16px; display: flex; gap: 24px; border-bottom: 1px solid var(--app-border); }
+.example-mode-tabs > span { display: flex; align-items: center; gap: 8px; color: var(--app-muted); font-size: 12px; font-weight: 500; border-bottom: 2px solid transparent; }
+.example-mode-tabs > .selected { color: #faf9f6; border-bottom-color: var(--accent-violet); }
+.example-repo-toolbar { display: flex; justify-content: space-between; align-items: center; padding: 8px 16px; border-bottom: 1px solid var(--app-border); font-size: 11px; color: var(--app-muted); }
+.example-toolbar-icons { display: flex; gap: 14px; }
+.example-conversation { display: flex; flex-direction: column; gap: 16px; padding: 16px; flex: 1; min-height: 280px; }
+.example-question { align-self: flex-end; max-width: 90%; padding: 10px 12px; background: var(--app-surface); border: 1px solid var(--app-border); border-radius: 16px; font-size: 12px; line-height: 1.625; }
+.example-answer { font-size: 12px; line-height: 1.625; }
+.example-reply-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px; color: var(--app-muted); }
+.example-speaker { display: flex; align-items: center; gap: 6px; font-size: 10px; font-weight: 500; }
+.example-speaker svg { width: 12px; height: 12px; color: var(--accent-violet); }
+.example-answer code { font-size: 11px; overflow-wrap: anywhere; }
+.example-source { color: var(--app-muted); font-size: 10px; margin-top: 8px; }
+.example-source summary { cursor: pointer; }
+.example-source p { margin-top: 4px; overflow-wrap: anywhere; }
+.example-composer { border-top: 1px solid var(--app-border); padding: 12px 16px 16px; }
+.example-composer-box { background: var(--app-surface); border: 1px solid #333; border-radius: 16px; padding: 12px; color: var(--app-muted); font-size: 12px; }
+.example-composer-footer { display: flex; align-items: center; justify-content: space-between; margin-top: 38px; }
+.example-composer-footer > span { display: flex; align-items: center; gap: 6px; font-size: 10px; }
+.example-composer-footer .example-send { width: 28px; height: 28px; justify-content: center; border-radius: 50%; background: #fff; color: #080808; opacity: 0.3; }
+.example-commit-body { display: grid; gap: 16px; padding: 16px; }
+.example-generate { display: block; background: #fff; color: #080808; padding: 10px 8px; border-radius: 33px; text-align: center; font-size: 12px; font-weight: 600; }
+.example-types-label { display: block; color: var(--app-muted); font-size: 9px; text-transform: uppercase; letter-spacing: 0.1em; font-weight: 700; margin-bottom: 8px; }
+.example-types { display: flex; flex-wrap: wrap; gap: 4px; }
+.example-types span { border: 1px solid #333; border-radius: 50px; padding: 2px 10px; font-size: 10px; font-family: 'Geist Mono', monospace; color: var(--app-muted); }
+.example-message-label { display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px; font-size: 11px; }
+.example-message-label > span { display: flex; align-items: center; gap: 4px; }
+.example-message-label > span:last-child { color: var(--app-muted); font-family: 'Geist Mono', monospace; font-size: 10px; }
+.example-commit { background: var(--app-surface); border: 1px solid #333; border-radius: 12px; padding: 12px; min-height: 100px; white-space: pre-wrap; font-size: 12px; line-height: 1.625; overflow-wrap: anywhere; }
+.example-generated { display: block; color: var(--accent-violet); font-size: 10px; font-family: 'Geist Mono', monospace; margin-top: 6px; }
+.example-commit-actions { display: flex; gap: 8px; margin-top: auto; padding: 16px; }
+.example-commit-actions span { flex: 1; border: 1px solid #333; border-radius: 33px; text-align: center; padding: 10px 6px; font-size: 11px; color: #b4b4b2; }
+.example-commit-actions span:last-child { background: #fff; color: #080808; font-weight: 600; }
+.example-caption { padding-top: 12px; font-size: 11px; color: var(--text-secondary); }
+.copilot-local-note { display: flex; justify-content: space-between; align-items: center; gap: 32px; margin-top: 28px; padding-top: 24px; border-top: 1px solid var(--border-carbon); text-align: left; }
+.local-note-title { font-size: 14px; font-weight: 600; }
+.copilot-local-note p { color: var(--text-secondary); font-size: 12px; max-width: 570px; margin-top: 6px; line-height: 1.7; }
+.copilot-control-note { color: var(--text-muted); font-size: 11px; line-height: 1.7; flex-shrink: 0; }
+@media (max-width: 1000px) {
+  .copilot-examples { grid-template-columns: 1fr; }
+  .example-conversation { min-height: 0; }
+  .example-app-panel { min-height: 480px; }
+}
+@media (max-width: 640px) {
+  .copilot-local-note { flex-direction: column; align-items: flex-start; gap: 16px; }
+  .example-use-case { font-size: 15px; }
+  .copilot-example-label { font-size: 10px; }
 }
