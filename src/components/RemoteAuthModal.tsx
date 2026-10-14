@@ -488,7 +488,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                   <ShieldCheck className="w-3.5 h-3.5 text-[var(--accent-violet)]" />
                   <span>Alternative: Personal Access Token (HTTP)</span>
                 </div>
-                {!isGitHub && !isGitLab && <select aria-label="Token provider" value={tokenProvider} onChange={event => setTokenProvider(event.target.value as 'github' | 'gitlab' | 'gitea')} className="bg-[var(--bg-canvas)] border rounded p-1"><option value="gitea">Gitea / Forgejo</option><option value="gitlab">GitLab</option></select>}
+                {!isGitHub && !isGitLab && <div className="w-44"><Dropdown label="Token provider" value={tokenProvider} onChange={value => setTokenProvider(value as 'github' | 'gitlab' | 'gitea')} options={[{ value: 'gitea', label: 'Gitea / Forgejo' }, { value: 'gitlab', label: 'GitLab' }]} /></div>}
                 <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Git Mate account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
                 <div className="flex items-center gap-2">
                   <input
@@ -561,7 +561,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                     <ExternalLink className="w-2.5 h-2.5" />
                   </a>
                 </div>
-                {!isGitHub && !isGitLab && <select aria-label="Token provider" value={tokenProvider} onChange={event => setTokenProvider(event.target.value as 'github' | 'gitlab' | 'gitea')} className="bg-[var(--bg-canvas)] border rounded p-1"><option value="gitea">Gitea / Forgejo</option><option value="gitlab">GitLab</option></select>}
+                {!isGitHub && !isGitLab && <div className="w-44"><Dropdown label="Token provider" value={tokenProvider} onChange={value => setTokenProvider(value as 'github' | 'gitlab' | 'gitea')} options={[{ value: 'gitea', label: 'Gitea / Forgejo' }, { value: 'gitlab', label: 'GitLab' }]} /></div>}
                 <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Git Mate account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
                 <div className="flex items-center gap-2">
                   <input

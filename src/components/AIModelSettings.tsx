@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Cpu, Download, HardDrive, Pause, RefreshCw, Server, Trash2, Check } from 'lucide-react';
 import { cn } from '../cn';
+import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
 import { LocalAIStatus } from '../types';
 import { friendlyModelName, notifyModelChanged, readAIMode, readExternalChoice, setAIMode, setExternalChoice, type AIMode, type ExternalChoice } from '../aiEngine';
@@ -122,15 +123,12 @@ export function AIModelSettings({ onChanged }: { onChanged: () => void }) {
         </div>
         <button type="button" onClick={loadExternal} disabled={checking} className="flex items-center gap-1.5 px-3 py-1 rounded-full border border-[var(--border-interactive)] bg-[var(--bg-surface)] text-[11px] text-[var(--text-primary)] hover:bg-[var(--bg-card)] disabled:opacity-50"><RefreshCw className={cn('size-3', checking && 'animate-spin')} />Refresh</button>
       </div>
-      {sources.length ? <label className="block space-y-1">
-        <span className="text-[10px] text-[var(--text-muted)]">Model</span>
-        <select value={selectedExternal} onChange={event => chooseExternal(event.target.value)} className="w-full bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-lg px-2.5 py-1.5 text-xs text-[var(--text-primary)]">
-          <option value="" disabled>Choose a model</option>
-          {sources.map(source => <optgroup key={source.provider} label={providerName[source.provider]}>
-            {source.models.map(model => <option key={model} value={`${source.provider}::${model}`}>{friendlyModelName(model)} — {model}</option>)}
-          </optgroup>)}
-        </select>
-      </label> : <p className="text-[11px] text-[var(--text-muted)] text-pretty">{checking ? 'Looking for LM Studio and Ollama…' : 'No running server found. In LM Studio, load a model and start the local server (Developer → Start Server). For Ollama, run it and pull a model. Then press Refresh.'}</p>}
+      {sources.length ? <div className="space-y-1">
+        <span className="block text-[10px] text-[var(--text-muted)]">Model</span>
+        <Dropdown label="LM Studio or Ollama model" value={selectedExternal} onChange={chooseExternal} placeholder="Choose a model" options={sources.flatMap(source => source.models.map(model => ({
+          value: `${source.provider}::${model}`, label: `${friendlyModelName(model)} · ${model}`, group: providerName[source.provider]
+        })))} />
+      </div> : <p className="text-[11px] text-[var(--text-muted)] text-pretty">{checking ? 'Looking for LM Studio and Ollama…' : 'No running server found. In LM Studio, load a model and start the local server (Developer → Start Server). For Ollama, run it and pull a model. Then press Refresh.'}</p>}
       {mode === 'external' && sources.length > 0 && !selectedExternal && <p className="text-[10px] text-amber-500">Choose a model to use LM Studio or Ollama.</p>}
     </section>
     {error && <p role="alert" className="text-[11px] text-rose-500">{error}</p>}

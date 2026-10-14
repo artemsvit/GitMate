@@ -23,19 +23,21 @@ export async function getGraph(repoPath: string, options: { limit?: number; skip
   const limit = Math.min(Math.max(Number(options.limit) || 300, 1), 1000); const skip = Math.max(Number(options.skip) || 0, 0);
   const remotes = (await git.raw(['remote'])).split('\n').filter(Boolean);
   // Full names avoid the short form of refs/remotes/origin/HEAD, which is just "origin".
-  const branches = (await git.raw(['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes'])).split('\n').filter(name => name && !name.endsWith('/HEAD')).map(name => name.replace(/^refs\/(?:heads|remotes)\//, ''));
+  const refs = (await git.raw(['for-each-ref', '--format=%(refname)', 'refs/heads', 'refs/remotes'])).split('\n').filter(name => name && !name.endsWith('/HEAD'));
+  const local = refs.filter(name => name.startsWith('refs/heads/')).map(name => name.slice('refs/heads/'.length));
+  const branches = refs.map(name => name.replace(/^refs\/(?:heads|remotes)\//, ''));
   let head: string | null = null;
   try { head = (await git.raw(['rev-parse', 'HEAD'])).trim(); } catch {}
   if (options.branch && !branches.includes(options.branch)) throw new Error('Unknown branch.');
   // Without a branch filter the graph shows local branches, remote branches, tags, and HEAD, but not stashes.
   const range = options.branch ? ['--end-of-options', options.branch] : ['--branches', '--remotes', '--tags', ...(head ? ['HEAD'] : [])];
-  if (!head && !branches.length) return { commits: [], branches, head, hasMore: false };
+  if (!head && !branches.length) return { commits: [], branches, local, head, hasMore: false };
   const output = await git.raw(['log', '--date-order', `--max-count=${limit + 1}`, `--skip=${skip}`, `--format=%H${field}%P${field}%an${field}%ae${field}%at${field}%s${field}%D${record}`, ...range]);
   const commits: GraphCommit[] = output.split(record).map(entry => entry.replace(/^\n/, '')).filter(Boolean).map(entry => {
     const [hash, parents, author, email, date, subject, decoration] = entry.split(field);
     return { hash, parents: parents ? parents.split(' ') : [], author, email, date: Number(date), subject, refs: parseRefs(decoration || '', remotes) };
   });
-  return { commits: commits.slice(0, limit), branches, head, hasMore: commits.length > limit };
+  return { commits: commits.slice(0, limit), branches, local, head, hasMore: commits.length > limit };
 }
 
 export async function getCommitDetails(repoPath: string, hash: string) {

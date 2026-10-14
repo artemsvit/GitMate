@@ -4,6 +4,7 @@ import { cn } from '../cn';
 import { apiFetch } from '../api';
 import { layoutGraph, type LayoutRow } from '../graphLayout';
 import { DiffViewer } from './DiffViewer';
+import { Dropdown } from './Dropdown';
 
 interface Ref { name: string; type: 'head' | 'branch' | 'remote' | 'tag' }
 interface Commit { hash: string; parents: string[]; author: string; email: string; date: number; subject: string; refs: Ref[] }
@@ -43,6 +44,7 @@ function RefBadge({ item, current }: { item: Ref; current: boolean }) {
 export function GitGraph({ repoPath }: { repoPath: string }) {
   const [commits, setCommits] = useState<Commit[]>([]);
   const [branches, setBranches] = useState<string[]>([]);
+  const [local, setLocal] = useState<string[]>([]);
   const [branch, setBranch] = useState('');
   const [hasMore, setHasMore] = useState(false);
   const [loading, setLoading] = useState(false);
@@ -57,7 +59,7 @@ export function GitGraph({ repoPath }: { repoPath: string }) {
     try {
       const res = await apiFetch(`/api/repos/graph?path=${encodeURIComponent(repoPath)}&limit=${PAGE}&skip=${skip}${branch ? `&branch=${encodeURIComponent(branch)}` : ''}`);
       const data = await res.json(); if (!res.ok) throw new Error(data.error);
-      setCommits(previous => skip ? [...previous, ...data.commits] : data.commits); setBranches(data.branches); setHasMore(data.hasMore);
+      setCommits(previous => skip ? [...previous, ...data.commits] : data.commits); setBranches(data.branches); setLocal(data.local || []); setHasMore(data.hasMore);
     } catch (err: any) { setError(err.message || 'Could not read the commit graph.'); } finally { setLoading(false); }
   }, [repoPath, branch]);
   useEffect(() => { setSelected(null); setFile(null); void load(0); }, [load]);
@@ -82,10 +84,13 @@ export function GitGraph({ repoPath }: { repoPath: string }) {
 
   return <div className="flex-1 min-h-0 flex flex-col bg-[var(--bg-canvas)]">
     <div className="px-5 py-2.5 flex items-center gap-2 border-b border-[var(--border-subtle)] shrink-0">
-      <select aria-label="Branches shown" value={branch} onChange={event => setBranch(event.target.value)} className="max-w-[14rem] bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-full px-3 py-1.5 text-[11px] text-[var(--text-primary)]">
-        <option value="">All branches</option>
-        {branches.map(name => <option key={name} value={name}>{name}</option>)}
-      </select>
+      <div className="w-56 shrink-0">
+        <Dropdown label="Branches shown" value={branch} onChange={setBranch} options={[
+          { value: '', label: 'All branches' },
+          ...local.map(name => ({ value: name, label: name, group: 'Local' })),
+          ...branches.filter(name => !local.includes(name)).map(name => ({ value: name, label: name, group: name.split('/')[0] }))
+        ]} />
+      </div>
       <label className="flex-1 max-w-sm flex items-center gap-2 bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-full px-3 py-1.5 focus-within:border-[var(--accent-violet)]">
         <Search className="size-3 text-[var(--text-muted)] shrink-0" />
         <input aria-label="Find commits" value={query} onChange={event => setQuery(event.target.value)} placeholder="Find message, author, hash, branch" className="flex-1 min-w-0 bg-transparent text-[11px] text-[var(--text-primary)] placeholder:text-[var(--text-muted)] focus:outline-none" />
