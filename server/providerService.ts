@@ -227,6 +227,17 @@ async function keyAlreadyRegistered(provider: string, instance: string, token: s
   return Array.isArray(keys) && keys.some(key => typeof key.key === 'string' && key.key.trim().split(/\s+/).slice(0, 2).join(' ') === fingerprint);
 }
 
+function gitLabVerificationError(status: number, body: string): Error {
+  let permissionError = false;
+  try { permissionError = JSON.parse(body).error === 'insufficient_granular_scope'; } catch {}
+  if (status === 403 && permissionError) {
+    return new Error('GitLab account verification needs User → Read permission. Create a fine-grained personal access token with User → User → Read under Add resource permissions, then reconnect. Repository and SSH-key permissions are separate.');
+  }
+  if (status === 401) return new Error('GitLab rejected this token. Check that it is complete, has not expired, and belongs to this GitLab server.');
+  if (status === 403) return new Error('GitLab denied account verification. Use a fine-grained personal access token with User → Read permission and check your server’s access policy.');
+  return new Error(`GitLab verification failed (HTTP ${status}). Check the server URL and try again.`);
+}
+
 export async function connectProvider(params: {
   provider: 'github' | 'gitlab' | 'gitea';
   token: string;
@@ -284,7 +295,7 @@ export async function connectProvider(params: {
 
     if (!res.ok) {
       const errText = await res.text();
-      throw new Error(`GitLab verification failed (${res.status}): ${errText || 'Invalid token or unreachable host.'}`);
+      throw gitLabVerificationError(res.status, errText);
     }
 
     const data: any = await res.json();
@@ -505,7 +516,7 @@ export async function testProviderConnection(provider: 'github' | 'gitlab' | 'gi
     const response = await universalFetch(endpoint, { headers });
     if (response.status === 401 || response.status === 403) {
       return { reachable: true, authenticated: false, state: token ? 'authorization_failed' : 'sign_in_required',
-        message: token ? 'Server reached. Your token was rejected or lacks permission. Reconnect with a valid token.' : 'Server reached. Connect your account to verify private repository access.' };
+        message: token ? (provider === 'gitlab' ? gitLabVerificationError(response.status, await response.text()).message : 'Server reached. Your token was rejected or lacks permission. Reconnect with a valid token.') : 'Server reached. Connect your account to verify private repository access.' };
     }
     if (!response.ok) return { reachable: true, authenticated: false, state: 'server_error', message: `Server reached, but the provider API returned HTTP ${response.status}. Check the server URL.` };
     let data: any;

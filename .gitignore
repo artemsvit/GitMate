@@ -10,3 +10,13 @@ dist
 release
 server/index.cjs
 build/*.p12
+
+# Local tools, previews, and private signing material
+/.claude/
+/output/
+*.pfx
+*.keychain
+*.keychain-db
+*.mobileprovision
+id_rsa
+id_ed25519

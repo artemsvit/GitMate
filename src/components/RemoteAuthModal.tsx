@@ -490,6 +490,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                 </div>
                 {!isGitHub && !isGitLab && <div className="w-44"><Dropdown label="Token provider" value={tokenProvider} onChange={value => setTokenProvider(value as 'github' | 'gitlab' | 'gitea')} options={[{ value: 'gitea', label: 'Gitea / Forgejo' }, { value: 'gitlab', label: 'GitLab' }]} /></div>}
                 <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Git Mate account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
+                {(isGitLab || (!isGitHub && tokenProvider === 'gitlab')) && <p className="text-xs text-[var(--text-muted)]">For GitLab account verification, use a fine-grained token with User → Read permission. Also grant Git repository access for the projects you want to fetch or push.</p>}
                 <div className="flex items-center gap-2">
                   <input
                     type="password"

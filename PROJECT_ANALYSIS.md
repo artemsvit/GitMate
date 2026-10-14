@@ -4,7 +4,7 @@ Reviewed on 12 October 2026. Source: [artemsvit/GitMate](https://github.com/arte
 
 ## Setup completed
 
-- Local checkout: `/Users/artsvit/Develop/Gitler`.
+- Local checkout: `~/Projects/GitMate`.
 - Branch: `master`. Commit: `3063fa8cff9698291865053e5a49faf4fc42f936`.
 - Full Git history fetched: 33 commits. All advertised branches and tags fetched. The remote currently has one branch and no tags. No submodules or Git LFS configuration were found.
 - Installed project dependencies with Node 26.7.0 and npm 11.19.0.
@@ -134,7 +134,7 @@ Use a minimum workspace width and collapse secondary panels when needed. React D
 ## Local development
 
 ```sh
-cd /Users/artsvit/Develop/Gitler
+cd ~/Projects/GitMate
 npm run dev
 ```
 

@@ -1092,7 +1092,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                   ) : connectModalProvider === 'github' ? (
                     <>Create a Personal Access Token with <code className="text-[var(--accent-violet)]">repo</code> and <code className="text-[var(--accent-violet)]">read:user</code> scopes.</>
                   ) : (
-                    <>In GitLab, go to <strong>User Settings &rarr; Access Tokens</strong> and create a token with <code className="text-[var(--accent-violet)]">api</code> scope.</>
+                    <>Create a fine-grained personal access token. Under <strong>Add resource permissions → User</strong>, select the <strong>User</strong> resource and <strong>Read</strong> permission for account verification. Repository access and SSH-key setup need separate permissions.</>
                   )}
                 </p>
                 <a

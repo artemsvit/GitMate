@@ -27,6 +27,8 @@ For local servers, macOS may ask for **Local Network** permission on the first c
 
 Provider requests verify TLS certificates and reject redirects to other origins before forwarding a token. Packaged executables use a stable app-specific UUID to support macOS permission tracking.
 
+For GitLab, create a fine-grained personal access token. Under **Add resource permissions → User**, choose the **User** resource and **Read** permission. Git Mate uses `GET /api/v4/user` to verify your account. A token limited to project or repository access can fail this check with `insufficient_granular_scope`. Grant repository permissions separately for the projects you want to fetch or push; SSH-key management also requires its own permissions.
+
 ## Sync and working-tree previews
 
 Git Mate opens maximized. Choose **Sync remote** before fetching or pulling, and choose a single **Push destination** before pushing. A remote can have a fetch URL and several push URLs on different servers; these are shown separately. Pull follows the selected remote and uses a fast-forward, so it does not silently merge diverged history.
@@ -66,3 +68,13 @@ If a release-tooling fix is needed after tagging, dispatch the release workflow 
 To rebuild an existing release with a source fix, dispatch the workflow with its existing `tag` and the full commit SHA as `source_ref`. The package version must still match the tag. The workflow replaces the release files only after signing, notarization, and distribution validation pass. This does not move the tag or create a new version. Users already on that version must reinstall to receive the rebuilt app; automatic updates require a newer version.
 
 The desktop runtime is pinned to Electron 43.7.9 to retain macOS 12 support. Packaging checks the actual Mach-O deployment targets of the executable and Electron framework; a runtime requiring a newer system stops the build. The Copilot native model runtime requires macOS 14 and is loaded only when Chat is supported.
+
+## Public repository hygiene
+
+Keep account tokens, private SSH keys, signing certificates, passwords, local app data, and private screenshots outside the repository. Credential templates must contain examples only. Review `git diff --cached` before committing; ignore rules do not remove files that are already staged or tracked.
+
+The Secret scan workflow checks Git history on pushes and pull requests with a checksum-verified Gitleaks release. Findings are redacted. Release credentials are supplied only to the steps that need them; dependency installation and ordinary builds do not receive Apple secrets.
+
+To avoid publishing your personal email in future commits, copy your exact GitHub noreply address from **GitHub Settings → Emails** and use it as the author and committer email. This does not change old commits. Removing personal data from existing history needs a separate plan because it changes commit IDs and can affect release tags and other clones.
+
+If a real credential is exposed, revoke or rotate it first. Deleting the file or adding an ignore rule does not invalidate the credential or remove historical copies. Follow [GitHub’s sensitive-data removal guidance](https://docs.github.com/en/authentication/keeping-your-account-and-data-secure/removing-sensitive-data-from-a-repository).

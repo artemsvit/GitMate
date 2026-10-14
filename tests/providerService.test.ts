@@ -12,7 +12,7 @@ const testConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-provider-
 process.env.GITMATE_CONFIG_DIR = testConfigDir;
 after(() => fs.rm(testConfigDir, { recursive: true, force: true }));
 const { readProvidersConfig, writeProvidersConfig, getProvidersStatus, disconnectProvider,
-  httpRequest, universalFetch, testProviderConnection, describeNetworkError } = await import('../server/providerService');
+  httpRequest, universalFetch, testProviderConnection, describeNetworkError, connectProvider } = await import('../server/providerService');
 
 test('providerService persists and sanitizes provider configuration', async t => {
   const initial = readProvidersConfig();
@@ -111,4 +111,46 @@ test('HTTPS transport rejects an untrusted server certificate', async t => {
   await new Promise<void>(resolve => server.once('listening', resolve));
   t.after(() => new Promise<void>(resolve => server.close(() => resolve())));
   await assert.rejects(httpRequest(`https://127.0.0.1:${(server.address() as any).port}`), /self.signed certificate/i);
+});
+
+
+test('GitLab granular permission errors explain the fix without exposing the response or replacing a saved account', async t => {
+  const initial = readProvidersConfig(); t.after(() => writeProvidersConfig(initial));
+  const requests: string[] = [];
+  const url = await serve(t, (req, res) => {
+    requests.push(req.url!); res.writeHead(403, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ error: 'insufficient_granular_scope', error_description: 'User: Read required; fixture-private-response' }));
+  });
+  writeProvidersConfig({ gitlab: { connected: true, token: 'saved-fixture', instanceUrl: url, authMethod: 'token', username: 'saved-user' } });
+  await assert.rejects(connectProvider({ provider: 'gitlab', token: 'replacement-fixture', instanceUrl: url }), error => {
+    assert.match((error as Error).message, /User → Read/);
+    assert.match((error as Error).message, /fine-grained/);
+    assert.doesNotMatch((error as Error).message, /fixture-private-response|insufficient_granular_scope/);
+    return true;
+  });
+  assert.equal(readProvidersConfig().gitlab!.token, 'saved-fixture');
+  const check = await testProviderConnection('gitlab', url);
+  assert.equal(check.state, 'authorization_failed'); assert.match(check.message, /User → Read/);
+  assert.deepEqual(requests, ['/api/v4/user', '/api/v4/user']);
+});
+
+test('GitLab verification failures never echo arbitrary server response bodies', async t => {
+  for (const status of [401, 403, 500]) {
+    const url = await serve(t, (_req, res) => { res.writeHead(status); res.end('fixture-private-response'); });
+    await assert.rejects(connectProvider({ provider: 'gitlab', token: 'fixture', instanceUrl: url }), error => {
+      assert.doesNotMatch((error as Error).message, /fixture-private-response/); return true;
+    });
+  }
+});
+
+test('GitLab account verification succeeds without repository or SSH-key operations', async t => {
+  const initial = readProvidersConfig(); t.after(() => writeProvidersConfig(initial));
+  const requests: string[] = [];
+  const url = await serve(t, (req, res) => {
+    requests.push(`${req.method} ${req.url}`); assert.equal(req.headers.authorization, 'Bearer fixture');
+    res.setHeader('Content-Type', 'application/json'); res.end(JSON.stringify({ username: 'fixture-user', name: 'Fixture User' }));
+  });
+  const result = await connectProvider({ provider: 'gitlab', token: 'fixture', instanceUrl: url });
+  assert.equal(result.account.username, 'fixture-user'); assert.equal((result.account as any).token, undefined);
+  assert.deepEqual(requests, ['GET /api/v4/user']);
 });

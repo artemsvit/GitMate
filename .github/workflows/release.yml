@@ -22,31 +22,39 @@ concurrency:
   group: gitmate-release-${{ github.event.inputs.tag || github.ref_name }}
   cancel-in-progress: false
 jobs:
+  secret-scan:
+    uses: ./.github/workflows/secret-scan.yml
+    permissions:
+      contents: read
   release-macos:
+    needs: secret-scan
     runs-on: macos-14
     env:
       RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
-      APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
-      APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
-      APPLE_ID: ${{ secrets.APPLE_ID }}
-      APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
-      APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
       GITMATE_RELEASE: '1'
     steps:
       - uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.source_ref || github.event.inputs.tag || github.ref }}
+          persist-credentials: false
       - name: Checkout optional release tooling
         if: github.event.inputs.tooling_ref != ''
         uses: actions/checkout@v4
         with:
           ref: ${{ github.event.inputs.tooling_ref }}
           path: .release-tooling
+          persist-credentials: false
       - uses: actions/setup-node@v4
         with:
           node-version: 24
           cache: npm
       - name: Validate release prerequisites
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         shell: bash
         run: |
           set -euo pipefail
@@ -58,7 +66,11 @@ jobs:
       - run: npm ci
       - run: npm run check
       - run: npm run build
+      - run: npm run build:dmg-assets
       - name: Set up ephemeral signing keychain
+        env:
+          APPLE_CERTIFICATE: ${{ secrets.APPLE_CERTIFICATE }}
+          APPLE_CERTIFICATE_PASSWORD: ${{ secrets.APPLE_CERTIFICATE_PASSWORD }}
         shell: bash
         run: |
           set -euo pipefail
@@ -74,11 +86,18 @@ jobs:
           security set-key-partition-list -S apple-tool:,apple: -s -k "$KEYCHAIN_PASSWORD" "$KEYCHAIN_PATH"
           security list-keychains -d user -s "$KEYCHAIN_PATH"
           security find-identity -v -p codesigning "$KEYCHAIN_PATH" | grep 'Developer ID Application'
-      - run: npm run build:dmg-assets
       - name: Sign and notarize Apple Silicon app
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: npx electron-builder --mac dmg zip --arm64 --publish never
       - run: npm run verify:package
       - name: Notarize DMG and finalize hashes
+        env:
+          APPLE_ID: ${{ secrets.APPLE_ID }}
+          APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
+          APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
         run: |
           TOOLING_ROOT="."
           if test -d .release-tooling; then TOOLING_ROOT=".release-tooling"; fi
