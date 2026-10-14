@@ -43,7 +43,7 @@
     "operatingSystem": "macOS",
     "description": "A local Git client for macOS with an on-device AI Copilot for commit messages and repository questions.",
     "url": "https://gitmate.artsvit.com/",
-    "downloadUrl": "https://github.com/artemsvit/GitMate/releases/download/v1.4.0/GitMate-1.4.0-arm64.dmg",
+    "downloadUrl": "https://github.com/artemsvit/GitMate/releases/download/v1.4.1/GitMate-1.4.1-arm64.dmg",
     "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD" }
   }
   </script>
@@ -61,7 +61,7 @@
           </svg>
         </div>
         <span class="brand-name">Git Mate</span>
-        <span class="version-tag">v1.4.0</span>
+        <span class="version-tag">v1.4.1</span>
       </a>
 
       <button class="nav-toggle" type="button" aria-label="Open navigation" aria-expanded="false" aria-controls="site-navigation">
@@ -71,7 +71,7 @@
         <a href="#features">Features</a>
         <a href="#mockup">App Preview</a>
         <a href="#architecture">AI Copilot</a>
-        <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.0/GitMate-1.4.0-arm64.dmg" class="nav-btn-primary" data-release-download>Download .dmg</a>
+        <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.1/GitMate-1.4.1-arm64.dmg" class="nav-btn-primary" data-release-download>Download .dmg</a>
       </nav>
     </div>
   </header>
@@ -91,7 +91,7 @@
     </p>
 
     <div class="hero-actions">
-      <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.0/GitMate-1.4.0-arm64.dmg" class="btn btn-primary" data-release-download>
+      <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.1/GitMate-1.4.1-arm64.dmg" class="btn btn-primary" data-release-download>
         <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
           <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
           <polyline points="7 10 12 15 17 10"></polyline>
@@ -132,7 +132,7 @@
               </svg>
             </div>
             <span class="app-brand-name">Git Mate</span>
-            <span class="app-brand-badge">v1.4.0</span>
+            <span class="app-brand-badge">v1.4.1</span>
           </div>
           <div class="topbar-actions">
             <span class="icon-btn" title="Settings">
@@ -152,14 +152,6 @@
                 <line x1="21" y1="12" x2="23" y2="12"></line>
                 <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
                 <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-              </svg>
-            </span>
-            <span class="icon-btn" title="Rescan">
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-                <path d="M21 2v6h-6"></path>
-                <path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path>
-                <path d="M3 22v-6h6"></path>
-                <path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path>
               </svg>
             </span>
           </div>
@@ -214,6 +206,7 @@
               </svg>
             </div>
             <span class="copilot-brand-title">AI Copilot</span>
+            <span class="copilot-model-tag">On-device AI</span>
           </div>
           <span class="icon-btn" title="Collapse Panel">
             <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="3" rx="2"/><path d="M15 3v18"/><path d="m8 9 3 3-3 3"/></svg>
@@ -232,22 +225,30 @@
               <span>Desktop (16)</span>
               <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
             </div>
-            <span class="icon-btn" title="Browse in Finder">
+            <span class="finder-btn" title="Open Finder">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 14 1.5-2.9A2 2 0 0 1 9.24 10H20a2 2 0 0 1 1.94 2.5l-1.54 6a2 2 0 0 1-1.95 1.5H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h3.9a2 2 0 0 1 1.69.9l.81 1.2a2 2 0 0 0 1.67.9H18a2 2 0 0 1 2 2v2"/></svg>
+              <span>Finder</span>
             </span>
           </div>
 
-          <!-- Search & Filter row -->
-          <div class="sidebar-filter-row">
-            <div class="filter-dropdown-btn">
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
-              <span>All 16</span>
-              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
-            </div>
+          <!-- Repository search -->
+          <div class="sidebar-search-row">
             <div class="search-input-box">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.3-4.3"/></svg>
-              <span>Search (⌘F)...</span>
+              <span>Search projects...</span>
             </div>
+          </div>
+
+          <!-- Status filter and rescan -->
+          <div class="sidebar-status-row">
+            <div class="filter-dropdown-btn">
+              <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/></svg>
+              <span>All (16)</span>
+              <svg width="9" height="9" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m6 9 6 6 6-6"/></svg>
+            </div>
+            <span class="icon-btn rescan-btn" title="Rescan current folder">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 2v6h-6"></path><path d="M3 12a9 9 0 0 1 15-6.7L21 8"></path><path d="M3 22v-6h6"></path><path d="M21 12a9 9 0 0 1-15 6.7L3 16"></path></svg>
+            </span>
           </div>
 
           <!-- Repositories List -->
@@ -337,7 +338,11 @@
             </div>
             <div class="tab-item">
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="12 2 2 7 12 12 22 7 12 2"/><polyline points="2 17 12 22 22 17"/><polyline points="2 12 12 17 22 12"/></svg>
-              <span>Branches</span>
+              <span>Remotes</span>
+            </div>
+            <div class="tab-item">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="6" cy="5" r="2"/><circle cx="18" cy="7" r="2"/><circle cx="9" cy="19" r="2"/><path d="M8 6l8 1M7 7l1 10M17 9l-6 8"/></svg>
+              <span>Graph</span>
             </div>
           </div>
 
@@ -399,18 +404,22 @@
               </div>
 
               <div class="diff-content-body font-mono">
-                <div class="diff-line hunk">@@ -52,7 +52,8 @@ export function App() {</div>
+                <div class="diff-line hunk">@@ default panel widths</div>
                 <div class="diff-line del">
                   <span class="sign">-</span>
-                  <span>const defaultSidebarWidth = 280;</span>
+                  <span>sidebarWidth = 280;</span>
                 </div>
                 <div class="diff-line add">
                   <span class="sign">+</span>
-                  <span>const defaultSidebarWidth = 380;</span>
+                  <span>sidebarWidth = 300;</span>
+                </div>
+                <div class="diff-line del">
+                  <span class="sign">-</span>
+                  <span>copilotWidth = 380;</span>
                 </div>
                 <div class="diff-line add">
                   <span class="sign">+</span>
-                  <span>const defaultCopilotWidth = 380;</span>
+                  <span>copilotWidth = 320;</span>
                 </div>
                 <div class="diff-line ctx">
                   <span class="sign"> </span>
@@ -418,7 +427,7 @@
                 </div>
                 <div class="diff-line ctx">
                   <span class="sign"> </span>
-                  <span>const handleDragResize = (e: MouseEvent) =&gt; { ... };</span>
+                  <span>const handleSidebarMouseDown = (event) =&gt; { ... };</span>
                 </div>
               </div>
             </div>
@@ -427,15 +436,18 @@
 
         <!-- AI Copilot Panel -->
         <aside class="mockup-copilot">
-          <!-- Working Tree Stat Box -->
-          <div class="copilot-stat-card">
-            <div class="stat-left">
-              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 22h14a2 2 0 0 0 2-2V7.5L14.5 2H6a2 2 0 0 0-2 2v4"/><polyline points="14 2 14 8 20 8"/><path d="m3 15 2 2 4-4"/></svg>
-              <span>Working Tree</span>
-            </div>
-            <span class="stat-count">3 changed files</span>
+          <div class="copilot-mode-tabs">
+            <span class="copilot-mode-tab selected">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="4"/><path d="M3 12h5m8 0h5"/></svg>
+              Commit
+            </span>
+            <span class="copilot-mode-tab">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m12 3 2.2 6.8L21 12l-6.8 2.2L12 21l-2.2-6.8L3 12l6.8-2.2Z"/></svg>
+              Chat
+            </span>
           </div>
 
+          <div class="copilot-commit-body">
           <!-- Primary Generate Button -->
           <button class="copilot-generate-btn">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
@@ -450,10 +462,11 @@
             </div>
             <div class="types-chips">
               <span class="type-chip">feat</span>
-              <span class="type-chip active">ui</span>
               <span class="type-chip">fix</span>
               <span class="type-chip">refactor</span>
               <span class="type-chip">chore</span>
+              <span class="type-chip">docs</span>
+              <span class="type-chip">style</span>
             </div>
           </div>
 
@@ -464,18 +477,20 @@
                 <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><line x1="3" y1="12" x2="9" y2="12"/><line x1="15" y1="12" x2="21" y2="12"/></svg>
                 <span>Message</span>
               </div>
-              <span class="msg-chars">58/72</span>
+              <span class="msg-chars">51/72</span>
             </div>
-            <div class="msg-textarea font-mono">feat(ui): set 380px default widths for sidebar and copilot panels</div>
+            <div class="msg-textarea font-mono">feat(ui): align repository and Copilot panel layout</div>
             <div class="msg-footer">
               <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-              <span>Generated with Git Mate local suggestions</span>
+              <span>Generated with On-device AI</span>
             </div>
+          </div>
+
           </div>
 
           <!-- Commit Actions -->
           <div class="copilot-commit-actions">
-            <span class="commit-btn ghost">Commit</span>
+            <span class="commit-btn ghost">Commit Changes</span>
             <span class="commit-btn primary">Commit &amp; Push</span>
           </div>
         </aside>
@@ -484,10 +499,6 @@
       <!-- Bottom Status Bar -->
       <div class="mockup-statusbar">
         <div class="status-left">
-          <span class="dot-live"></span>
-          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="16" height="16" x="4" y="4" rx="2"/><rect width="6" height="6" x="9" y="9" rx="1"/><path d="M15 2v2"/><path d="M15 20v2"/><path d="M2 15h2"/><path d="M2 9h2"/><path d="M20 15h2"/><path d="M20 9h2"/><path d="M9 2v2"/><path d="M9 20v2"/></svg>
-          <span class="status-highlight">Git Mate Commit Suggestions (Local)</span>
-          <span class="sep">|</span>
           <svg width="11" height="11" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M20 20a2 2 0 0 0 2-2V8a2 2 0 0 0-2-2h-7.9a2 2 0 0 1-1.69-.9L9.6 3.9A2 2 0 0 0 8 3H4a2 2 0 0 0-2 2v13a2 2 0 0 0 2 2Z"/></svg>
           <span>~/Develop/GitMate</span>
         </div>
@@ -615,12 +626,12 @@
         <h2>Get Git Mate for macOS</h2>
         <p>A clear view of your repositories.<br/>A little help with your next commit.</p>
         <div class="download-buttons">
-          <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.0/GitMate-1.4.0-arm64.dmg" class="btn btn-primary btn-large" data-release-download>
+          <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.1/GitMate-1.4.1-arm64.dmg" class="btn btn-primary btn-large" data-release-download>
             <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><path d="m7 10 5 5 5-5M12 15V3"/></svg>
             Download for macOS (.dmg)
           </a>
         </div>
-        <div class="download-meta"><span data-release-version>v1.4.0</span><span>Apple Silicon</span><span>Free & open source</span></div>
+        <div class="download-meta"><span data-release-version>v1.4.1</span><span>Apple Silicon</span><span>Free & open source</span></div>
         <a class="release-link" href="https://github.com/artemsvit/GitMate/releases/latest" target="_blank" rel="noreferrer">Release notes <span aria-hidden="true">↗</span></a>
       </div>
       <div class="download-setup">

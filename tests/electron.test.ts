@@ -122,3 +122,17 @@ test('release compatibility checks read actual Mach-O deployment targets, indepe
   const binary = Buffer.alloc(56); binary.writeUInt32LE(0xfeedfacf, 0); binary.writeUInt32LE(1, 16); binary.writeUInt32LE(0x32, 32); binary.writeUInt32LE(24, 36); binary.writeUInt32LE(1, 40); binary.writeUInt32LE(12 << 16, 44);
   assert.deepEqual(minimumMacOS(binary), [12,0,0]); binary.writeUInt32LE(13 << 16, 44); assert.deepEqual(minimumMacOS(binary), [13,0,0]);
 });
+
+test('the app data folder moves from gitler even when Electron already created the new folder', async () => {
+  const fs = await import('node:fs'); const os = await import('node:os'); const path = await import('node:path');
+  const { migrateUserData } = require('../electron/userData.cjs');
+  const appData = fs.mkdtempSync(path.join(os.tmpdir(), 'gitmate-appdata-'));
+  const previous = path.join(appData, 'gitler'); const current = path.join(appData, 'gitmate');
+  fs.mkdirSync(path.join(previous, 'Local Storage'), { recursive: true }); fs.writeFileSync(path.join(previous, 'appearance.json'), '{"zoom":110}');
+  fs.mkdirSync(path.join(current, 'Crashpad'), { recursive: true });
+  assert.equal(migrateUserData(appData, current), true);
+  assert.equal(fs.readFileSync(path.join(current, 'appearance.json'), 'utf8'), '{"zoom":110}');
+  assert.equal(fs.existsSync(previous), false); assert.deepEqual(fs.readdirSync(appData), ['gitmate'], 'the folder Electron created is removed');
+  fs.mkdirSync(previous); assert.equal(migrateUserData(appData, current), false, 'existing data is never replaced');
+  assert.equal(fs.readFileSync(path.join(current, 'appearance.json'), 'utf8'), '{"zoom":110}');
+});

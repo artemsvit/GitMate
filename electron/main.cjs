@@ -1,12 +1,12 @@
 const { app, BrowserWindow, Menu, shell, ipcMain, dialog, session } = require('electron');
 const path = require('node:path');
 
-// The app data folder follows the package name. Move it from the earlier "gitler" name once, before Electron opens it.
+// The app data folder follows the package name. Move it from the earlier "gitler" name once, before windows open.
 // Only the installed app does this, so development runs never touch the user's data.
-try {
-  const previous = path.join(app.getPath('appData'), 'gitler'); const current = app.getPath('userData');
-  if (app.isPackaged && current !== previous && require('node:fs').existsSync(previous) && !require('node:fs').existsSync(current)) require('node:fs').renameSync(previous, current);
-} catch {}
+if (app.isPackaged) {
+  try { require('./userData.cjs').migrateUserData(app.getPath('appData'), app.getPath('userData')); }
+  catch (error) { console.error('Could not move the app data folder:', error.message); }
+}
 const { networkPermissions, trustedInterfacePermission } = require('./permissions.cjs');
 
 const standardPaths = ['/opt/homebrew/bin', '/opt/homebrew/sbin', '/usr/local/bin', '/usr/bin', '/bin', '/usr/sbin', '/sbin'];
