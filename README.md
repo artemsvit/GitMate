@@ -11,6 +11,8 @@
 <p align="center">
   <a href="https://github.com/artemsvit/GitMate/releases/latest"><b>Download for macOS</b></a>
   &nbsp;·&nbsp;
+  <a href="https://gitmate.artsvit.com">Website</a>
+  &nbsp;·&nbsp;
   <a href="https://github.com/artemsvit/GitMate/releases">Release notes</a>
   &nbsp;·&nbsp;
   <a href="docs/GUIDE.md">Guide</a>
