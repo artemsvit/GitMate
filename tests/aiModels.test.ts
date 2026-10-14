@@ -55,3 +55,12 @@ test('data from the earlier Gitler locations moves once and never overwrites new
     assert.equal(moved.length, 3); assert.deepEqual(migrateLegacyStorage(home), [], 'a second run moves nothing');
   } finally { if (previous !== undefined) process.env.GITMATE_CONFIG_DIR = previous; }
 });
+
+test('a custom data folder keeps SSH keys out of the real ~/.ssh', async () => {
+  const { sshKeyPaths } = await import('../server/paths');
+  const previous = process.env.GITMATE_CONFIG_DIR; process.env.GITMATE_CONFIG_DIR = '/tmp/gitmate-test-config';
+  try {
+    assert.equal(sshKeyPaths().ed25519, '/tmp/gitmate-test-config/ssh/gitmate_ed25519');
+    delete process.env.GITMATE_CONFIG_DIR; assert.equal(sshKeyPaths().ed25519, path.join(os.homedir(), '.ssh', 'gitmate_ed25519'));
+  } finally { if (previous === undefined) delete process.env.GITMATE_CONFIG_DIR; else process.env.GITMATE_CONFIG_DIR = previous; }
+});

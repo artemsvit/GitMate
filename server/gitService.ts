@@ -478,8 +478,7 @@ export async function getOrCreateSshKey(
   keyPath: string;
   keyType: 'ed25519' | 'rsa';
 }> {
-  const home = os.homedir();
-  const sshDir = path.join(home, '.ssh');
+  const sshDir = path.dirname(sshKeyPaths().ed25519);
   const { ed25519: edPath, rsa: rsaPath } = sshKeyPaths();
 
   if (!fs.existsSync(sshDir)) {

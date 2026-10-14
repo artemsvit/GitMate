@@ -4,7 +4,11 @@ import path from 'node:path';
 
 // Git Mate keeps accounts, models, and chats here. GITMATE_CONFIG_DIR overrides it for tests.
 export const configDir = () => process.env.GITMATE_CONFIG_DIR || path.join(os.homedir(), '.gitmate');
-export const sshKeyPaths = () => ({ ed25519: path.join(os.homedir(), '.ssh', 'gitmate_ed25519'), rsa: path.join(os.homedir(), '.ssh', 'gitmate_rsa') });
+// Test and development runs set GITMATE_CONFIG_DIR; their keys stay in that folder and never touch ~/.ssh.
+export const sshKeyPaths = () => {
+  const dir = process.env.GITMATE_CONFIG_DIR ? path.join(process.env.GITMATE_CONFIG_DIR, 'ssh') : path.join(os.homedir(), '.ssh');
+  return { ed25519: path.join(dir, 'gitmate_ed25519'), rsa: path.join(dir, 'gitmate_rsa') };
+};
 
 // Moves data from the earlier "Gitler" locations once. Existing new locations are never overwritten.
 export function migrateLegacyStorage(home = os.homedir()) {

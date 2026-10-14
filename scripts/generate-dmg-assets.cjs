@@ -120,8 +120,10 @@ app.whenReady().then(async () => {
         border: 1px solid rgba(124, 58, 237, 0.18);
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
       }
+      /* Finder's title bar hides the bottom ~28px of the 380px window, so keep the footer above it. */
       .footer {
         font-size: 10px;
+        margin-bottom: 30px;
         color: #94a3b8;
         font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
         font-weight: 600;
@@ -141,7 +143,7 @@ app.whenReady().then(async () => {
         <span class="brand-name">Git Mate</span>
         <span class="version-tag">v${require('../package.json').version}</span>
       </div>
-      <div class="subtitle">Drag Git Mate into Applications folder to install</div>
+      <div class="subtitle">Drag Git Mate to Applications to install</div>
     </div>
 
     <div class="arrow-container">

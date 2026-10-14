@@ -67,4 +67,4 @@ Releases are built, signed, and notarized by GitHub Actions from a version tag. 
 
 ## License
 
-MIT · Artem Svitelskyi
+[MIT](LICENSE) · Artem Svitelskyi

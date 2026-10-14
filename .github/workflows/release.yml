@@ -102,7 +102,9 @@ jobs:
             release/latest-mac.yml
             release/SHA256SUMS.txt
           fail_on_unmatched_files: true
-          generate_release_notes: true
+          # Written notes appear in the in-app update window; generated notes are the fallback.
+          body_path: ${{ hashFiles(format('release-notes/{0}.md', env.RELEASE_TAG)) != '' && format('release-notes/{0}.md', env.RELEASE_TAG) || '' }}
+          generate_release_notes: ${{ hashFiles(format('release-notes/{0}.md', env.RELEASE_TAG)) == '' }}
           draft: true
           prerelease: false
       - name: Clean signing keychain
