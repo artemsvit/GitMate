@@ -20,8 +20,15 @@ test('model names are short and friendly', () => {
   assert.equal(friendlyModelName('openai/gpt-oss-20b'), 'GPT OSS 20B');
 });
 
-test('local models can be chosen, listed, and deleted without touching other models', async () => {
+test('local models can be chosen, listed, and deleted without touching other models', async (t) => {
+  t.mock.method(os, 'totalmem', () => 16 * 1024 ** 3);
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gitmate-models-'));
+  const previous = process.env.GITMATE_CONFIG_DIR;
+  t.after(() => {
+    if (previous === undefined) delete process.env.GITMATE_CONFIG_DIR;
+    else process.env.GITMATE_CONFIG_DIR = previous;
+    fs.rmSync(dir, { recursive: true, force: true });
+  });
   process.env.GITMATE_CONFIG_DIR = dir;
   const service = await import('../server/copilotService');
   const models = path.join(dir, 'models'); fs.mkdirSync(models);
@@ -32,7 +39,7 @@ test('local models can be chosen, listed, and deleted without touching other mod
   assert.deepEqual(listed.models.filter(model => model.active).map(model => model.id), ['light'], 'only a downloaded model is in use');
   assert.equal(listed.models.find(model => model.id === 'light')!.state, 'ready');
   assert.equal(listed.models.find(model => model.id === 'balanced')!.state, 'paused');
-  assert.equal(listed.models.find(model => model.id === 'powerful')!.fits, os.totalmem() / 1024 ** 3 >= 31.5);
+  assert.equal(listed.models.find(model => model.id === 'powerful')!.fits, false);
   await service.selectModel('light');
   assert.equal(service.activeModelSpec().id, 'light'); assert.equal(service.getModelStatus().label, 'Qwen3.5 4B');
   await assert.rejects(service.selectModel('huge'), /Unknown model/);
@@ -44,6 +51,34 @@ test('local models can be chosen, listed, and deleted without touching other mod
   await service.deleteModel('tiny');
   assert.deepEqual(service.listModels().models.filter(model => model.active), [], 'with nothing downloaded, no model is marked in use');
   assert.equal(service.listModels().models.filter(model => model.suggested).length, 1);
+});
+
+test('automatic model selection uses available memory and preserves an explicit choice', async (t) => {
+  const service = await import('../server/copilotService');
+  for (const [memoryGB, suggested] of [[4, 'tiny'], [7, 'tiny'], [8, 'mini'], [16, 'balanced'], [32, 'balanced']] as const) {
+    await t.test(`${memoryGB} GB`, async (t) => {
+      t.mock.method(os, 'totalmem', () => memoryGB * 1024 ** 3);
+      const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gitmate-memory-'));
+      const previous = process.env.GITMATE_CONFIG_DIR;
+      process.env.GITMATE_CONFIG_DIR = dir;
+      t.after(() => {
+        if (previous === undefined) delete process.env.GITMATE_CONFIG_DIR;
+        else process.env.GITMATE_CONFIG_DIR = previous;
+        fs.rmSync(dir, { recursive: true, force: true });
+      });
+      assert.equal(service.activeModelSpec().id, suggested);
+      assert.deepEqual(service.listModels().models.filter(model => model.active), []);
+      const models = path.join(dir, 'models'); fs.mkdirSync(models);
+      const light = service.modelCatalog.find(model => model.id === 'light')!;
+      fs.writeFileSync(path.join(models, light.file), 'x');
+      const listed = service.listModels();
+      assert.deepEqual(listed.models.filter(model => model.active).map(model => model.id), memoryGB >= 8 ? ['light'] : []);
+      assert.equal(listed.models.find(model => model.id === 'light')!.fits, memoryGB >= 8);
+      assert.equal(listed.models.find(model => model.id === 'powerful')!.fits, memoryGB >= 32);
+      await service.selectModel('tiny');
+      assert.equal(service.activeModelSpec().id, 'tiny', 'the saved choice wins over automatic selection');
+    });
+  }
 });
 
 test('data from the earlier Gitler locations moves once and never overwrites new data', async () => {
