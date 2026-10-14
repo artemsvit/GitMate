@@ -5,11 +5,13 @@ import { Send, Square, Copy, Plus, Trash2, History, SlidersHorizontal, Sparkles,
 import { apiFetch } from '../api';
 import { RepoSummary } from '../types';
 import { Dropdown } from './Dropdown';
+import { useAIEngine } from '../aiEngine';
 interface Message { id: string; role: 'user' | 'assistant'; content: string; sources?: { repository: string; file?: string; commit?: string; kind: string }[]; truncated?: boolean; stopped?: boolean }
 interface Conversation { id: string; title: string; messages: Message[] }
-interface ModelStatus { state: string; downloaded: number; size: number; model: string; error?: string }
+interface ModelStatus { state: string; downloaded: number; size: number; model: string; label?: string; error?: string }
 export function CopilotChat({ repo, repositories }: { repo: RepoSummary; repositories: RepoSummary[] }) {
   const [model, setModel] = useState<ModelStatus | null>(null);
+  const engine = useAIEngine();
   const [history, setHistory] = useState<Conversation[]>([]);
   const [id, setId] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -48,7 +50,7 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
     const abort = new AbortController(); controller.current = abort; setBusy(true); setError(''); setQuestion('');
     setMessages(previous => [...previous, { id: crypto.randomUUID(), role: 'user', content: text }, { id: crypto.randomUUID(), role: 'assistant', content: '' }]);
     try {
-      const res = await apiFetch('/api/copilot/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abort.signal, body: JSON.stringify({ path: repo.path, additionalRepos: additional, id: id || undefined, question: text, commit: commit || undefined }) });
+      const res = await apiFetch('/api/copilot/chat', { method: 'POST', headers: { 'Content-Type': 'application/json' }, signal: abort.signal, body: JSON.stringify({ path: repo.path, additionalRepos: additional, id: id || undefined, question: text, commit: commit || undefined, engine: engine.mode === 'external' ? engine.external || undefined : undefined }) });
       if (!res.ok) { const data = await res.json(); throw new Error(data.error); }
       const reader = res.body?.getReader(); if (!reader) throw new Error('The reply stream is unavailable.');
       const decoder = new TextDecoder(); let pending = '';
@@ -70,7 +72,9 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
   const openHistory = async (value: string) => { try { const res = await apiFetch(`/api/copilot/conversations?path=${encodeURIComponent(repo.path)}&id=${value}`); const data = await res.json(); if (!res.ok) throw new Error(data.error); setId(value); setMessages(data.messages); setError(''); followBottom.current = true; if (historyMenu.current) historyMenu.current.open = false; } catch (error: any) { setError(error.message); } };
   const removeChat = async (target: string) => { try { const res = await apiFetch('/api/copilot/conversations', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ path: repo.path, id: target }) }); if (!res.ok) throw new Error('Could not delete chat.'); if (target === id) { setId(''); setMessages([]); } await refreshHistory(); } catch (error: any) { setError(error.message); } };
   const additionalSet = new Set(additional);
-  const ready = ['ready', 'loaded', 'loading'].includes(model?.state || '');
+  const external = engine.mode === 'external';
+  const ready = external ? !!engine.external : ['ready', 'loaded', 'loading'].includes(model?.state || '');
+  const gb = (bytes: number) => (bytes / 1e9).toFixed(2);
   const suggest = (text: string) => { setQuestion(text); composer.current?.focus(); };
   return <section role="tabpanel" aria-label="Copilot chat" className="flex-1 min-h-0 flex flex-col overflow-hidden text-xs select-text">
     <div className="px-4 py-2 flex items-center justify-between gap-2 shrink-0 border-b border-[var(--border-subtle)]">
@@ -92,11 +96,15 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
     </div>
 
     <div ref={scrollArea} role="log" aria-label="Conversation" aria-busy={busy} onScroll={() => { const area = scrollArea.current; if (area) followBottom.current = area.scrollHeight - area.scrollTop - area.clientHeight < 80; }} className="flex-1 min-h-0 overflow-y-auto px-4 py-4 flex flex-col gap-4">
-      {model?.state === 'unsupported' && <p className="text-pretty text-[var(--text-muted)]">{model.error}</p>}
-      {!ready && model?.state !== 'unsupported' && <div className="p-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
+      {!external && model?.state === 'unsupported' && <p className="text-pretty text-[var(--text-muted)]">{model.error}</p>}
+      {external && !ready && <div className="p-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
+        <p className="font-medium text-balance text-[var(--text-primary)]">Choose a model</p>
+        <p className="text-pretty text-[var(--text-muted)]">Open Settings → AI and choose an LM Studio or Ollama model for Chat.</p>
+      </div>}
+      {!external && !ready && model?.state !== 'unsupported' && <div className="p-3 rounded-2xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
         <p className="font-medium text-balance text-[var(--text-primary)]">Set up local Copilot</p>
-        <p className="text-pretty text-[var(--text-muted)]">Download Qwen3.5-9B once (5.7 GB). Your code and chats stay on this Mac.</p>
-        {model && <><p className="text-[var(--text-muted)] tabular-nums">{model.state} · {(model.downloaded / 1e9).toFixed(2)} / 2.50 GB</p><progress aria-label="Model download progress" className="w-full accent-[var(--accent-violet)]" value={model.downloaded} max={model.size} />{model.error && <p className="text-rose-600">{model.error}</p>}</>}
+        <p className="text-pretty text-[var(--text-muted)]">Download {model?.label || 'the model'} once ({model ? gb(model.size) : '…'} GB). Your code and chats stay on this Mac. You can choose another model in Settings → AI.</p>
+        {model && <><p className="text-[var(--text-muted)] tabular-nums">{model.state} · {gb(model.downloaded)} / {gb(model.size)} GB</p><progress aria-label="Model download progress" className="w-full accent-[var(--accent-violet)]" value={model.downloaded} max={model.size} />{model.error && <p className="text-rose-600">{model.error}</p>}</>}
         <button onClick={() => modelAction(['downloading', 'verifying'].includes(model?.state || '') ? 'cancel' : 'download')} className="px-3 py-1.5 rounded-full border border-[var(--border-interactive)] text-[var(--text-primary)]">{['downloading', 'verifying'].includes(model?.state || '') ? 'Cancel download' : model?.downloaded ? 'Resume download' : 'Download model'}</button>
       </div>}
       {!messages.length && ready && <div className="flex-1 flex flex-col justify-center items-start gap-3 pb-8">
@@ -132,7 +140,6 @@ export function CopilotChat({ repo, repositories }: { repo: RepoSummary; reposit
           {busy ? <button type="button" aria-label="Stop reply" title="Stop reply" onClick={() => controller.current?.abort()} className="size-7 rounded-full border border-[var(--border-interactive)] flex items-center justify-center text-[var(--text-primary)]"><Square className="size-3" /></button> : <button type="submit" aria-label="Send message" title="Send message" disabled={!ready || !question.trim()} className="size-7 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] flex items-center justify-center disabled:opacity-30"><Send className="size-3.5" /></button>}
         </div>
       </div>
-      <p className="text-[9px] text-[var(--text-muted)] mt-2 text-center">Local model · Read-only assistance</p>
     </form>
     <dialog ref={deleteDialog} role="alertdialog" aria-labelledby={deleteTitle} aria-describedby={deleteDescription} className="m-auto max-w-sm rounded-2xl border border-[var(--border-interactive)] bg-[var(--bg-surface)] text-[var(--text-primary)] p-5 backdrop:bg-black/60">
       <h3 id={deleteTitle} className="font-semibold text-sm text-balance">Delete this conversation?</h3><p id={deleteDescription} className="text-xs text-pretty text-[var(--text-muted)] mt-2">This removes the saved chat from this Mac. It cannot be undone.</p>

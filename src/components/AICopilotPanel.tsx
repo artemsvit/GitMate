@@ -4,6 +4,7 @@ import { useRepositoryPush, destinationKey } from '../useRepositoryPush';
 import { PushResults } from './PushResults';
 import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
+import { readAIMode, readExternalChoice, useAIEngine } from '../aiEngine';
 import React, { useState, useRef, useEffect } from 'react';
 import {
   Sparkles,
@@ -50,6 +51,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   onToggleCollapse
 }) => {
   const [activeTab, setActiveTab] = useState<'commit' | 'chat'>('commit');
+  const engine = useAIEngine();
   const [commitMessage, setCommitMessage] = useState('');
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
@@ -85,9 +87,9 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
     setIsGenerating(true);
     setStatusMessage(null);
     try {
-      const savedMode = localStorage.getItem('gitler_ai_mode') || 'embedded';
-      const targetProvider = savedMode === 'external' ? (aiStatus?.externalProvider || 'ollama') : 'embedded';
-      const targetModel = savedMode === 'external' ? aiStatus?.externalActiveModel : 'Git Mate Embedded';
+      const external = readAIMode() === 'external' ? readExternalChoice() : null;
+      const targetProvider = external ? external.provider : 'embedded';
+      const targetModel = external ? external.model : undefined;
 
       const res = await apiFetch('/api/ai/generate-commit', {
         method: 'POST',
@@ -223,6 +225,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
               <Sparkles className="w-3.5 h-3.5" />
             </div>
             <span className="font-semibold text-xs text-[var(--text-primary)] tracking-tight">AI Copilot</span>
+            {engine.label && <span title="Model in use. Change it in Settings → AI." className="max-w-[9rem] truncate px-2 py-0.5 rounded-full border border-[var(--border-interactive)] bg-[var(--bg-canvas)] text-[10px] text-[var(--text-muted)]">{engine.label}</span>}
           </div>
 
           <div className="flex items-center gap-1">

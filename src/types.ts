@@ -55,6 +55,7 @@ export interface LocalAIStatus {
   externalEndpoint?: string;
   externalModels?: string[];
   externalActiveModel?: string;
+  externalSources?: { provider: 'ollama' | 'lmstudio'; endpoint: string; models: string[] }[];
 }
 
 export interface AICommitResult {

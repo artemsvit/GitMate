@@ -1,4 +1,5 @@
 import { AppUpdates } from './AppUpdates';
+import { AIModelSettings } from './AIModelSettings';
 import { appVersion } from '../version';
 import { InterfaceZoom } from './InterfaceZoom';
 import { apiFetch } from '../api';
@@ -93,13 +94,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     ghCliUser: string | null;
     credentialHelper: string | null;
   } | null>(null);
-
-  // Tab 2: AI Engine State
-  const [activeAIMode, setActiveAIMode] = useState<'embedded' | 'external'>(() => {
-    return (localStorage.getItem('gitler_ai_mode') as 'embedded' | 'external') || 'embedded';
-  });
-  const [testingAI, setTestingAI] = useState(false);
-  const [aiTestResult, setAiTestResult] = useState<string | null>(null);
 
   // Tab 3: Git Identity State
   const [gitConfig, setGitConfig] = useState<{
@@ -318,33 +312,6 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const handleSelectAIMode = (mode: 'embedded' | 'external') => {
-    setActiveAIMode(mode);
-    localStorage.setItem('gitler_ai_mode', mode);
-    onRefreshAIStatus();
-  };
-
-  const handleTestAI = async () => {
-    setTestingAI(true);
-    setAiTestResult(null);
-    try {
-      const res = await apiFetch(`/api/ai/status?mode=${activeAIMode}`);
-      const data: LocalAIStatus = await res.json();
-      if (activeAIMode === 'embedded') {
-        setAiTestResult('Built-in commit suggestions are ready. Messages use local rules and staged changes.');
-      } else if (data.hasExternal) {
-        setAiTestResult(`Connected: ${data.externalProvider?.toUpperCase()} (${data.externalActiveModel}) on ${data.externalEndpoint}`);
-      } else {
-        setAiTestResult('No external daemon detected on port 11434. Using built-in commit suggestions.');
-      }
-      onRefreshAIStatus();
-    } catch (err: any) {
-      setAiTestResult(`Test failed: ${err.message}`);
-    } finally {
-      setTestingAI(false);
-    }
-  };
-
   const handleSaveGitConfig = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSavingGitConfig(true);
@@ -416,7 +383,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
             }`}
           >
             <Cpu className="w-3.5 h-3.5" />
-            <span>AI Intelligence Engine</span>
+            <span>AI Models</span>
           </button>
 
           <button
@@ -817,30 +784,32 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     </div>
 
                     {/* Key Display Card */}
-                    <div className="p-3 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl space-y-2">
-                      <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
-                        <span>Public Key &bull; <strong className="text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'} (gitler-app)</strong></span>
-                        <div className="flex items-center gap-2">
-                          <button
-                            onClick={() => handleRegenerateKey()}
-                            disabled={isRegeneratingKey}
-                            className="text-[10px] text-[var(--text-muted)] hover:text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1 cursor-pointer transition"
-                          >
-                            <RefreshCw className={`w-2.5 h-2.5 ${isRegeneratingKey ? 'animate-spin' : ''}`} />
-                            <span>Regenerate</span>
-                          </button>
-                          <button
-                            onClick={handleCopyKey}
-                            className="px-2.5 py-1 rounded-lg bg-[var(--btn-secondary-bg)] hover:opacity-90 border border-[var(--btn-secondary-border)] text-[var(--btn-secondary-text)] font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-xs text-[10px]"
-                          >
-                            {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
-                            <span>{copiedKey ? 'Copied!' : 'Copy Public Key'}</span>
-                          </button>
+                    <div className="p-3 bg-[var(--bg-canvas)] border border-[var(--border-subtle)] rounded-xl space-y-2.5">
+                      <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]">
+                        <div className="flex items-center gap-2 min-w-0">
+                          <span>Public key</span>
+                          <span className="px-1.5 py-0.5 rounded-full border border-[var(--border-interactive)] font-mono text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'}</span>
+                          <span className="font-mono truncate">gitler-app</span>
                         </div>
+                        <button
+                          onClick={() => handleRegenerateKey()}
+                          disabled={isRegeneratingKey}
+                          className="shrink-0 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent-violet)] inline-flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
+                        >
+                          <RefreshCw className={`w-2.5 h-2.5 ${isRegeneratingKey ? 'animate-spin' : ''}`} />
+                          <span>Regenerate</span>
+                        </button>
                       </div>
                       <div className="p-2.5 bg-black/5 dark:bg-black/30 rounded-lg font-mono text-[10px] break-all text-[var(--text-primary)] select-all leading-relaxed max-h-20 overflow-y-auto border border-[var(--border-subtle)]">
                         {gitlerKey?.publicKey || 'Loading key...'}
                       </div>
+                      <button
+                        onClick={handleCopyKey}
+                        className="w-full whitespace-nowrap px-3 py-1.5 rounded-full bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] text-[11px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition"
+                      >
+                        {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
+                        <span>{copiedKey ? 'Key copied' : 'Copy public key'}</span>
+                      </button>
                     </div>
 
                     {/* Live Host Verification */}
@@ -900,78 +869,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           )}
 
           {/* TAB 2: AI INTELLIGENCE ENGINE */}
-          {activeTab === 'ai' && (
-            <div className="space-y-4">
-              <div className="p-4 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-card)] space-y-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Cpu className="w-4 h-4 text-[var(--accent-violet)]" />
-                    <div>
-                      <h4 className="font-semibold text-xs text-[var(--text-primary)]">Active AI Mode</h4>
-                      <p className="text-[10px] text-[var(--text-muted)]">Used for commit message suggestions. Copilot Chat uses its downloaded local model.</p>
-                    </div>
-                  </div>
-                  <button
-                    onClick={handleTestAI}
-                    disabled={testingAI}
-                    className="px-3 py-1 rounded-[33px] border border-[var(--border-interactive)] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] text-[var(--text-primary)] font-medium text-[11px] flex items-center gap-1.5 transition cursor-pointer"
-                  >
-                    <RefreshCw className={`w-3 h-3 ${testingAI ? 'animate-spin' : ''}`} />
-                    <span>Test Status</span>
-                  </button>
-                </div>
-
-                {/* AI Mode Options */}
-                <div className="grid grid-cols-2 gap-2.5 pt-1">
-                  <button
-                    type="button"
-                    onClick={() => handleSelectAIMode('embedded')}
-                    className={`p-3 rounded-xl border text-left transition cursor-pointer space-y-1.5 ${
-                      activeAIMode === 'embedded'
-                        ? 'border-[var(--accent-violet)] bg-[var(--accent-violet)]/10 ring-1 ring-[var(--accent-violet)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-[var(--border-interactive)]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-[var(--text-primary)]">Built-in Suggestions</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-surface)] text-[var(--accent-violet)] border border-[var(--border-interactive)]">
-                        Built-in
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-                      Zero configuration. Local rules for draft commit messages. No neural model.
-                    </p>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => handleSelectAIMode('external')}
-                    className={`p-3 rounded-xl border text-left transition cursor-pointer space-y-1.5 ${
-                      activeAIMode === 'external'
-                        ? 'border-[var(--accent-violet)] bg-[var(--accent-violet)]/10 ring-1 ring-[var(--accent-violet)]'
-                        : 'border-[var(--border-subtle)] bg-[var(--bg-canvas)] hover:border-[var(--border-interactive)]'
-                    }`}
-                  >
-                    <div className="flex items-center justify-between">
-                      <span className="font-semibold text-xs text-[var(--text-primary)]">Ollama / LM Studio</span>
-                      <span className="text-[9px] font-mono px-1.5 py-0.5 rounded bg-[var(--bg-surface)] text-[var(--text-muted)] border border-[var(--border-interactive)]">
-                        Local Daemon
-                      </span>
-                    </div>
-                    <p className="text-[10px] text-[var(--text-muted)] leading-relaxed">
-                      Use a running local Ollama or LM Studio model for commit suggestions.
-                    </p>
-                  </button>
-                </div>
-
-                {aiTestResult && (
-                  <div className="p-2.5 rounded-lg bg-[var(--bg-canvas)] border border-[var(--border-subtle)] font-mono text-[11px] text-[var(--text-secondary)]">
-                    {aiTestResult}
-                  </div>
-                )}
-              </div>
-            </div>
-          )}
+          {activeTab === 'ai' && <AIModelSettings onChanged={onRefreshAIStatus} />}
 
           {/* TAB 3: GIT IDENTITY */}
           {activeTab === 'identity' && (

@@ -415,70 +415,71 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         {/* Section 2: Gitea / Self-Hosted SSH Key Authorization */}
         {isGiteaOrSelfHosted && (
           <div className="p-4 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-surface)] space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <Server className="w-4 h-4 text-[var(--accent-violet)]" />
-                <span className="font-semibold text-xs text-[var(--text-primary)]">
-                  Self-hosted Git SSH Authorization ({remoteHost || 'Self-Hosted'}:{remotePort})
+            <div className="flex items-center justify-between gap-3">
+              <div className="flex items-center gap-2 min-w-0">
+                <Server className="w-4 h-4 text-[var(--accent-violet)] shrink-0" />
+                <span className="font-semibold text-xs text-[var(--text-primary)] truncate">
+                  SSH key for {remoteHost || 'your server'}{remotePort ? `:${remotePort}` : ''}
                 </span>
               </div>
               <button
                 onClick={handleRegenerateKey}
                 disabled={isRegeneratingKey}
-                className="text-[10px] text-[var(--text-muted)] hover:text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1 cursor-pointer transition"
+                className="shrink-0 text-[10px] text-[var(--text-muted)] hover:text-[var(--accent-violet)] inline-flex items-center gap-1 cursor-pointer transition disabled:opacity-50"
               >
                 <RefreshCw className={`w-2.5 h-2.5 ${isRegeneratingKey ? 'animate-spin' : ''}`} />
-                <span>Regenerate Key</span>
+                <span>Regenerate</span>
               </button>
             </div>
 
-            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-              Add this dedicated Git Mate SSH key to your Gitea account to authorize push &amp; pull for <strong>all your repositories</strong>:
+            <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed text-pretty">
+              Add this Git Mate key to your Gitea account once. It then works for all your repositories on this server.
             </p>
 
-            {/* Public Key Display Box with 1-Click Copy */}
-            <div className="rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-3 space-y-2">
-              <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
-                <span>Dedicated Git Mate Key &bull; <strong className="text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'} (gitler-app)</strong></span>
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={handleCopyTitle}
-                    className="px-2 py-0.5 rounded-[50px] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold flex items-center gap-1 cursor-pointer transition shadow-xs text-[10px]"
-                    title="Copy key title for Gitea 'Key Name' field"
-                  >
-                    {copiedTitle ? <Check className="w-2.5 h-2.5 text-emerald-500" /> : <Copy className="w-2.5 h-2.5 text-[var(--accent-violet)]" />}
-                    <span>{copiedTitle ? 'Title Copied' : 'Copy Title'}</span>
-                  </button>
-                  <button
-                    onClick={handleCopyKey}
-                    className="px-2.5 py-1 rounded-[50px] bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] font-semibold flex items-center gap-1.5 cursor-pointer transition shadow-xs"
-                  >
-                    {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
-                    <span>{copiedKey ? 'Copied to Clipboard!' : 'Copy Public Key'}</span>
-                  </button>
-                </div>
+            {/* Public key with copy actions on their own row */}
+            <div className="rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-3 space-y-2.5">
+              <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
+                <span>Git Mate key</span>
+                <span className="px-1.5 py-0.5 rounded-full border border-[var(--border-interactive)] font-mono text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'}</span>
+                <span className="font-mono truncate">gitler-app</span>
               </div>
 
               <div className="p-2.5 bg-black/5 dark:bg-black/30 rounded-lg font-mono text-[10px] break-all text-[var(--text-primary)] select-all leading-relaxed max-h-20 overflow-y-auto border border-[var(--border-subtle)]">
                 {gitlerKey?.publicKey || 'Generating key...'}
               </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <button
+                  onClick={handleCopyTitle}
+                  className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] text-[11px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition"
+                  title="Copy the key name for the Key Name field"
+                >
+                  {copiedTitle ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
+                  <span>{copiedTitle ? 'Name copied' : 'Copy key name'}</span>
+                </button>
+                <button
+                  onClick={handleCopyKey}
+                  className="whitespace-nowrap px-3 py-1.5 rounded-full bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-primary)] text-[11px] font-medium flex items-center justify-center gap-1.5 cursor-pointer transition"
+                >
+                  {copiedKey ? <Check className="w-3 h-3 text-emerald-500" /> : <Copy className="w-3 h-3 text-[var(--accent-violet)]" />}
+                  <span>{copiedKey ? 'Key copied' : 'Copy public key'}</span>
+                </button>
+              </div>
             </div>
 
-            {/* Simple Step by Step Instructions */}
-            <div className="text-[11px] text-[var(--text-muted)] space-y-1.5 pt-0.5 font-mono">
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">1</span>
-                <span>Open your Git server’s <strong>SSH key settings</strong> and add a key.</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">2</span>
-                <span>Set Key Name to <code className="text-[var(--accent-violet)]">gitler-app</code> and paste the copied key into Content.</span>
-              </div>
-              <div className="flex items-center gap-2">
-                <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0">3</span>
-                <span>Click <strong>Test Connection</strong> above to verify your access!</span>
-              </div>
-            </div>
+            {/* Steps */}
+            <ol className="text-[11px] text-[var(--text-muted)] space-y-1.5">
+              {[
+                <>Open the <strong className="text-[var(--text-secondary)]">SSH keys</strong> settings on your Git server and add a key.</>,
+                <>Paste the key name and the public key.</>,
+                <>Press <strong className="text-[var(--text-secondary)]">Test Connection</strong> above.</>
+              ].map((step, index) => (
+                <li key={index} className="flex items-start gap-2">
+                  <span className="w-4 h-4 rounded-full bg-[var(--accent-violet)]/10 text-[var(--accent-violet)] text-[10px] font-bold flex items-center justify-center shrink-0 mt-px">{index + 1}</span>
+                  <span className="text-pretty">{step}</span>
+                </li>
+              ))}
+            </ol>
 
             {/* HTTP/Token option only shown if using HTTP */}
             {isHttps && (
@@ -586,7 +587,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
 
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">
+          <span className="text-[10px] text-[var(--text-muted)]">
             {isSsh ? 'SSH uses your host configuration, agent, and Git Mate key.' : 'HTTPS uses your connected account and existing Git credential helpers.'}
           </span>
           <button

@@ -93,7 +93,7 @@ Generate a distributable Apple Silicon & Intel DMG installer:
 ```bash
 npm run dist:mac
 ```
-The output file will be generated in `release/GitMate-1.2.0-arm64.dmg`.
+The output file will be generated in `release/GitMate-1.3.0-arm64.dmg`.
 
 ---
 
@@ -179,7 +179,7 @@ Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image previ
 
 ### Copilot chat and interface controls
 
-Copilot has separate **Commit** and **Chat** tabs. Commit suggestions use the on-device Qwen3.5-9B model when it is downloaded, following Conventional Commits or the plain style the repository already uses. Without the model, Git Mate suggests a header from built-in rules and lists the changed files. Chat requires macOS 14 or newer; Git features retain macOS 12 support. Chat uses Qwen3.5-9B Q4_K_M locally after a one-time 5.7 GB download, with up to a 32K-token context. Git Mate removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
+Copilot has separate **Commit** and **Chat** tabs. Commit suggestions use the on-device Qwen3.5-9B model when it is downloaded, following Conventional Commits or the plain style the repository already uses. Without the model, Git Mate suggests a header from built-in rules and lists the changed files. Chat requires macOS 14 or newer; Git features retain macOS 12 support. In **Settings → AI Models**, choose the AI source. **Git Mate Local AI** runs a downloaded model on this Mac: Qwen3.5 4B (2.7 GB, light), Qwen3.5 9B (5.7 GB, recommended, up to a 32K-token context), or Qwen3.6 27B (16.8 GB, needs 32 GB memory). You can download, pause, switch, and delete models there. **LM Studio / Ollama** uses a model already running on this Mac (ports 1234 and 11434); cloud-hosted Ollama models are not listed, so code stays on this Mac. The AI Copilot title shows the model in use. Git Mate removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
 
 Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitler/conversations`; use New chat or Delete chat to manage them.
 

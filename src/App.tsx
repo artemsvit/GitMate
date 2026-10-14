@@ -5,7 +5,6 @@ import { Sidebar } from './components/Sidebar';
 import { MainWorkspace } from './components/MainWorkspace';
 import { AICopilotPanel } from './components/AICopilotPanel';
 import { StatusBar } from './components/StatusBar';
-import { AISettingsModal } from './components/AISettingsModal';
 import { RemoteAuthModal } from './components/RemoteAuthModal';
 import { SettingsModal, SettingsTab } from './components/SettingsModal';
 import { RepoSummary, RepoDetails, LocalAIStatus } from './types';
@@ -471,8 +470,6 @@ export function App() {
 
       {/* Bottom Status Bar */}
       <StatusBar
-        aiStatus={aiStatus}
-        onOpenAISettings={() => handleOpenSettings('ai')}
         selectedRepo={selectedRepo}
         repoCount={repositories.length}
         currentPath={currentPath}

@@ -1,6 +1,6 @@
 import path from 'path';
 import { buildCommitPrompt, commitInstructions, finalizeCommitMessage, splitDiff } from './commitMessage';
-import { commitModelReady, generateCommitWithModel, modelSpec } from './copilotService';
+import { activeModelSpec, commitModelReady, generateCommitWithModel } from './copilotService';
 
 export interface LocalAIStatus {
   available: boolean;
@@ -14,6 +14,7 @@ export interface LocalAIStatus {
   externalEndpoint?: string;
   externalModels?: string[];
   externalActiveModel?: string;
+  externalSources?: { provider: 'ollama' | 'lmstudio'; endpoint: string; models: string[] }[];
 }
 
 export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStatus> {
@@ -28,7 +29,8 @@ export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStat
     const res = await fetch('http://127.0.0.1:11434/api/tags', { signal: AbortSignal.timeout(400), redirect: 'error' });
     if (res.ok) {
       const data = await res.json() as any;
-      const models = (data.models || []).map((m: any) => m.name);
+      // Cloud models send prompts to a remote host; Git Mate keeps code on this Mac, so it lists only local models.
+      const models = (data.models || []).filter((m: any) => !m.remote_host && !/[:-]cloud$/i.test(m.name)).map((m: any) => m.name);
       if (models.length > 0) {
         hasExternal = true;
         externalProvider = 'ollama';
@@ -41,14 +43,16 @@ export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStat
     // Ollama not reachable
   }
 
-  // 2. Probe LM Studio quietly on localhost:1234
-  if (!hasExternal) {
+  // 2. Probe LM Studio quietly on localhost:1234; both servers can run at once.
+  const externalSources: NonNullable<LocalAIStatus['externalSources']> = hasExternal ? [{ provider: 'ollama', endpoint: externalEndpoint, models: externalModels }] : [];
+  {
     try {
       const res = await fetch('http://127.0.0.1:1234/v1/models', { signal: AbortSignal.timeout(400), redirect: 'error' });
       if (res.ok) {
         const data = await res.json() as any;
         const models = (data.data || []).map((m: any) => m.id);
-        if (models.length > 0) {
+        if (models.length > 0) externalSources.push({ provider: 'lmstudio', endpoint: 'http://127.0.0.1:1234', models });
+        if (models.length > 0 && !hasExternal) {
           hasExternal = true;
           externalProvider = 'lmstudio';
           externalEndpoint = 'http://127.0.0.1:1234';
@@ -75,23 +79,25 @@ export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStat
       externalProvider,
       externalEndpoint,
       externalModels,
-      externalActiveModel
+      externalActiveModel,
+      externalSources
     };
   }
 
-  // Default: Built-in Native AI Engine (Incorporated directly inside Git Mate)
+  // Default: Git Mate Local AI (downloaded on-device models, with rule-based suggestions as the fallback)
   return {
     available: true,
     provider: 'embedded',
     endpoint: 'embedded://on-device',
-    models: ['Git Mate Commit Suggestions'],
-    activeModel: 'Git Mate Commit Suggestions (On-Device)',
+    models: ['Git Mate Local AI'],
+    activeModel: 'Git Mate Local AI',
     mode: 'embedded',
     hasExternal,
     externalProvider,
     externalEndpoint,
     externalModels,
-    externalActiveModel
+    externalActiveModel,
+    externalSources
   };
 }
 
@@ -113,11 +119,12 @@ export async function generateCommitMessage(options: {
   // If user explicitly requests external provider and it's active
   if (provider === 'ollama' || provider === 'lmstudio' || provider === 'external') {
     const aiStatus = await detectLocalAI('external');
-    if (aiStatus.hasExternal) {
-      const targetProvider = aiStatus.externalProvider;
-      const targetModel = model || aiStatus.externalActiveModel || '';
+    const source = aiStatus.externalSources?.find(item => item.provider === provider) || aiStatus.externalSources?.[0];
+    if (source) {
+      const targetProvider = source.provider;
+      const targetModel = model && source.models.includes(model) ? model : source.models[0];
       if (!targetModel) throw new Error('No local model is selected.');
-      const targetEndpoint = aiStatus.externalEndpoint;
+      const targetEndpoint = source.endpoint;
 
       const prompt = `${commitInstructions}\n\n${buildCommitPrompt({ repoName, diff, changedFiles, recentSubjects, budget: 12000 })}`;
 
@@ -183,7 +190,7 @@ export async function generateCommitMessage(options: {
   if (commitModelReady()) {
     try {
       const message = await generateCommitWithModel({ repoName, diff, changedFiles, recentSubjects });
-      return { message, source: 'local-ai', provider: 'Git Mate Copilot (on-device)', model: modelSpec.name };
+      return { message, source: 'local-ai', provider: 'Git Mate Local AI', model: activeModelSpec().label };
     } catch (err) {
       console.warn('On-device commit generation failed, falling back to Git Mate Commit Suggestions:', err);
     }
