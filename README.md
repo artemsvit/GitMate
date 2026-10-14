@@ -29,10 +29,6 @@
   macOS 12 or later · Apple Silicon · Developer ID signed and notarized
 </p>
 
-<a href="https://gitmate.artsvit.com">
-  <img src="landing/og-image.png" width="1200" alt="Git Mate overview: repository list, change preview, and local AI Copilot in a dark interface">
-</a>
-
 ## Built for your daily Git work
 
 | Feature | What you can do |
