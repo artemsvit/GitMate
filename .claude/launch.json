@@ -1,0 +1,7 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "app", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev"], "port": 3000 },
+    { "name": "landing", "runtimeExecutable": "python3", "runtimeArgs": ["-m", "http.server", "4100", "-d", "landing"], "port": 4100 }
+  ]
+}
