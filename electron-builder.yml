@@ -1,5 +1,7 @@
 appId: com.artemsvit.gitler
-productName: Gitler
+productName: Git Mate
+# Download names have no space. The bundle ID and update repository keep the original names so updates continue.
+artifactName: GitMate-${version}-${arch}-mac.${ext}
 copyright: Copyright © 2026 Artem Svitelskyi
 
 directories:
@@ -38,10 +40,10 @@ mac:
   darkModeSupport: true
   minimumSystemVersion: "12.0.0"
   extendInfo:
-    NSDesktopFolderUsageDescription: "Gitler needs permission to access your Desktop to discover and manage local Git repositories."
-    NSDocumentsFolderUsageDescription: "Gitler needs permission to access your Documents to discover and manage local Git repositories."
-    NSDownloadsFolderUsageDescription: "Gitler needs permission to access your Downloads to discover and manage local Git repositories."
-    NSLocalNetworkUsageDescription: "Gitler needs permission to access your local network to connect to self-hosted Git servers such as Gitea, Forgejo, and GitLab."
+    NSDesktopFolderUsageDescription: "Git Mate needs permission to access your Desktop to discover and manage local Git repositories."
+    NSDocumentsFolderUsageDescription: "Git Mate needs permission to access your Documents to discover and manage local Git repositories."
+    NSDownloadsFolderUsageDescription: "Git Mate needs permission to access your Downloads to discover and manage local Git repositories."
+    NSLocalNetworkUsageDescription: "Git Mate needs permission to access your local network to connect to self-hosted Git servers such as Gitea, Forgejo, and GitLab."
   # Resource data is sealed by its containing bundle; it does not need a separate code signature.
   signIgnore:
     - '\.pak$'
@@ -50,6 +52,7 @@ mac:
   notarize: false
 
 dmg:
+  artifactName: GitMate-${version}-${arch}.${ext}
   title: "Install ${productName}"
   background: build/background.tiff
   iconSize: 80

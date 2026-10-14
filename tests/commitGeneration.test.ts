@@ -8,15 +8,15 @@ const fileDiff = (file: string, body: string, mode = '') => `diff --git a/${file
 test('fallback suggestions keep the header format and list only real file facts', () => {
   const media = generateEmbeddedCommit(['.codex/artifacts/web-actor-page.jpg', '.codex/artifacts/web-actor-run.jpg'], ['web-actor-page', 'web-actor-run'].map(name => `diff --git a/.codex/artifacts/${name}.jpg b/.codex/artifacts/${name}.jpg\nnew file mode 100644\nBinary files /dev/null and b/.codex/artifacts/${name}.jpg differ\n`).join(''), 'Open-Pi');
   assert.equal(media, 'feat(artifacts): add web actor preview artifacts\n\n- Add .codex/artifacts/web-actor-page.jpg\n- Add .codex/artifacts/web-actor-run.jpg');
-  assert.equal(generateEmbeddedCommit(['README.md'], '+# Guide\n', 'Gitler'), 'docs(readme): update README.md');
-  const deps = generateEmbeddedCommit(['package.json', 'package-lock.json'], fileDiff('package.json', '-"a": "1"\n+"a": "2"\n') + fileDiff('package-lock.json', '+x\n'), 'Gitler');
+  assert.equal(generateEmbeddedCommit(['README.md'], '+# Guide\n', 'Git Mate'), 'docs(readme): update README.md');
+  const deps = generateEmbeddedCommit(['package.json', 'package-lock.json'], fileDiff('package.json', '-"a": "1"\n+"a": "2"\n') + fileDiff('package-lock.json', '+x\n'), 'Git Mate');
   assert.equal(deps, 'build(deps): update project dependencies and configuration\n\n- Change package.json (+1 -1)\n- Change package-lock.json (+1 -0)');
-  const ui = generateEmbeddedCommit(['src/components/MainWorkspace.tsx'], '+  {/* fix dropdown clipping */}\n', 'Gitler');
+  const ui = generateEmbeddedCommit(['src/components/MainWorkspace.tsx'], '+  {/* fix dropdown clipping */}\n', 'Git Mate');
   assert.equal(ui, 'fix(main-workspace): resolve MainWorkspace interaction issues', 'a single-file change has no invented body');
   for (const message of [media, deps, ui]) { const header = message.split('\n')[0]; assert.ok(header.length <= 72 && !header.endsWith('.')); }
 });
 
-test('fallback suggestions no longer contain Gitler-specific or invented sentences', () => {
+test('fallback suggestions no longer contain Git Mate-specific or invented sentences', () => {
   const message = generateEmbeddedCommit(['package.json', 'electron-builder.yml'], fileDiff('package.json', '+"electron": "43"\n'), 'Other');
   assert.doesNotMatch(message, /Electron packaging|hardened runtime|SSH key|Clarify system instructions/);
 });

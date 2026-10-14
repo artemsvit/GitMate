@@ -1,6 +1,6 @@
-# Gitler — Packaging, Embedded AI & GitHub Release Strategy
+# Git Mate — Packaging, Embedded AI & GitHub Release Strategy
 
-This document outlines the architecture for embedding on-device AI models into Gitler, building and packaging native macOS `.app` and `.dmg` installers, Apple Notarization, Sparkle auto-updates, and the GitHub release strategy.
+This document outlines the architecture for embedding on-device AI models into Git Mate, building and packaging native macOS `.app` and `.dmg` installers, Apple Notarization, Sparkle auto-updates, and the GitHub release strategy.
 
 ---
 
@@ -12,18 +12,18 @@ This document outlines the architecture for embedding on-device AI models into G
   1. **Built-in Compact Model (~350MB – 800MB)**:
      - Bundle `Qwen2.5-Coder-0.5B-Instruct-Q4_K_M.gguf` (~390 MB) or `1.5B-Instruct-Q4_K_M.gguf` (~980 MB) directly inside the `.app` bundle (`Contents/Resources/models/`).
      - Uses `llama.cpp` or `node-llama-cpp` compiled for Apple Silicon Metal GPU acceleration.
-     - **Result**: Gitler works 100% offline out-of-the-box with zero setup, zero dependencies, and instant inference for commit generation.
+     - **Result**: Git Mate works 100% offline out-of-the-box with zero setup, zero dependencies, and instant inference for commit generation.
   2. **Host Daemon Auto-Discovery (Ollama / MLX)**:
-     - Gitler automatically checks `http://127.0.0.1:11434` (Ollama) and `http://127.0.0.1:1234` (LM Studio).
-     - If the user has larger models installed (e.g. `qwen3.5:0.8b-mlx`, `qwen2.5:7b-instruct`, `gemma2:2b`), Gitler uses them seamlessly for higher reasoning depth.
+     - Git Mate automatically checks `http://127.0.0.1:11434` (Ollama) and `http://127.0.0.1:1234` (LM Studio).
+     - If the user has larger models installed (e.g. `qwen3.5:0.8b-mlx`, `qwen2.5:7b-instruct`, `gemma2:2b`), Git Mate uses them seamlessly for higher reasoning depth.
   3. **On-Demand 1-Click Downloader**:
-     - Users can choose to download larger 7B/8B models directly inside Gitler's Settings modal, storing weights in `~/Library/Application Support/Gitler/models/`.
+     - Users can choose to download larger 7B/8B models directly inside Git Mate's Settings modal, storing weights in `~/Library/Application Support/Gitler/models/`.
 
 ---
 
 ## 2. Native macOS Packaging (`.app` & `.dmg`)
 
-Gitler is configured with **Electron** and **Electron-Builder**:
+Git Mate is configured with **Electron** and **Electron-Builder**:
 - **Output**: Native macOS universal / Apple Silicon `.app` and a drag-and-drop `.dmg` installer.
 - **Vibrancy**: macOS native translucent background (`vibrancy: 'under-window'`).
 - **Unified Titlebar**: Traffic lights integrated into the top bar (`titleBarStyle: 'hiddenInset'`).
@@ -45,7 +45,7 @@ Output files will be generated in `release/`:
 
 ## 3. Apple Notarization & Code Signing
 
-To distribute Gitler outside the Mac App Store without Gatekeeper warnings (*"Gitler cannot be opened because Apple cannot check it for malicious software"*), Apple Developer ID signing and Notarization are required.
+To distribute Git Mate outside the Mac App Store without Gatekeeper warnings (*"Git Mate cannot be opened because Apple cannot check it for malicious software"*), Apple Developer ID signing and Notarization are required.
 
 ### Required GitHub Secrets:
 Add these secrets in **GitHub Repository Settings $\rightarrow$ Secrets and variables $\rightarrow$ Actions**:
@@ -68,12 +68,12 @@ The release workflow ([`.github/workflows/release.yml`](file:///Users/asvit/Desk
 
 ## 4. Sparkle & Auto-Update Mechanism
 
-Gitler is configured with **`electron-updater`**, which follows the Sparkle protocol:
+Git Mate is configured with **`electron-updater`**, which follows the Sparkle protocol:
 - Every time a GitHub Release is published with a new tag (e.g. `v1.0.1`), GitHub Actions uploads:
-  - `Gitler-x.x.x-arm64.dmg`
-  - `Gitler-x.x.x-arm64-mac.zip`
+  - `Git Mate-x.x.x-arm64.dmg`
+  - `Git Mate-x.x.x-arm64-mac.zip`
   - `latest-mac.yml` (Sparkle manifest with SHA512 hashes and release notes)
-- When the user launches Gitler, it queries `latest-mac.yml` on GitHub in the background.
+- When the user launches Git Mate, it queries `latest-mac.yml` on GitHub in the background.
 - If a new version is detected, it downloads the delta update and prompts the user: *"New version available — Restart to install"*.
 
 ---
@@ -84,7 +84,7 @@ A promotional landing page is built in [`landing/`](file:///Users/asvit/Desktop/
 - **Live Local Preview**: Open **[http://localhost:3001/landing](http://localhost:3001/landing)** in your browser right now!
 - **Features Highlighted**:
   - Hero header with Warp Dev Tools design system.
-  - Interactive live app mockup reproducing Gitler's 3-pane interface and commit generator.
+  - Interactive live app mockup reproducing Git Mate's 3-pane interface and commit generator.
   - Download `.dmg` call-to-action button and Homebrew tap command.
   - Privacy guarantee (100% offline, zero cloud telemetry).
 - **Free Hosting Options**:
@@ -95,7 +95,7 @@ A promotional landing page is built in [`landing/`](file:///Users/asvit/Desktop/
 
 ## 6. GitHub Repository Setup & Release Flow
 
-To initialize and publish Gitler to GitHub:
+To initialize and publish Git Mate to GitHub:
 
 ```bash
 # 1. Add your GitHub remote repository (replace with your repo URL):
@@ -111,6 +111,6 @@ git push origin v1.0.0
 
 Once pushed, GitHub Actions will:
 1. Trigger `.github/workflows/release.yml`.
-2. Compile and package Gitler into `Gitler-1.0.0-arm64.dmg`.
+2. Compile and package Git Mate into `Git Mate-1.0.0-arm64.dmg`.
 3. Sign and notarize with Apple.
 4. Publish the GitHub Release with direct download links and release notes.

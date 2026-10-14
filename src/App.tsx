@@ -517,7 +517,7 @@ export function App() {
               </div>
             </div>
             <p className="text-xs text-[var(--text-secondary)] leading-relaxed font-sans">
-              macOS protects folders such as <strong>Desktop</strong> and <strong>Documents</strong>. To let Gitler scan and display your repositories, please grant access by selecting this folder in the native Mac Finder dialog.
+              macOS protects folders such as <strong>Desktop</strong> and <strong>Documents</strong>. To let Git Mate scan and display your repositories, please grant access by selecting this folder in the native Mac Finder dialog.
             </p>
             <div className="flex items-center justify-end gap-2 pt-2">
               <button

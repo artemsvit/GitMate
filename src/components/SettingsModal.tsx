@@ -67,7 +67,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [syncSshNotice, setSyncSshNotice] = useState<string | null>(null);
   const [showManualSsh, setShowManualSsh] = useState(false);
 
-  // Dedicated Gitler SSH Key
+  // Dedicated Git Mate SSH Key
   const [gitlerKey, setGitlerKey] = useState<{
     hasKey: boolean;
     publicKey: string;
@@ -142,7 +142,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
       const result = await response.json();
       setConnectionResults(previous => ({ ...previous, [provider]: result.message || result.error || 'Connection test failed.' }));
     } catch {
-      setConnectionResults(previous => ({ ...previous, [provider]: 'Could not run the connection test. Retry after restarting Gitler.' }));
+      setConnectionResults(previous => ({ ...previous, [provider]: 'Could not run the connection test. Retry after restarting Git Mate.' }));
     } finally { setTestingProvider(null); }
   };
 
@@ -562,7 +562,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                             onClick={() => handleSyncSsh('github')}
                             disabled={syncingSsh === 'github'}
                             className="px-2.5 py-1.5 rounded-lg bg-[var(--btn-secondary-bg)] hover:opacity-90 border border-[var(--btn-secondary-border)] text-[var(--btn-secondary-text)] font-semibold text-[11px] transition cursor-pointer shadow-xs"
-                            title="Auto-upload Gitler SSH Key to GitHub"
+                            title="Auto-upload Git Mate SSH Key to GitHub"
                           >
                             <KeyRound className="w-3 h-3" />
                           </button>
@@ -648,7 +648,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           onClick={() => handleSyncSsh('gitlab')}
                           disabled={syncingSsh === 'gitlab'}
                           className="px-2.5 py-1.5 rounded-lg bg-[var(--btn-secondary-bg)] hover:opacity-90 border border-[var(--btn-secondary-border)] text-[var(--btn-secondary-text)] font-semibold text-[11px] transition cursor-pointer shadow-xs"
-                          title="Auto-upload Gitler SSH Key to GitLab"
+                          title="Auto-upload Git Mate SSH Key to GitLab"
                         >
                           <KeyRound className="w-3 h-3" />
                         </button>
@@ -710,7 +710,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       </div>
                     ) : (
                       <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                        Connect with token. Gitler automatically installs its SSH key onto your Gitea server!
+                        Connect with token. Git Mate automatically installs its SSH key onto your Gitea server!
                       </p>
                     )}
                   </div>
@@ -734,7 +734,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           onClick={() => handleSyncSsh('gitea')}
                           disabled={syncingSsh === 'gitea'}
                           className="px-2.5 py-1.5 rounded-lg bg-[var(--btn-secondary-bg)] hover:opacity-90 border border-[var(--btn-secondary-border)] text-[var(--btn-secondary-text)] font-semibold text-[11px] transition cursor-pointer shadow-xs"
-                          title="Re-sync Gitler SSH Key to Gitea"
+                          title="Re-sync Git Mate SSH Key to Gitea"
                         >
                           <KeyRound className="w-3 h-3" />
                         </button>
@@ -1099,7 +1099,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {/* Application Details */}
               <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
                 <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-muted)]">Gitler Application</span>
+                  <span className="text-[var(--text-muted)]">Git Mate Application</span>
                   <span className="text-[var(--text-primary)] font-semibold">v{appVersion}</span>
                 </div>
                 <div className="flex items-center justify-between text-[11px] font-mono">
@@ -1119,7 +1119,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
         {/* Modal Bottom Footer */}
         <div className="px-6 py-3 border-t border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-surface)] shrink-0">
           <span className="text-[10px] text-[var(--text-muted)] font-mono">
-            Gitler Command Center &bull; All changes saved automatically
+            Git Mate Command Center &bull; All changes saved automatically
           </span>
           <button
             onClick={onClose}
@@ -1144,7 +1144,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     Connect {connectModalProvider === 'github' ? 'GitHub' : connectModalProvider === 'gitlab' ? 'GitLab' : 'Gitea / Forgejo'}
                   </h3>
                   <p className="text-[10px] text-[var(--text-muted)]">
-                    Follow the steps below to authorize Gitler
+                    Follow the steps below to authorize Git Mate
                   </p>
                 </div>
               </div>
@@ -1214,7 +1214,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               )}
 
               <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-                For a local server, macOS may ask for Local Network access on your first connection. Choose Allow for Gitler. If you previously denied access, open System Settings → Privacy &amp; Security → Local Network.
+                For a local server, macOS may ask for Local Network access on your first connection. Choose Allow for Git Mate. If you previously denied access, open System Settings → Privacy &amp; Security → Local Network.
               </p>
 
               {/* Step 1: Token Guide Link */}
@@ -1236,7 +1236,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                     connectModalProvider === 'gitea'
                       ? `${connectInstanceUrl || 'http://192.168.0.102:3000'}/user/settings/applications`
                       : connectModalProvider === 'github'
-                        ? 'https://github.com/settings/tokens/new?scopes=repo,read:user&description=Gitler'
+                        ? 'https://github.com/settings/tokens/new?scopes=repo,read:user&description=Git%20Mate'
                         : `${connectInstanceUrl || 'https://gitlab.com'}/-/user_settings/personal_access_tokens`
                   }
                   target="_blank"
@@ -1267,7 +1267,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               {connectModalProvider === 'gitea' && (
                 <div className="p-2.5 rounded-xl bg-teal-500/10 border border-teal-500/20 text-[10px] text-teal-600 dark:text-teal-400 flex items-center gap-2">
                   <Sparkles className="w-4 h-4 shrink-0" />
-                  <span>Gitler will automatically upload its SSH key to your Gitea account upon connection.</span>
+                  <span>Git Mate will automatically upload its SSH key to your Gitea account upon connection.</span>
                 </div>
               )}
 

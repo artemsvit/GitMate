@@ -18,7 +18,7 @@ export function installAccessControl(app: Express, port: number) {
     if (!hosts.has(req.headers.host || '') ||
         (req.headers.origin !== undefined && !origins.has(req.headers.origin)) ||
         req.headers['sec-fetch-site'] === 'cross-site') {
-      res.status(403).json({ error: 'Only the local Gitler interface can access this server.' });
+      res.status(403).json({ error: 'Only the local Git Mate interface can access this server.' });
       return;
     }
     next();
@@ -32,7 +32,7 @@ export function installAccessControl(app: Express, port: number) {
     const expected = `Bearer ${token}`;
     if (typeof supplied !== 'string' || Buffer.byteLength(supplied) !== Buffer.byteLength(expected) ||
         !timingSafeEqual(Buffer.from(supplied), Buffer.from(expected))) {
-      res.status(401).json({ error: 'Gitler session authorization required.' });
+      res.status(401).json({ error: 'Git Mate session authorization required.' });
       return;
     }
     next();

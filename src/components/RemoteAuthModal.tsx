@@ -48,7 +48,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   } | null>(null);
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
-  // Dedicated Gitler SSH Key
+  // Dedicated Git Mate SSH Key
   const [gitlerKey, setGitlerKey] = useState<{
     hasKey: boolean;
     publicKey: string;
@@ -433,13 +433,13 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
             </div>
 
             <p className="text-[11px] text-[var(--text-secondary)] leading-relaxed">
-              Add this dedicated Gitler SSH key to your Gitea account to authorize push &amp; pull for <strong>all your repositories</strong>:
+              Add this dedicated Git Mate SSH key to your Gitea account to authorize push &amp; pull for <strong>all your repositories</strong>:
             </p>
 
             {/* Public Key Display Box with 1-Click Copy */}
             <div className="rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-3 space-y-2">
               <div className="flex items-center justify-between text-[10px] font-mono text-[var(--text-muted)]">
-                <span>Dedicated Gitler Key &bull; <strong className="text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'} (gitler-app)</strong></span>
+                <span>Dedicated Git Mate Key &bull; <strong className="text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'} (gitler-app)</strong></span>
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={handleCopyTitle}
@@ -488,7 +488,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                   <span>Alternative: Personal Access Token (HTTP)</span>
                 </div>
                 {!isGitHub && !isGitLab && <select aria-label="Token provider" value={tokenProvider} onChange={event => setTokenProvider(event.target.value as 'github' | 'gitlab' | 'gitea')} className="bg-[var(--bg-canvas)] border rounded p-1"><option value="gitea">Gitea / Forgejo</option><option value="gitlab">GitLab</option></select>}
-                <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Gitler account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
+                <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Git Mate account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="password"
@@ -551,7 +551,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                     <span>Personal Access Token</span>
                   </span>
                   <a
-                    href={isGitHub ? 'https://github.com/settings/tokens/new?scopes=repo&description=Gitler' : `${new URL(currentUrl).origin}${isGitLab || tokenProvider === 'gitlab' ? '/-/user_settings/personal_access_tokens' : '/user/settings/applications'}`}
+                    href={isGitHub ? 'https://github.com/settings/tokens/new?scopes=repo&description=Git%20Mate' : `${new URL(currentUrl).origin}${isGitLab || tokenProvider === 'gitlab' ? '/-/user_settings/personal_access_tokens' : '/user/settings/applications'}`}
                     target="_blank"
                     rel="noreferrer"
                     className="text-[10px] text-[var(--accent-violet)] hover:underline inline-flex items-center gap-1"
@@ -561,7 +561,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
                   </a>
                 </div>
                 {!isGitHub && !isGitLab && <select aria-label="Token provider" value={tokenProvider} onChange={event => setTokenProvider(event.target.value as 'github' | 'gitlab' | 'gitea')} className="bg-[var(--bg-canvas)] border rounded p-1"><option value="gitea">Gitea / Forgejo</option><option value="gitlab">GitLab</option></select>}
-                <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Gitler account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
+                <p className="text-xs text-[var(--text-muted)]">The token is stored in your protected Git Mate account settings and supplied through Git’s credential helper. It is never inserted into the remote URL.</p>
                 <div className="flex items-center gap-2">
                   <input
                     type="password"
@@ -587,7 +587,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
         {/* Footer */}
         <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
           <span className="text-[10px] text-[var(--text-muted)] font-mono">
-            {isSsh ? 'SSH uses your host configuration, agent, and Gitler key.' : 'HTTPS uses your connected account and existing Git credential helpers.'}
+            {isSsh ? 'SSH uses your host configuration, agent, and Git Mate key.' : 'HTTPS uses your connected account and existing Git credential helpers.'}
           </span>
           <button
             onClick={onClose}

@@ -1,4 +1,4 @@
-# ⚡ Gitler
+# ⚡ Git Mate
 
 > **The Modern, Local-First Git Command Center & Multi-Repository Manager with AI Copilot**
 
@@ -8,7 +8,7 @@
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
 
-**Gitler** is a blazingly fast, privacy-first desktop application designed for developers who juggle dozens of local Git repositories across GitHub, Gitea, GitLab, and self-hosted servers. It combines deep working-tree inspection, native file staging, smart diff visualization, and an on-device AI Copilot into a unified 3-pane command center.
+**Git Mate** is a blazingly fast, privacy-first desktop application designed for developers who juggle dozens of local Git repositories across GitHub, Gitea, GitLab, and self-hosted servers. It combines deep working-tree inspection, native file staging, smart diff visualization, and an on-device AI Copilot into a unified 3-pane command center.
 
 ---
 
@@ -28,7 +28,7 @@
 * **Zero Telemetry**: No diffs, code tokens, or private credentials ever leave your machine.
 
 ### 🌐 Unified Git Providers & SSH Authorization
-* **Dedicated Gitler SSH Key**: Generates a clean `ed25519 (gitler-app)` keypair (`~/.ssh/gitler_ed25519`) specifically for Gitler.
+* **Dedicated Git Mate SSH Key**: Generates a clean `ed25519 (gitler-app)` keypair (`~/.ssh/gitler_ed25519`) specifically for Git Mate.
 * **Gitea & Self-Hosted Ready**: 1-click **Copy Public Key** button to paste into your Gitea profile (**Settings → SSH / GPG Keys**), unlocking push/pull access across all your self-hosted repositories.
 * **Live Host Connection Tester**: Test SSH reachability to any host (e.g., `192.168.0.102:222`) in real time.
 * **GitHub & GitLab Integration**: Automatically detects macOS Keychain helpers (`osxkeychain`), SSH agent keys, and GitHub CLI authorization.
@@ -52,7 +52,7 @@
 1. **Clone the repository:**
    ```bash
    git clone git@github.com:artemsvit/Gitler.git
-   cd Gitler
+   cd Git Mate
    ```
 
 2. **Install dependencies:**
@@ -79,13 +79,13 @@ npm run build
 ```
 
 ### Build Native macOS App (`.app`)
-Generates an unpacked macOS application bundle in `release/mac-arm64/Gitler.app`:
+Generates an unpacked macOS application bundle in `release/mac-arm64/Git Mate.app`:
 ```bash
 npm run dist:dir
 ```
 *You can immediately launch and test the app with:*
 ```bash
-open release/mac-arm64/Gitler.app
+open "release/mac-arm64/Git Mate.app"
 ```
 
 ### Build macOS Installer (`.dmg`)
@@ -93,14 +93,14 @@ Generate a distributable Apple Silicon & Intel DMG installer:
 ```bash
 npm run dist:mac
 ```
-The output file will be generated in `release/Gitler-1.1.2-arm64.dmg`.
+The output file will be generated in `release/GitMate-1.2.0-arm64.dmg`.
 
 ---
 
 ## 📁 Project Structure
 
 ```
-Gitler/
+Git Mate/
 ├── electron/
 │   ├── main.cjs               # Electron main process (lifecycle, window, autostart)
 │   └── preload.cjs            # Secure context bridge
@@ -129,8 +129,8 @@ Gitler/
 
 ## 🔒 Privacy & Security First
 
-* **No Telemetry**: Gitler does not collect usage analytics, crash reports, or diagnostic telemetry.
-* **No Account Snooping**: Gitler does not inspect or expose personal work credentials, keys, or configurations from `~/.ssh`. Dedicated keys are created with the neutral `gitler-app` identifier.
+* **No Telemetry**: Git Mate does not collect usage analytics, crash reports, or diagnostic telemetry.
+* **No Account Snooping**: Git Mate does not inspect or expose personal work credentials, keys, or configurations from `~/.ssh`. Dedicated keys are created with the neutral `gitler-app` identifier.
 * **Native Keychain**: Credentials leverage macOS's secure Keychain Access (`osxkeychain`) and native SSH agents.
 
 ---
@@ -152,7 +152,7 @@ npm run verify:package # Check runtime files and updater in the packaged app
 
 The API binds to `127.0.0.1`. The interface obtains a per-process session token, and API requests require it. Host and Origin checks reject unrelated websites. Repository operations accept only canonical paths found during an authorized scan. The development interface uses port 3000 and stops if that port is occupied.
 
-Stage files before generating a message or committing. Partially staged files appear in both lists, with separate index and working-tree previews. Gitler leaves Git lock files in place. Untracked text previews stop at 256 KiB; binary files show a notice. External suggestions use the detected local Ollama or LM Studio endpoint and reject redirects.
+Stage files before generating a message or committing. Partially staged files appear in both lists, with separate index and working-tree previews. Git Mate leaves Git lock files in place. Untracked text previews stop at 256 KiB; binary files show a notice. External suggestions use the detected local Ollama or LM Studio endpoint and reject redirects.
 
 Local packaging does not prove signing, notarization, or update delivery. Those checks require the release credentials and a published release.
 
@@ -162,15 +162,15 @@ Open **Command Center & Settings → Git Providers & Auth** and use **Test conne
 
 Local repositories work offline. Remote Git operations use the repository's fetch or push URL and its SSH key or HTTPS Git credentials. An account token verifies the provider API; it does not by itself configure Git authentication. Use **Remote → Test Connection** to verify repository read access. A successful read check does not prove push permission.
 
-For local servers, macOS may ask for **Local Network** permission on the first connection. Allow Gitler to reach your server. If access was denied, enable Gitler in **System Settings → Privacy & Security → Local Network** and retry. Gitler does not change the Mac's privacy settings or use a child process to bypass permission.
+For local servers, macOS may ask for **Local Network** permission on the first connection. Allow Git Mate to reach your server. If access was denied, enable Git Mate in **System Settings → Privacy & Security → Local Network** and retry. Git Mate does not change the Mac's privacy settings or use a child process to bypass permission.
 
 Provider requests verify TLS certificates and reject redirects to other origins before forwarding a token. Packaged executables use a stable app-specific UUID to support macOS permission tracking.
 
 ## Sync and working-tree previews
 
-Gitler opens maximized. Choose **Sync remote** before fetching or pulling, and choose a single **Push destination** before pushing. A remote can have a fetch URL and several push URLs on different servers; these are shown separately. Pull follows the selected remote and uses a fast-forward, so it does not silently merge diverged history.
+Git Mate opens maximized. Choose **Sync remote** before fetching or pulling, and choose a single **Push destination** before pushing. A remote can have a fetch URL and several push URLs on different servers; these are shown separately. Pull follows the selected remote and uses a fast-forward, so it does not silently merge diverged history.
 
-**Commit Changes** saves a commit locally. **Commit & Push** then publishes to the selected destination. Gitler reads that remote branch back and compares its commit with the local commit before reporting a verified push. A rejected push leaves the local commit intact.
+**Commit Changes** saves a commit locally. **Commit & Push** then publishes to the selected destination. Git Mate reads that remote branch back and compares its commit with the local commit before reporting a verified push. A rejected push leaves the local commit intact.
 
 Connected provider tokens are supplied privately to Git through a credential helper. Existing Git helpers remain available as fallback. The interface hides legacy credentials embedded in URLs. Use **Authorize** with a replacement token to verify the account and remove credentials from the selected server's remote URLs. Revoke any token that has appeared in a screenshot or shared log.
 
@@ -179,7 +179,7 @@ Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image previ
 
 ### Copilot chat and interface controls
 
-Copilot has separate **Commit** and **Chat** tabs. Commit suggestions use the on-device Qwen3.5-9B model when it is downloaded, following Conventional Commits or the plain style the repository already uses. Without the model, Gitler suggests a header from built-in rules and lists the changed files. Chat requires macOS 14 or newer; Git features retain macOS 12 support. Chat uses Qwen3.5-9B Q4_K_M locally after a one-time 5.7 GB download, with up to a 32K-token context. Gitler removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
+Copilot has separate **Commit** and **Chat** tabs. Commit suggestions use the on-device Qwen3.5-9B model when it is downloaded, following Conventional Commits or the plain style the repository already uses. Without the model, Git Mate suggests a header from built-in rules and lists the changed files. Chat requires macOS 14 or newer; Git features retain macOS 12 support. Chat uses Qwen3.5-9B Q4_K_M locally after a one-time 5.7 GB download, with up to a 32K-token context. Git Mate removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
 
 Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitler/conversations`; use New chat or Delete chat to manage them.
 
@@ -187,7 +187,7 @@ Settings → Appearance includes 80%, 90%, 100%, 110%, and 125% interface zoom. 
 
 ### Push to several destinations
 
-**Fetch / pull from** chooses one remote. **Push to** selects one or more destinations and saves the selection per repository. Workspace Push and Copilot Commit & Push use the same destinations. A commit is created only once, then its exact SHA is pushed and verified separately at each selected destination. Repeated URLs are deduplicated. A failure does not stop the other pushes. **Retry failed destinations** retries the same commit and rejects the retry if local HEAD changed. Changed or removed remote URLs require reselection. Gitler never force pushes automatically.
+**Fetch / pull from** chooses one remote. **Push to** selects one or more destinations and saves the selection per repository. Workspace Push and Copilot Commit & Push use the same destinations. A commit is created only once, then its exact SHA is pushed and verified separately at each selected destination. Repeated URLs are deduplicated. A failure does not stop the other pushes. **Retry failed destinations** retries the same commit and rejects the retry if local HEAD changed. Changed or removed remote URLs require reselection. Git Mate never force pushes automatically.
 
 ### Stable release process
 

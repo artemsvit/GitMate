@@ -12,8 +12,8 @@ function check(bundle) {
   execFileSync('xcrun', ['stapler', 'validate', bundle], { stdio: 'inherit' });
 }
 try {
-  execFileSync('ditto', ['-x', '-k', path.join(root, `Gitler-${version}-arm64-mac.zip`), path.join(tmp, 'zip')]); check(path.join(tmp, 'zip/Gitler.app'));
+  execFileSync('ditto', ['-x', '-k', path.join(root, `GitMate-${version}-arm64-mac.zip`), path.join(tmp, 'zip')]); check(path.join(tmp, 'zip/Git Mate.app'));
   const mount = path.join(tmp, 'dmg'); fs.mkdirSync(mount);
-  execFileSync('hdiutil', ['attach', '-nobrowse', '-readonly', '-mountpoint', mount, path.join(root, `Gitler-${version}-arm64.dmg`)], { stdio: 'inherit' });
-  try { check(path.join(mount, 'Gitler.app')); } finally { execFileSync('hdiutil', ['detach', mount], { stdio: 'inherit' }); }
+  execFileSync('hdiutil', ['attach', '-nobrowse', '-readonly', '-mountpoint', mount, path.join(root, `GitMate-${version}-arm64.dmg`)], { stdio: 'inherit' });
+  try { check(path.join(mount, 'Git Mate.app')); } finally { execFileSync('hdiutil', ['detach', mount], { stdio: 'inherit' }); }
 } finally { fs.rmSync(tmp, { recursive: true, force: true }); }

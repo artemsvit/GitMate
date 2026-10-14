@@ -104,7 +104,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
       style={{ width }}
       className="h-full flex flex-col bg-[var(--bg-canvas)] select-none shrink-0 transition-colors"
     >
-      {/* Top Header: Brand, Version Tag, Theme Switcher & Rescan */}
+      {/* Top Header: Brand, Version Tag, Theme Switcher & Settings */}
       <div
         style={{ WebkitAppRegion: 'drag' } as React.CSSProperties}
         className="h-12 pl-[78px] pr-4 border-b border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-canvas)] select-none"
@@ -114,7 +114,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
             <Terminal className="w-3.5 h-3.5 stroke-[2.2]" />
           </div>
           <div className="flex items-center gap-2">
-            <span className="font-semibold text-xs text-[var(--text-primary)] tracking-tight">Gitler</span>
+            <span className="font-semibold text-xs text-[var(--text-primary)] tracking-tight">Git Mate</span>
             {/* Version Tag */}
             <span className="px-2 py-0.5 rounded-[50px] border border-[var(--border-interactive)] bg-[var(--bg-surface)] text-[var(--accent-violet)] text-[10px] font-mono tracking-wider">
               v{appVersion}
@@ -122,17 +122,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
           </div>
         </div>
 
-        {/* Right side Header Controls: Settings, Theme switcher & Rescan */}
+        {/* Right side Header Controls: Theme switcher, then Settings at the far right */}
         <div className="flex items-center gap-1" style={{ WebkitAppRegion: 'no-drag' } as React.CSSProperties}>
-          {/* Command Center / Settings Button */}
-          <button
-            onClick={onOpenSettings}
-            title="Command Center & Settings (Git providers, AI engine, identity)"
-            className="p-1.5 rounded-full hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer"
-          >
-            <Settings className="w-3.5 h-3.5 text-[var(--text-muted)] hover:text-[var(--accent-violet)]" />
-          </button>
-
           {/* Light / Dark Theme Switcher */}
           <button
             onClick={onToggleTheme}
@@ -146,14 +137,13 @@ export const Sidebar: React.FC<SidebarProps> = ({
             )}
           </button>
 
-          {/* Rescan Button */}
+          {/* Command Center / Settings Button */}
           <button
-            onClick={() => onScan(currentPath, 3)}
-            disabled={isScanning}
-            title="Rescan current folder"
-            className="p-1.5 rounded-full hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition disabled:opacity-30"
+            onClick={onOpenSettings}
+            title="Command Center & Settings (Git providers, AI engine, identity)"
+            className="p-1.5 rounded-full hover:bg-[var(--bg-card)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer"
           >
-            <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
+            <Settings className="w-3.5 h-3.5 text-[var(--text-muted)] hover:text-[var(--accent-violet)]" />
           </button>
         </div>
       </div>
@@ -326,9 +316,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
           )}
         </div>
 
-        <span className="text-[10px] text-[var(--text-muted)] font-mono select-none">
-          {filteredRepos.length} of {repositories.length} repos
-        </span>
+        {/* Rescan Button, opposite the filter */}
+        <button
+          onClick={() => onScan(currentPath, 3)}
+          disabled={isScanning}
+          title="Rescan current folder"
+          aria-label="Rescan current folder"
+          className="p-1.5 rounded-full bg-[var(--bg-surface)] hover:bg-[var(--bg-card)] border border-[var(--border-interactive)] text-[var(--text-muted)] hover:text-[var(--text-primary)] transition cursor-pointer disabled:opacity-30"
+        >
+          <RefreshCw className={`w-3.5 h-3.5 ${isScanning ? 'animate-spin' : ''}`} />
+        </button>
       </div>
 
       {/* Repository Items List */}

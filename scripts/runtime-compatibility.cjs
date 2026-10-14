@@ -15,9 +15,9 @@ function minimumMacOS(binary) {
   throw new Error('macOS minimum version is missing.');
 }
 function validateRuntime(bundle) {
-  for (const relative of ['Contents/MacOS/Gitler', 'Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework']) {
+  for (const relative of [`Contents/MacOS/${path.basename(bundle, '.app')}`, 'Contents/Frameworks/Electron Framework.framework/Versions/A/Electron Framework']) {
     const version = minimumMacOS(fs.readFileSync(path.join(bundle, relative)));
-    if (version[0] > 12 || (version[0] === 12 && (version[1] > 0 || version[2] > 0))) throw new Error(`Runtime requires macOS ${version.join('.')}; Gitler promises macOS 12.0.`);
+    if (version[0] > 12 || (version[0] === 12 && (version[1] > 0 || version[2] > 0))) throw new Error(`Runtime requires macOS ${version.join('.')}; Git Mate promises macOS 12.0.`);
   }
 }
 module.exports = { minimumMacOS, validateRuntime };

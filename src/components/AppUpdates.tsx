@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 export function AppUpdates() {
-  const [state, setState] = useState({ status: 'idle', message: 'Check for a newer Gitler version.' });
+  const [state, setState] = useState({ status: 'idle', message: 'Check for a newer Git Mate version.' });
   const api = (window as any).electronAPI;
   useEffect(() => { api?.getUpdateState().then(setState).catch(() => {}); return api?.onUpdateState(setState); }, [api]);
   const action = async () => {

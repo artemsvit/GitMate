@@ -3,7 +3,7 @@ let session: Promise<string> | undefined;
 function getSession() {
   session ??= window.fetch('/api/session', { credentials: 'same-origin' })
     .then(async response => {
-      if (!response.ok) throw new Error('Could not authorize the Gitler session.');
+      if (!response.ok) throw new Error('Could not authorize the Git Mate session.');
       const data = await response.json();
       return data.token as string;
     }).catch(error => {

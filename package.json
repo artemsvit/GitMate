@@ -1,6 +1,6 @@
 {
   "name": "gitler",
-  "version": "1.1.2",
+  "version": "1.2.0",
   "description": "A local Git client for macOS",
   "main": "electron/main.cjs",
   "type": "module",

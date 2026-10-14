@@ -79,13 +79,13 @@ export async function detectLocalAI(requestedMode?: string): Promise<LocalAIStat
     };
   }
 
-  // Default: Built-in Native AI Engine (Incorporated directly inside Gitler)
+  // Default: Built-in Native AI Engine (Incorporated directly inside Git Mate)
   return {
     available: true,
     provider: 'embedded',
     endpoint: 'embedded://on-device',
-    models: ['Gitler Commit Suggestions'],
-    activeModel: 'Gitler Commit Suggestions (On-Device)',
+    models: ['Git Mate Commit Suggestions'],
+    activeModel: 'Git Mate Commit Suggestions (On-Device)',
     mode: 'embedded',
     hasExternal,
     externalProvider,
@@ -174,7 +174,7 @@ export async function generateCommitMessage(options: {
           }
         }
       } catch (err) {
-        console.warn('External AI query failed, falling back to Gitler Commit Suggestions:', err);
+        console.warn('External AI query failed, falling back to Git Mate Commit Suggestions:', err);
       }
     }
   }
@@ -183,9 +183,9 @@ export async function generateCommitMessage(options: {
   if (commitModelReady()) {
     try {
       const message = await generateCommitWithModel({ repoName, diff, changedFiles, recentSubjects });
-      return { message, source: 'local-ai', provider: 'Gitler Copilot (on-device)', model: modelSpec.name };
+      return { message, source: 'local-ai', provider: 'Git Mate Copilot (on-device)', model: modelSpec.name };
     } catch (err) {
-      console.warn('On-device commit generation failed, falling back to Gitler Commit Suggestions:', err);
+      console.warn('On-device commit generation failed, falling back to Git Mate Commit Suggestions:', err);
     }
   }
 
@@ -194,7 +194,7 @@ export async function generateCommitMessage(options: {
   return {
     message: embeddedMsg,
     source: 'embedded',
-    provider: 'Gitler Commit Suggestions',
+    provider: 'Git Mate Commit Suggestions',
     model: 'Built-in Heuristics'
   };
 }

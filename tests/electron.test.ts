@@ -15,7 +15,7 @@ test('packaged executable UUID is unique per app and stable across rebuilds', ()
   assert.deepEqual(a.subarray(0, 40), binary.subarray(0, 40));
 });
 
-test('interface network permissions are limited to the Gitler origin', () => {
+test('interface network permissions are limited to the Git Mate origin', () => {
   const contents = { getURL: () => 'http://localhost:3001/' };
   assert.equal(trustedInterfacePermission(contents, 'local-network', 'http://localhost:3001/', 'http://localhost:3001'), true);
   assert.equal(trustedInterfacePermission(contents, 'local-network', 'https://unrelated.invalid', 'http://localhost:3001'), false);
@@ -48,17 +48,17 @@ test('menu update check reports each result and installs only after consent', as
     return { api, updater, calls, answers, shown, setLatest: (value: string) => { latest = value; } };
   };
   const declined = load(); declined.answers.push(1); await declined.api.checkInteractive();
-  assert.deepEqual(declined.shown, ['Gitler 1.1.0 is available.']); assert.equal(declined.calls.downloads, 0);
+  assert.deepEqual(declined.shown, ['Git Mate 1.1.0 is available.']); assert.equal(declined.calls.downloads, 0);
   const later = load(); later.answers.push(0, 1); await later.api.checkInteractive();
-  assert.deepEqual(later.shown, ['Gitler 1.1.0 is available.', 'Gitler 1.1.0 is ready to install.']); assert.equal(later.calls.installs, 0);
+  assert.deepEqual(later.shown, ['Git Mate 1.1.0 is available.', 'Git Mate 1.1.0 is ready to install.']); assert.equal(later.calls.installs, 0);
   later.answers.push(0); await later.api.checkInteractive(); assert.equal(later.calls.installs, 1); assert.equal(later.calls.downloads, 1);
   const current = load(); current.setLatest(''); await current.api.checkInteractive(); assert.deepEqual(current.shown, ['You have the latest version.']);
   const launch = load(); launch.answers.push(1, 1); await launch.api.checkInBackground(); await launch.api.checkInBackground();
-  assert.deepEqual(launch.shown, ['Gitler 1.1.0 is available.'], 'a background check offers each version once');
+  assert.deepEqual(launch.shown, ['Git Mate 1.1.0 is available.'], 'a background check offers each version once');
   const quiet = load(); quiet.setLatest(''); await quiet.api.checkInBackground(); assert.deepEqual(quiet.shown, []);
   const offline = load(); offline.updater.checkForUpdates = async () => { throw new Error('offline'); }; await offline.api.checkInBackground(); assert.deepEqual(offline.shown, []);
   const failed = load(); failed.updater.checkForUpdates = async () => { failed.updater.emit('error', new Error('offline')); throw new Error('offline'); };
-  await failed.api.checkInteractive(); assert.deepEqual(failed.shown, ['Gitler could not check for updates.']);
+  await failed.api.checkInteractive(); assert.deepEqual(failed.shown, ['Git Mate could not check for updates.']);
 });
 
 test('application and Dock menus offer Check for Updates', async () => {
@@ -69,10 +69,10 @@ test('application and Dock menus offer Check for Updates', async () => {
   module.exports.installMenu({ name: 'gitler', dock: { setMenu: (menu: any) => { dockMenu = menu; } } }, Menu, () => checks++);
   const appItem = appMenu[0].submenu.find((item: any) => item.label === 'Check for Updates…'); const dockItem = dockMenu.find((item: any) => item.label === 'Check for Updates…');
   appItem.click(); dockItem.click(); assert.equal(checks, 2);
-  assert.deepEqual([...appMenu[0].submenu].filter((item: any) => /Gitler/i.test(item.label || '')).map((item: any) => item.label), ['About Gitler', 'Hide Gitler', 'Quit Gitler']);
+  assert.deepEqual([...appMenu[0].submenu].filter((item: any) => /Git Mate/i.test(item.label || '')).map((item: any) => item.label), ['About Git Mate', 'Hide Git Mate', 'Quit Git Mate']);
 });
 
-test('closing the last window quits Gitler on macOS', async () => {
+test('closing the last window quits Git Mate on macOS', async () => {
   const { runInNewContext } = await import('node:vm'); const fs = await import('node:fs'); const path = await import('node:path');
   const handlers: Record<string, () => void> = {}; let quits = 0;
   const electron = { app: { on: (name: string, handler: () => void) => { handlers[name] = handler; }, requestSingleInstanceLock: () => false, quit: () => { quits++; } }, ipcMain: { handle: () => {} } };

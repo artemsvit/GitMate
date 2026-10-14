@@ -79,7 +79,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               <div className="font-semibold text-xs text-[var(--text-primary)] flex items-center gap-2">
                 <span>
                   {activeMode === 'embedded'
-                    ? 'Active: Gitler Commit Suggestions (Built-in)'
+                    ? 'Active: Git Mate Commit Suggestions (Built-in)'
                     : `Active: ${aiStatus?.externalProvider?.toUpperCase() || 'External'} (${aiStatus?.externalActiveModel || 'Local Model'})`}
                 </span>
                 <span className="px-2 py-0.5 rounded-[50px] bg-[var(--bg-surface)] border border-[var(--border-interactive)] text-[10px] font-mono text-[var(--accent-violet)]">
@@ -88,7 +88,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               </div>
               <p className="text-[11px] mt-1.5 text-[var(--text-muted)] leading-relaxed">
                 {activeMode === 'embedded'
-                  ? 'Integrated directly into Gitler. Zero configuration or external software required. 100% private, on-device diff analysis.'
+                  ? 'Integrated directly into Git Mate. Zero configuration or external software required. 100% private, on-device diff analysis.'
                   : `Communicating with local daemon at ${aiStatus?.externalEndpoint || 'http://127.0.0.1:11434'}. Zero telemetry or code leaves your device.`}
               </p>
             </div>
@@ -111,7 +111,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
               <div className="flex-1">
                 <div className="flex items-center justify-between">
                   <span className="font-semibold text-xs text-[var(--text-primary)]">
-                    Gitler Commit Suggestions (Recommended)
+                    Git Mate Commit Suggestions (Recommended)
                   </span>
                   <span className="text-[10px] font-mono text-[var(--accent-violet)]">Built-in</span>
                 </div>
@@ -143,7 +143,7 @@ export const AISettingsModal: React.FC<AISettingsModalProps> = ({
                 <p className="text-[11px] text-[var(--text-muted)] mt-1 leading-relaxed">
                   {aiStatus?.hasExternal
                     ? `Detected running daemon: ${aiStatus.externalProvider?.toUpperCase()} (${aiStatus.externalActiveModel}). Connects via loopback.`
-                    : 'If you run an external Ollama or LM Studio instance on your machine, Gitler can connect to it.'}
+                    : 'If you run an external Ollama or LM Studio instance on your machine, Git Mate can connect to it.'}
                 </p>
               </div>
             </div>

@@ -25,7 +25,7 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="text-xl font-bold tracking-tight text-white">Gitler</h1>
+              <h1 className="text-xl font-bold tracking-tight text-white">Git Mate</h1>
               <span className="px-2 py-0.5 text-xs font-semibold rounded-full bg-indigo-500/10 text-indigo-400 border border-indigo-500/20">
                 v1.0
               </span>
@@ -51,7 +51,7 @@ export const Header: React.FC<HeaderProps> = ({
                 <Cpu className="w-3.5 h-3.5" />
                 <span>
                   {aiStatus.provider === 'embedded' ? (
-                    <span className="font-semibold">Gitler Commit Suggestions</span>
+                    <span className="font-semibold">Git Mate Commit Suggestions</span>
                   ) : (
                     <>
                       {aiStatus.provider === 'ollama' ? 'Ollama' : 'LM Studio'}:{' '}

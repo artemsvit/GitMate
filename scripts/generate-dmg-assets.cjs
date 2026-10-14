@@ -137,11 +137,11 @@ app.whenReady().then(async () => {
 
     <div class="header">
       <div class="brand-row">
-        <img class="logo-img" src="data:image/png;base64,${iconBase64}" alt="Gitler" />
-        <span class="brand-name">Gitler</span>
+        <img class="logo-img" src="data:image/png;base64,${iconBase64}" alt="Git Mate" />
+        <span class="brand-name">Git Mate</span>
         <span class="version-tag">v${require('../package.json').version}</span>
       </div>
-      <div class="subtitle">Drag Gitler into Applications folder to install</div>
+      <div class="subtitle">Drag Git Mate into Applications folder to install</div>
     </div>
 
     <div class="arrow-container">

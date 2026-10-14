@@ -87,7 +87,7 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
     try {
       const savedMode = localStorage.getItem('gitler_ai_mode') || 'embedded';
       const targetProvider = savedMode === 'external' ? (aiStatus?.externalProvider || 'ollama') : 'embedded';
-      const targetModel = savedMode === 'external' ? aiStatus?.externalActiveModel : 'Gitler Embedded';
+      const targetModel = savedMode === 'external' ? aiStatus?.externalActiveModel : 'Git Mate Embedded';
 
       const res = await apiFetch('/api/ai/generate-commit', {
         method: 'POST',

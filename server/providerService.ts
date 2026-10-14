@@ -54,7 +54,7 @@ export function describeNetworkError(error: any, url: string): Error {
   if (/redirected to a different address|HTTP or HTTPS server URL/.test(detail)) return new Error(detail);
   if (/CERT|TLS|SSL/i.test(code + ' ' + detail)) return new Error(`The certificate for ${new URL(url).origin} could not be verified. Check the server certificate and the Mac clock.`);
   if (/ECONNREFUSED|ERR_CONNECTION_REFUSED/i.test(code + ' ' + detail)) return new Error(`The server at ${new URL(url).origin} refused the connection. Check the server address, port, and service.`);
-  if (isLocalAddress(url)) return new Error(`Cannot reach ${new URL(url).origin}. On macOS, allow Gitler in System Settings → Privacy & Security → Local Network, then retry. If access is already allowed, check the server address, Wi-Fi, and VPN.`);
+  if (isLocalAddress(url)) return new Error(`Cannot reach ${new URL(url).origin}. On macOS, allow Git Mate in System Settings → Privacy & Security → Local Network, then retry. If access is already allowed, check the server address, Wi-Fi, and VPN.`);
   return new Error(`Cannot reach ${new URL(url).origin}. Check your internet connection and server address.`);
 }
 
@@ -65,7 +65,7 @@ export function httpRequest(urlStr: string, options: HttpRequestOptions = {}, re
       const parsed = validatedUrl(urlStr);
       const transport = parsed.protocol === 'https:' ? https : http;
       const req = transport.request(parsed, {
-        method: options.method || 'GET', headers: { 'User-Agent': 'Gitler-App', ...options.headers },
+        method: options.method || 'GET', headers: { 'User-Agent': 'GitMate-App', ...options.headers },
         timeout: options.timeoutMs ?? 15000
       }, res => {
         if (res.statusCode && [301, 302, 303, 307, 308].includes(res.statusCode) && res.headers.location) {
@@ -98,9 +98,9 @@ export async function universalFetch(urlStr: string, options: HttpRequestOptions
   const parsed = validatedUrl(urlStr);
   const electronNetFetch = (globalThis as any).__electronNetFetch;
   if (typeof electronNetFetch !== 'function') return httpRequest(urlStr, options, redirectsLeft);
-  // Do not switch to a child process when macOS denies access. The user must grant access to Gitler.
+  // Do not switch to a child process when macOS denies access. The user must grant access to Git Mate.
   const response = await electronNetFetch(urlStr, {
-    method: options.method || 'GET', headers: { 'User-Agent': 'Gitler-App', ...options.headers },
+    method: options.method || 'GET', headers: { 'User-Agent': 'GitMate-App', ...options.headers },
     ...(options.body ? { body: options.body } : {}),
     redirect: 'manual', signal: AbortSignal.timeout(options.timeoutMs ?? 15000)
   });
@@ -160,7 +160,7 @@ export function writeProvidersConfig(config: ProvidersConfig): void {
     fs.writeFileSync(temporary, JSON.stringify(config, null, 2), { mode: 0o600 });
     fs.renameSync(temporary, CONFIG_FILE);
   } catch {
-    throw new Error('Could not save your account settings. Check access to the Gitler configuration folder.');
+    throw new Error('Could not save your account settings. Check access to the Git Mate configuration folder.');
   } finally {
     if (fs.existsSync(temporary)) fs.unlinkSync(temporary);
   }
@@ -331,7 +331,7 @@ export async function connectProvider(params: {
       lastChecked: new Date().toISOString()
     };
 
-    // Auto-sync Gitler's SSH key directly into Gitea
+    // Auto-sync Git Mate's SSH key directly into Gitea
     try {
       const keyInfo = params.syncSshKey === false ? null : await getOrCreateGitlerSshKey(false);
       if (keyInfo?.publicKey) {
@@ -351,10 +351,10 @@ export async function connectProvider(params: {
 
         if (keyPostRes.status === 201) {
           account.sshKeySynced = true;
-          sshSyncedMessage = 'Gitler SSH key automatically installed into Gitea!';
+          sshSyncedMessage = 'Git Mate SSH key automatically installed into Gitea!';
         } else if (keyPostRes.status === 422 && await keyAlreadyRegistered('gitea', instance, cleanToken, keyInfo.publicKey)) {
           account.sshKeySynced = true;
-          sshSyncedMessage = 'Gitler SSH key already registered on Gitea.';
+          sshSyncedMessage = 'Git Mate SSH key already registered on Gitea.';
         }
       }
     } catch (e: any) {
@@ -394,7 +394,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
 
   const keyInfo = await getOrCreateGitlerSshKey(false);
   if (!keyInfo.publicKey) {
-    throw new Error('No local Gitler SSH key found.');
+    throw new Error('No local Git Mate SSH key found.');
   }
 
   if (provider === 'gitea') {

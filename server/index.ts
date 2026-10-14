@@ -365,7 +365,7 @@ app.post('/api/repos/remotes/test', async (req, res) => {
   }
 });
 
-// 11e. Get or create dedicated Gitler SSH Key
+// 11e. Get or create dedicated Git Mate SSH Key
 app.get('/api/auth/gitler-key', async (_req, res) => {
   try {
     const keyInfo = await getOrCreateGitlerSshKey(false);
@@ -375,7 +375,7 @@ app.get('/api/auth/gitler-key', async (_req, res) => {
   }
 });
 
-// 11f. Regenerate dedicated Gitler SSH Key
+// 11f. Regenerate dedicated Git Mate SSH Key
 app.post('/api/auth/gitler-key/regenerate', async (req, res) => {
   try {
     const keyType = (req.body?.keyType === 'rsa' ? 'rsa' : 'ed25519') as 'ed25519' | 'rsa';
@@ -551,6 +551,6 @@ if (fs.existsSync(distPath)) {
 
 export function startServer() {
   return app.listen(PORT, '127.0.0.1', () => {
-    console.log(`Gitler is running at http://127.0.0.1:${PORT}`);
+    console.log(`Git Mate is running at http://127.0.0.1:${PORT}`);
   });
 }

@@ -19,7 +19,7 @@ const interfaceURL = isDev ? 'http://localhost:3000' : `http://localhost:${PORT}
 function checkSender(event) {
   if (!mainWindow || event.sender !== mainWindow.webContents || !event.senderFrame ||
       new URL(event.senderFrame.url).origin !== interfaceURL) {
-    throw new Error('Only the Gitler window can use this action.');
+    throw new Error('Only the Git Mate window can use this action.');
   }
 }
 
@@ -76,7 +76,7 @@ function createWindow() {
   mainWindow.webContents.session.setPermissionCheckHandler((contents, permission, origin) => {
     return trustedInterfacePermission(contents, permission, origin, interfaceURL);
   });
-  mainWindow.loadURL(interfaceURL).catch(error => dialog.showErrorBox('Gitler could not load', error.message));
+  mainWindow.loadURL(interfaceURL).catch(error => dialog.showErrorBox('Git Mate could not load', error.message));
   mainWindow.on('closed', () => { mainWindow = null; });
   if (app.isPackaged && !updateTimer) {
     mainWindow.once('ready-to-show', () => updates.checkInBackground());
@@ -102,10 +102,10 @@ else {
       await startBackendServer();
       createWindow();
     }
-    catch (error) { dialog.showErrorBox('Gitler could not start', error.message); app.quit(); }
+    catch (error) { dialog.showErrorBox('Git Mate could not start', error.message); app.quit(); }
     app.on('activate', () => { if (BrowserWindow.getAllWindows().length === 0) createWindow(); });
   });
 }
 app.on('will-quit', () => backendServer?.close());
-// Gitler has one main window, so closing it quits and releases the local server and the model.
+// Git Mate has one main window, so closing it quits and releases the local server and the model.
 app.on('window-all-closed', () => app.quit());

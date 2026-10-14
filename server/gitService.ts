@@ -361,7 +361,7 @@ async function pushUnlocked(repoPath: string, remote?: string, branch?: string, 
   const sync = await getSyncTargets(repoPath);
   const targetRemote = await requireRemote(git, remote || sync.pushRemote);
   const urls = await getPushUrls(git, targetRemote);
-  if (pushIndex === undefined && urls.length > 1) throw new Error(`Remote "${targetRemote}" has ${urls.length} push destinations. Select one push destination; Gitler will not silently push to multiple servers.`);
+  if (pushIndex === undefined && urls.length > 1) throw new Error(`Remote "${targetRemote}" has ${urls.length} push destinations. Select one push destination; Git Mate will not silently push to multiple servers.`);
   const index = pushIndex ?? 0;
   if (!Number.isInteger(index) || index < 0 || index >= urls.length) throw new Error('Invalid push destination.');
   const destinationBranch = branch || (targetRemote === sync.pushRemote ? sync.pushBranch : status.current);
@@ -580,7 +580,7 @@ export async function testRemoteConnection(repoPath: string, remoteName = 'origi
     let friendly = rawError;
 
     if (rawError.includes('Permission denied') || rawError.includes('publickey')) {
-      friendly = 'SSH key rejected by server. Please verify the Gitler public key is added to your Gitea account (Settings → SSH / GPG Keys → Add Key).';
+      friendly = 'SSH key rejected by server. Please verify the Git Mate public key is added to your Gitea account (Settings → SSH / GPG Keys → Add Key).';
     } else if (rawError.includes('Host key verification failed')) {
       friendly = 'Host key verification failed. The remote server host key has changed or is unverified.';
     } else if (rawError.includes('No route to host')) {
@@ -727,7 +727,7 @@ export async function testHostSsh(host: string, port = 22): Promise<{
           success: false,
           authenticated: false,
           provider,
-          message: `Connected to ${host}:${port}, but SSH key was not accepted yet. Add the Gitler public key to your ${provider === 'gitea' ? 'Gitea' : 'git host'} account.`,
+          message: `Connected to ${host}:${port}, but SSH key was not accepted yet. Add the Git Mate public key to your ${provider === 'gitea' ? 'Gitea' : 'git host'} account.`,
           raw
         });
       }
