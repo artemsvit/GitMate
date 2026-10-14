@@ -679,10 +679,9 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 
       {/* Main Workspace Body */}
       <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex flex-wrap gap-2 items-center text-xs">
-        <div className="flex items-center gap-2 min-w-0"><span>Fetch / pull from</span><Dropdown label="Fetch and pull remote" value={syncRemote} options={repoSummary.remotes.map(remote => ({ value: remote.name, label: remote.name }))} onChange={value => onSyncTargetChange(value, 0)} /></div>
+        <div className="flex items-center gap-2 min-w-0" title={`${repoSummary.remotes.find(remote => remote.name === syncRemote)?.fetchUrl || 'No remote'}\nTracking: ${details?.tracking || 'not configured'}`}><span>Fetch / pull from</span><Dropdown label="Fetch and pull remote" value={syncRemote} options={repoSummary.remotes.map(remote => ({ value: remote.name, label: remote.name }))} onChange={value => onSyncTargetChange(value, 0)} /></div>
         <div className="flex items-center gap-2 min-w-0"><span>Push to</span><Dropdown label="Push destinations" multiple value={pushState.destinations.map(destinationKey)} options={pushState.all.map(target => ({ value: destinationKey(target), label: target.url, group: target.remote }))} onChange={pushState.toggle} placeholder="Choose destinations" /></div>
         {pushState.stale && <p className="text-amber-600">A saved destination changed. Select the destinations again.</p>}
-        <span className="w-full text-[var(--text-muted)] break-all">Fetch / pull: {repoSummary.remotes.find(remote => remote.name === syncRemote)?.fetchUrl || 'No remote'} · Push branch: {repoSummary.currentBranch} · Tracking: {details?.tracking || 'not configured'}</span>
       </div>
 
       {activeTab === 'changes' && (

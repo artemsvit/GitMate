@@ -1,200 +1,68 @@
-# ⚡ Git Mate
+<p align="center">
+  <img src="build/icon.png" width="96" height="96" alt="Git Mate icon">
+</p>
 
-> **The Modern, Local-First Git Command Center & Multi-Repository Manager with AI Copilot**
+<h1 align="center">Git Mate</h1>
 
-[![Platform](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon%20%7C%20Intel)-6e3ad6?style=flat-square&logo=apple)](https://github.com/artemsvit/GitMate)
-[![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
-[![Zero Telemetry](https://img.shields.io/badge/Privacy-100%25%20Local%20%26%20Private-10b981?style=flat-square)](https://github.com/artemsvit/GitMate)
-[![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react)](https://react.dev)
-[![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
+<p align="center">
+  A local Git client for macOS, with an AI copilot that runs on your Mac.
+</p>
 
-**Git Mate** is a blazingly fast, privacy-first desktop application designed for developers who juggle dozens of local Git repositories across GitHub, Gitea, GitLab, and self-hosted servers. It combines deep working-tree inspection, native file staging, smart diff visualization, and an on-device AI Copilot into a unified 3-pane command center.
+<p align="center">
+  <a href="https://github.com/artemsvit/GitMate/releases/latest"><b>Download for macOS</b></a>
+  &nbsp;·&nbsp;
+  <a href="https://github.com/artemsvit/GitMate/releases">Release notes</a>
+  &nbsp;·&nbsp;
+  <a href="docs/GUIDE.md">Guide</a>
+</p>
 
----
+<br>
 
-## ✨ Features at a Glance
+## Overview
 
-### 📂 Multi-Repository Command Sidebar
-* **Live Status Detection**: Instant badges for **Dirty** (uncommitted edits), **Ahead** (commits pending push), **Behind** (remote commits pending pull), and **Clean** states.
-* **Filter Dropdown**: Quick drop list to isolate repositories by status (`ALL`, `DIRTY`, `AHEAD`, `BEHIND`, `CLEAN`).
-* **Multi-Level Folder Discovery**: Scan arbitrary local directories (e.g. `~/Desktop`, `~/Projects`) up to 5 levels deep.
-* **Smooth Draggable Panels**: Resizable left sidebar and right Copilot drawer with persistent width saving.
+- **All your repositories in one window.** Scan a folder and see which repositories have changes, are ahead, or are behind.
+- **Changes, history, and a graph.** Stage files, read diffs and image previews, and follow every branch, merge, and tag in the Graph tab.
+- **Push with proof.** Commit once, push to one or more destinations, and Git Mate reads each remote back to confirm the exact commit arrived.
+- **AI Copilot.** Commit messages written from your staged changes, and a chat that answers questions about your code.
+- **Accounts and SSH.** GitHub, GitLab, and Gitea or Forgejo, with a dedicated SSH key and connection tests.
+- **Signed updates.** Notarized releases with release notes, and updates you can skip or install on quit.
 
-### 🤖 On-Device AI Copilot & Semantic Commit Studio
-* **Conventional Commit Generation**: Analyzes staged diffs and drafts conventional commit messages (`feat:`, `fix:`, `refactor:`, `docs:`) for review.
-* **Dual-Engine Architecture**:
-  * **Built-in Commit Suggestions**: Local, deterministic rules that draft messages from staged changes. No neural model is loaded.
-  * **External Daemon (Ollama / LM Studio)**: Connects directly to local models (`llama3`, `qwen2.5-coder`, `mistral`) on `http://127.0.0.1:11434`.
-* **Zero Telemetry**: No diffs, code tokens, or private credentials ever leave your machine.
+## Requirements
 
-### 🌐 Unified Git Providers & SSH Authorization
-* **Dedicated Git Mate SSH Key**: Generates a clean `ed25519 (git-mate)` keypair (`~/.ssh/gitmate_ed25519`) specifically for Git Mate.
-* **Gitea & Self-Hosted Ready**: 1-click **Copy Public Key** button to paste into your Gitea profile (**Settings → SSH / GPG Keys**), unlocking push/pull access across all your self-hosted repositories.
-* **Live Host Connection Tester**: Test SSH reachability to any host (e.g., `192.168.0.102:222`) in real time.
-* **GitHub & GitLab Integration**: Automatically detects macOS Keychain helpers (`osxkeychain`), SSH agent keys, and GitHub CLI authorization.
+macOS 12 or later on Apple Silicon. Copilot Chat needs macOS 14 or later.
 
-### ⚙️ Command Center & Global Preferences
-* **Git Identity Manager**: View and edit global Git author settings (`user.name`, `user.email`, `init.defaultBranch`) in one place.
-* **Warp-Inspired Visual Themes**: Switch seamlessly between **Obsidian Dark** and **Paper Light** themes with high-contrast alert design.
-* **Top-Aligned Stable Windows**: Dialogs maintain a steady viewport position to eliminate jumping when toggling between settings tabs.
+## AI models
 
----
+Copilot runs on a model you download once, or on a model you already run in LM Studio or Ollama.
 
-## 🚀 Getting Started
+| Model | Download | Memory |
+| --- | --- | --- |
+| Qwen3.5 4B | 2.7 GB | 8 GB |
+| Qwen3.5 9B — recommended | 5.7 GB | 16 GB |
+| Qwen3.6 27B | 16.8 GB | 32 GB |
 
-### Prerequisites
-* **Node.js**: v22.12.0 or later (Node 24 recommended)
-* **npm**: v9.0.0 or later
-* **Git**: System Git installed (`git --version`)
+Choose, download, or delete models in **Settings → AI Models**. Without a model, commit messages come from built-in rules.
 
-### Installation & Local Development
+## Privacy
 
-1. **Clone the repository:**
-   ```bash
-   git clone git@github.com:artemsvit/GitMate.git
-   cd GitMate
-   ```
+- Your code, diffs, and chats stay on your Mac. Git Mate has no analytics or telemetry.
+- Network access is limited to your Git hosts, model downloads, and update checks.
+- LM Studio and Ollama are reached only on `127.0.0.1`; cloud-hosted Ollama models are not offered.
 
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
+## Development
 
-3. **Start the development environment:**
-   ```bash
-   npm run dev
-   ```
-   * Runs the Express Git backend on `http://localhost:3001`
-   * Runs the Vite React frontend on `http://localhost:3000`
-   * You can open `http://localhost:3000` in your browser or launch via Electron.
+Requires Node.js 22.12 or later and Git.
 
----
-
-## 🛠️ Building & Packaging
-
-### Production Build
-Compile both the frontend bundle and backend CommonJS bundle (with runtime npm dependencies):
 ```bash
-npm run build
+npm install
+npm run dev          # API on :3001, interface on :3000
+npm run check        # type check and tests
+npm run dev:desktop  # build and open the Electron app
+npm run dist:dir     # local, unsigned macOS app
 ```
 
-### Build Native macOS App (`.app`)
-Generates an unpacked macOS application bundle in `release/mac-arm64/Git Mate.app`:
-```bash
-npm run dist:dir
-```
-*You can immediately launch and test the app with:*
-```bash
-open "release/mac-arm64/Git Mate.app"
-```
+Releases are built, signed, and notarized by GitHub Actions from a version tag. See the [guide](docs/GUIDE.md#stable-release-process) for the full process.
 
-### Build macOS Installer (`.dmg`)
-Generate a distributable Apple Silicon & Intel DMG installer:
-```bash
-npm run dist:mac
-```
-The output file will be generated in `release/GitMate-1.3.0-arm64.dmg`.
+## License
 
----
-
-## 📁 Project Structure
-
-```
-GitMate/
-├── electron/
-│   ├── main.cjs               # Electron main process (lifecycle, window, autostart)
-│   └── preload.cjs            # Secure context bridge
-├── server/
-│   ├── index.ts               # Express API server (REST endpoints)
-│   ├── gitService.ts          # Simple-Git integration, SSH runner, diagnostics
-│   ├── aiService.ts           # On-device semantic commit generator & Ollama bridge
-│   └── scanner.ts             # Recursive repository filesystem discovery
-├── src/
-│   ├── components/
-│   │   ├── Sidebar.tsx        # Repository list, search, status filter dropdown
-│   │   ├── MainWorkspace.tsx  # Central staged/unstaged changes, diff viewer, commit box
-│   │   ├── AICopilotPanel.tsx # Right drawer AI Copilot & model inspector
-│   │   ├── SettingsModal.tsx  # Unified Command Center (Providers, AI, Identity, Theme)
-│   │   ├── RemoteAuthModal.tsx# Per-repo remote URL manager & protocol switcher
-│   │   ├── DiffViewer.tsx     # High-contrast file diff inspector
-│   │   └── StatusBar.tsx      # Bottom status, active branch, and AI status pill
-│   ├── App.tsx                # App state orchestrator & 3-pane responsive layout
-│   └── index.css              # Obsidian Dark & Paper Light styling with Tailwind v4
-├── electron-builder.yml       # macOS packaging, hardened runtime, and DMG config
-├── package.json               # Scripts, dependencies, and build directives
-└── vite.config.ts             # Vite build & Tailwind plugin config
-```
-
----
-
-## 🔒 Privacy & Security First
-
-* **No Telemetry**: Git Mate does not collect usage analytics, crash reports, or diagnostic telemetry.
-* **No Account Snooping**: Git Mate does not inspect or expose personal work credentials, keys, or configurations from `~/.ssh`. Dedicated keys are created with the neutral `git-mate` identifier.
-* **Native Keychain**: Credentials leverage macOS's secure Keychain Access (`osxkeychain`) and native SSH agents.
-
----
-
-## 📄 License
-
-Distributed under the **MIT License**. See `LICENSE` for more information.
-
-Developed with ❤️ by **Artem Svitelskyi**.
-
-## Local checks and access
-
-```sh
-npm run check          # TypeScript and temporary Git fixture tests
-npm run dev:desktop    # Build and launch Electron
-npm run dist:dir       # Build a local macOS app without publishing
-npm run verify:package # Check runtime files and updater in the packaged app
-```
-
-The API binds to `127.0.0.1`. The interface obtains a per-process session token, and API requests require it. Host and Origin checks reject unrelated websites. Repository operations accept only canonical paths found during an authorized scan. The development interface uses port 3000 and stops if that port is occupied.
-
-Stage files before generating a message or committing. Partially staged files appear in both lists, with separate index and working-tree previews. Git Mate leaves Git lock files in place. Untracked text previews stop at 256 KiB; binary files show a notice. External suggestions use the detected local Ollama or LM Studio endpoint and reject redirects.
-
-Local packaging does not prove signing, notarization, or update delivery. Those checks require the release credentials and a published release.
-
-## Check a provider connection
-
-Open **Command Center & Settings → Git Providers & Auth** and use **Test connection** on a provider card. The result distinguishes server reachability from account access. This check does not upload keys or change repositories.
-
-Local repositories work offline. Remote Git operations use the repository's fetch or push URL and its SSH key or HTTPS Git credentials. An account token verifies the provider API; it does not by itself configure Git authentication. Use **Remote → Test Connection** to verify repository read access. A successful read check does not prove push permission.
-
-For local servers, macOS may ask for **Local Network** permission on the first connection. Allow Git Mate to reach your server. If access was denied, enable Git Mate in **System Settings → Privacy & Security → Local Network** and retry. Git Mate does not change the Mac's privacy settings or use a child process to bypass permission.
-
-Provider requests verify TLS certificates and reject redirects to other origins before forwarding a token. Packaged executables use a stable app-specific UUID to support macOS permission tracking.
-
-## Sync and working-tree previews
-
-Git Mate opens maximized. Choose **Sync remote** before fetching or pulling, and choose a single **Push destination** before pushing. A remote can have a fetch URL and several push URLs on different servers; these are shown separately. Pull follows the selected remote and uses a fast-forward, so it does not silently merge diverged history.
-
-**Commit Changes** saves a commit locally. **Commit & Push** then publishes to the selected destination. Git Mate reads that remote branch back and compares its commit with the local commit before reporting a verified push. A rejected push leaves the local commit intact.
-
-Connected provider tokens are supplied privately to Git through a credential helper. Existing Git helpers remain available as fallback. The interface hides legacy credentials embedded in URLs. Use **Authorize** with a replacement token to verify the account and remove credentials from the selected server's remote URLs. Revoke any token that has appeared in a screenshot or shared log.
-
-Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image preview. Staged previews read the Git index; working-tree previews read the current file. **Show diff** switches back to text. SVG files are loaded as images, without inserting their markup into the application. Previews are limited to 10 MiB and stay inside the selected repository.
-
-
-### Copilot chat and interface controls
-
-Copilot has separate **Commit** and **Chat** tabs. Commit suggestions use the on-device Qwen3.5-9B model when it is downloaded, following Conventional Commits or the plain style the repository already uses. Without the model, Git Mate suggests a header from built-in rules and lists the changed files. Chat requires macOS 14 or newer; Git features retain macOS 12 support. In **Settings → AI Models**, choose the AI source. **Git Mate Local AI** runs a downloaded model on this Mac: Qwen3.5 4B (2.7 GB, light), Qwen3.5 9B (5.7 GB, recommended, up to a 32K-token context), or Qwen3.6 27B (16.8 GB, needs 32 GB memory). You can download, pause, switch, and delete models there. **LM Studio / Ollama** uses a model already running on this Mac (ports 1234 and 11434); cloud-hosted Ollama models are not listed, so code stays on this Mac. The AI Copilot title shows the model in use. Git Mate removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitmate/models` and survives app updates.
-
-Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitmate/conversations`; use New chat or Delete chat to manage them.
-
-Settings → Appearance includes 80%, 90%, 100%, 110%, and 125% interface zoom. Cmd− and Cmd+ change the level; Cmd0 returns to 100%. The setting is saved across launches. Application updates in the same Appearance tab provide Check for Updates, Download Update, and Restart & Install.
-
-### Push to several destinations
-
-**Fetch / pull from** chooses one remote. **Push to** selects one or more destinations and saves the selection per repository. Workspace Push and Copilot Commit & Push use the same destinations. A commit is created only once, then its exact SHA is pushed and verified separately at each selected destination. Repeated URLs are deduplicated. A failure does not stop the other pushes. **Retry failed destinations** retries the same commit and rejects the retry if local HEAD changed. Changed or removed remote URLs require reselection. Git Mate never force pushes automatically.
-
-### Stable release process
-
-The package version drives application labels, installer artwork, and landing download links. Stable release tags must match it. The release workflow builds Apple Silicon artifacts, requires signing and notarization credentials, signs nested native code, staples the app before archiving, notarizes and staples the DMG, and verifies the app inside both formats. Final metadata, blockmaps, and SHA-256 checksums are generated after stapling.
-
-CI uploads a **draft** release. Before publishing it as Latest, download and compare every asset, test Gatekeeper installation, and verify updating the existing installed version through a temporary feed serving those exact artifacts. Failed notarization or updater verification blocks publication. Manual workflow runs require an existing version tag. Notarization submission results and logs are preserved as CI artifacts.
-
-If a release-tooling fix is needed after tagging, dispatch the release workflow with the unchanged application tag and an explicit `tooling_ref` commit. Only finalization and distribution validation scripts come from that commit. Application code, dependencies, signing, and tests still use the tagged source. Record both commits in the release notes.
-
-The desktop runtime is pinned to Electron 43.7.9 to retain macOS 12 support. Packaging checks the actual Mach-O deployment targets of the executable and Electron framework; a runtime requiring a newer system stops the build. The Copilot native model runtime requires macOS 14 and is loaded only when Chat is supported.
+MIT · Artem Svitelskyi
