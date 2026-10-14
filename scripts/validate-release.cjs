@@ -2,7 +2,7 @@ const fs = require('node:fs');
 const path = require('node:path');
 const { execFileSync } = require('node:child_process');
 const version = require('../package.json').version;
-const root = path.resolve('release'); const tmp = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'gitler-release-validation-'));
+const root = path.resolve('release'); const tmp = fs.mkdtempSync(path.join(require('node:os').tmpdir(), 'gitmate-release-validation-'));
 function check(bundle) {
   require('./runtime-compatibility.cjs').validateRuntime(bundle);
   const plistVersion = execFileSync('/usr/libexec/PlistBuddy', ['-c', 'Print :CFBundleShortVersionString', path.join(bundle, 'Contents/Info.plist')], { encoding: 'utf8' }).trim();

@@ -10,7 +10,7 @@ import { safeContextFile, gatherContext } from '../server/copilotContext';
 import { saveConversation, readConversation, listConversations, deleteConversation, hashFile, chat } from '../server/copilotService';
 const run = promisify(execFile);
 async function fixture(t: any) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitler-chat-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-chat-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
   const repo = path.join(root, 'repo'); await run('git', ['init', '-b', 'main', repo]);
   const git = (...args: string[]) => run('git', ['-C', repo, ...args]); await git('config', 'user.name', 'Fixture'); await git('config', 'user.email', 'fixture@example.invalid');
   return {root, repo, git};
@@ -34,8 +34,8 @@ test('Copilot context explains a commit from evidence and reports truncation', a
   await assert.rejects(gatherContext([repo], 'Explain', '--all'), /Invalid commit/);
 });
 test('conversation history is private, persistent, and isolated by repository; failed requests release generation lock', async t => {
-  const {root,repo} = await fixture(t); const previous = process.env.GITLER_CONFIG_DIR; process.env.GITLER_CONFIG_DIR = path.join(root,'config');
-  t.after(() => { if (previous === undefined) delete process.env.GITLER_CONFIG_DIR; else process.env.GITLER_CONFIG_DIR = previous; });
+  const {root,repo} = await fixture(t); const previous = process.env.GITMATE_CONFIG_DIR; process.env.GITMATE_CONFIG_DIR = path.join(root,'config');
+  t.after(() => { if (previous === undefined) delete process.env.GITMATE_CONFIG_DIR; else process.env.GITMATE_CONFIG_DIR = previous; });
   const id = crypto.randomUUID(); saveConversation(repo,{id,title:'Fixture',updated:new Date().toISOString(),messages:[{id:crypto.randomUUID(),role:'user',content:'Question'}]});
   assert.equal(listConversations(repo).length,1); assert.equal(listConversations(root).length,0); assert.equal(readConversation(repo,id).messages[0].content,'Question');
   assert.throws(() => readConversation(repo,'../../escape'));
@@ -83,7 +83,7 @@ test('chat history keeps the newest messages within the budget', async () => {
 
 test('evidence budget scales with the available context', async () => {
   const { mkdtempSync, writeFileSync } = await import('node:fs'); const { tmpdir } = await import('node:os'); const { join } = await import('node:path'); const { execFileSync } = await import('node:child_process');
-  const repo = mkdtempSync(join(tmpdir(), 'gitler-budget-')); execFileSync('git', ['init', '-q', repo]);
+  const repo = mkdtempSync(join(tmpdir(), 'gitmate-budget-')); execFileSync('git', ['init', '-q', repo]);
   writeFileSync(join(repo, 'README.md'), 'readme '.repeat(8000));
   const small = await gatherContext([repo], 'Summarize the readme'); const large = await gatherContext([repo], 'Summarize the readme', undefined, 60000);
   assert.ok(small.text.length <= 18000); assert.ok(large.text.length > small.text.length + 8000 && large.text.length <= 60000);

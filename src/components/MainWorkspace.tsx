@@ -93,7 +93,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
   // Working Tree panel resizable width
   const [workingTreeWidth, setWorkingTreeWidth] = useState<number>(() => {
     try {
-      const saved = localStorage.getItem('gitler_working_tree_width');
+      const saved = localStorage.getItem('gitmate_working_tree_width');
       if (!saved || !Number.isFinite(Number(saved))) return 290;
       return Math.max(220, Math.min(550, Number(saved)));
     } catch {
@@ -113,7 +113,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const nextWidth = Math.max(220, Math.min(550, startWidth + delta));
       setWorkingTreeWidth(nextWidth);
       try {
-        localStorage.setItem('gitler_working_tree_width', String(nextWidth));
+        localStorage.setItem('gitmate_working_tree_width', String(nextWidth));
       } catch {
         // Ignore storage errors
       }
@@ -818,7 +818,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
                 const width = Math.max(220, Math.min(550, workingTreeWidth + (event.key === 'ArrowRight' ? 20 : -20)));
                 setWorkingTreeWidth(width);
                 try {
-                  localStorage.setItem('gitler_working_tree_width', String(width));
+                  localStorage.setItem('gitmate_working_tree_width', String(width));
                 } catch {
                   // ignore
                 }
@@ -828,7 +828,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
             onDoubleClick={() => {
               setWorkingTreeWidth(290);
               try {
-                localStorage.setItem('gitler_working_tree_width', '290');
+                localStorage.setItem('gitmate_working_tree_width', '290');
               } catch {
                 // ignore
               }

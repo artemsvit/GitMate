@@ -158,7 +158,7 @@ app.whenReady().then(async () => {
       <span class="drag-label">DRAG TO INSTALL</span>
     </div>
 
-    <div class="footer">GITLER • LOCAL GIT CLIENT FOR MACOS</div>
+    <div class="footer">GIT MATE • LOCAL GIT CLIENT FOR MACOS</div>
   </body>
   </html>
   `;

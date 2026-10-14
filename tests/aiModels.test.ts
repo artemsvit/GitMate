@@ -22,7 +22,7 @@ test('model names are short and friendly', () => {
 
 test('local models can be chosen, listed, and deleted without touching other models', async () => {
   const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'gitmate-models-'));
-  process.env.GITLER_CONFIG_DIR = dir;
+  process.env.GITMATE_CONFIG_DIR = dir;
   const service = await import('../server/copilotService');
   const models = path.join(dir, 'models'); fs.mkdirSync(models);
   const light = service.modelCatalog.find(model => model.id === 'light')!; const balanced = service.modelCatalog.find(model => model.id === 'balanced')!;
@@ -38,4 +38,20 @@ test('local models can be chosen, listed, and deleted without touching other mod
   await service.deleteModel('balanced');
   assert.equal(fs.existsSync(path.join(models, balanced.file + '.partial')), false); assert.equal(fs.existsSync(path.join(models, light.file)), true);
   await service.deleteModel('light'); assert.equal(service.listModels().models.find(model => model.id === 'light')!.state, 'missing');
+});
+
+test('data from the earlier Gitler locations moves once and never overwrites new data', async () => {
+  const { migrateLegacyStorage } = await import('../server/paths');
+  const home = fs.mkdtempSync(path.join(os.tmpdir(), 'gitmate-home-'));
+  const previous = process.env.GITMATE_CONFIG_DIR; delete process.env.GITMATE_CONFIG_DIR;
+  try {
+    fs.mkdirSync(path.join(home, '.gitler', 'models'), { recursive: true }); fs.writeFileSync(path.join(home, '.gitler', 'providers.json'), '{"a":1}');
+    fs.mkdirSync(path.join(home, '.ssh')); fs.writeFileSync(path.join(home, '.ssh', 'gitler_ed25519'), 'old'); fs.writeFileSync(path.join(home, '.ssh', 'gitler_ed25519.pub'), 'old pub');
+    fs.writeFileSync(path.join(home, '.ssh', 'gitmate_rsa'), 'new'); fs.writeFileSync(path.join(home, '.ssh', 'gitler_rsa'), 'stale');
+    const moved = migrateLegacyStorage(home);
+    assert.equal(fs.readFileSync(path.join(home, '.gitmate', 'providers.json'), 'utf8'), '{"a":1}'); assert.equal(fs.existsSync(path.join(home, '.gitler')), false);
+    assert.equal(fs.readFileSync(path.join(home, '.ssh', 'gitmate_ed25519'), 'utf8'), 'old'); assert.equal(fs.readFileSync(path.join(home, '.ssh', 'gitmate_ed25519.pub'), 'utf8'), 'old pub');
+    assert.equal(fs.readFileSync(path.join(home, '.ssh', 'gitmate_rsa'), 'utf8'), 'new', 'existing new data is kept'); assert.equal(fs.existsSync(path.join(home, '.ssh', 'gitler_rsa')), true);
+    assert.equal(moved.length, 3); assert.deepEqual(migrateLegacyStorage(home), [], 'a second run moves nothing');
+  } finally { if (previous !== undefined) process.env.GITMATE_CONFIG_DIR = previous; }
 });

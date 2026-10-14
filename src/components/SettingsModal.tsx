@@ -69,7 +69,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   const [showManualSsh, setShowManualSsh] = useState(false);
 
   // Dedicated Git Mate SSH Key
-  const [gitlerKey, setGitlerKey] = useState<{
+  const [sshKey, setSshKey] = useState<{
     hasKey: boolean;
     publicKey: string;
     keyPath: string;
@@ -107,7 +107,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   // Load initial settings on mount
   useEffect(() => {
     fetchProviders();
-    fetchGitlerKey();
+    fetchSshKey();
     fetchDiagnostics();
     fetchGitConfig();
   }, []);
@@ -227,12 +227,12 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
-  const fetchGitlerKey = async () => {
+  const fetchSshKey = async () => {
     try {
-      const res = await apiFetch('/api/auth/gitler-key');
+      const res = await apiFetch('/api/auth/ssh-key');
       if (res.ok) {
         const data = await res.json();
-        setGitlerKey(data);
+        setSshKey(data);
         if (data.keyType) setSelectedKeyType(data.keyType);
       }
     } catch (e) {
@@ -262,8 +262,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
   };
 
   const handleCopyKey = () => {
-    if (gitlerKey?.publicKey) {
-      navigator.clipboard.writeText(gitlerKey.publicKey);
+    if (sshKey?.publicKey) {
+      navigator.clipboard.writeText(sshKey.publicKey);
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2500);
     }
@@ -273,14 +273,14 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     const targetType = typeToGenerate || selectedKeyType;
     setIsRegeneratingKey(true);
     try {
-      const res = await apiFetch('/api/auth/gitler-key/regenerate', {
+      const res = await apiFetch('/api/auth/ssh-key/regenerate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ keyType: targetType })
       });
       if (res.ok) {
         const data = await res.json();
-        setGitlerKey(data);
+        setSshKey(data);
         if (data.keyType) setSelectedKeyType(data.keyType);
       }
     } catch (e) {
@@ -335,84 +335,71 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
     }
   };
 
+  const settingsSections: { id: SettingsTab; label: string; hint: string; description: string; icon: typeof Globe }[] = [
+    { id: 'providers', label: 'Accounts', hint: 'GitHub, GitLab, Gitea, SSH', icon: Globe, description: 'Connect Git hosting accounts and manage the Git Mate SSH key. Local repositories work without an account.' },
+    { id: 'ai', label: 'AI Models', hint: 'Local models, LM Studio', icon: Cpu, description: 'Choose where AI runs and which model it uses.' },
+    { id: 'identity', label: 'Git Identity', hint: 'Name, email, branch', icon: User, description: 'The author name and email Git writes into every commit on this Mac.' },
+    { id: 'appearance', label: 'Appearance & App', hint: 'Theme, zoom, updates', icon: Palette, description: 'Theme, interface size, and application updates.' }
+  ];
+  const currentSection = settingsSections.find(section => section.id === activeTab) || settingsSections[0];
+
   return (
     <div className="fixed inset-0 z-50 bg-black/60 backdrop-blur-sm flex items-center justify-center p-4 sm:p-6 animate-in fade-in duration-200">
-      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-3xl w-full shadow-2xl flex flex-col h-[88vh] max-h-[860px] min-h-[640px] overflow-hidden text-xs">
-        
-        {/* Modal Top Header */}
-        <div className="px-6 py-4 border-b border-[var(--border-subtle)] flex items-center justify-between shrink-0 bg-[var(--bg-surface)]">
-          <div className="flex items-center gap-3">
-            <div className="w-8 h-8 rounded-xl bg-[var(--accent-violet)]/10 border border-[var(--accent-violet)]/20 flex items-center justify-center text-[var(--accent-violet)]">
-              <Settings className="w-4 h-4" />
+      <div className="bg-[var(--bg-surface)] border border-[var(--border-interactive)] rounded-2xl max-w-5xl w-full shadow-2xl flex h-[88vh] max-h-[860px] min-h-[600px] overflow-hidden text-xs">
+
+        {/* Left navigation */}
+        <nav aria-label="Settings sections" className="w-56 shrink-0 flex flex-col border-r border-[var(--border-subtle)] bg-[var(--bg-canvas)]">
+          <div className="px-5 pt-5 pb-4 flex items-center gap-2.5">
+            <div className="w-7 h-7 rounded-lg bg-[var(--accent-violet)]/10 border border-[var(--accent-violet)]/20 flex items-center justify-center text-[var(--accent-violet)]">
+              <Settings className="w-3.5 h-3.5" />
             </div>
-            <div>
-              <h2 className="text-sm font-semibold text-[var(--text-primary)]">Command Center &amp; Settings</h2>
-              <p className="text-[11px] text-[var(--text-muted)] font-mono">
-                Global configuration, providers &amp; intelligence
-              </p>
-            </div>
+            <h2 className="text-sm font-semibold text-[var(--text-primary)]">Settings</h2>
           </div>
-          <button
-            onClick={onClose}
-            className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition cursor-pointer"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
+          <div className="flex-1 px-3 space-y-1">
+            {settingsSections.map(section => {
+              const Icon = section.icon;
+              const selected = activeTab === section.id;
+              return (
+                <button
+                  key={section.id}
+                  onClick={() => setActiveTab(section.id)}
+                  aria-current={selected ? 'page' : undefined}
+                  className={`w-full flex items-start gap-2.5 px-3 py-2.5 rounded-xl text-left transition cursor-pointer ${
+                    selected ? 'bg-[var(--bg-surface)] border border-[var(--border-interactive)]' : 'border border-transparent hover:bg-[var(--bg-surface)]/60'
+                  }`}
+                >
+                  <Icon className={`w-3.5 h-3.5 mt-0.5 shrink-0 ${selected ? 'text-[var(--accent-violet)]' : 'text-[var(--text-muted)]'}`} />
+                  <span className="min-w-0">
+                    <span className={`block text-xs font-medium ${selected ? 'text-[var(--text-primary)]' : 'text-[var(--text-secondary)]'}`}>{section.label}</span>
+                    <span className="block text-[10px] text-[var(--text-muted)] mt-0.5 leading-snug">{section.hint}</span>
+                  </span>
+                </button>
+              );
+            })}
+          </div>
+          <div className="px-5 py-4 border-t border-[var(--border-subtle)] space-y-0.5">
+            <p className="text-[11px] text-[var(--text-secondary)]">Git Mate <span className="text-[var(--text-muted)] tabular-nums">v{appVersion}</span></p>
+            <p className="text-[10px] text-[var(--text-muted)]">Changes save automatically</p>
+          </div>
+        </nav>
 
-        {/* Navigation Tabs Bar */}
-        <div className="px-6 pt-3 border-b border-[var(--border-subtle)] flex items-center gap-1.5 bg-[var(--bg-canvas)] shrink-0 overflow-x-auto">
-          <button
-            onClick={() => setActiveTab('providers')}
-            className={`px-3 py-2 rounded-t-xl text-xs font-medium flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'providers'
-                ? 'border-[var(--accent-violet)] text-[var(--accent-violet)] bg-[var(--bg-surface)] font-semibold'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]/50'
-            }`}
-          >
-            <Globe className="w-3.5 h-3.5" />
-            <span>Git Providers &amp; Auth</span>
-          </button>
+        {/* Right content */}
+        <div className="flex-1 min-w-0 flex flex-col">
+          <header className="px-7 pt-5 pb-4 border-b border-[var(--border-subtle)] flex items-start justify-between gap-4 shrink-0">
+            <div>
+              <h3 className="text-sm font-semibold text-[var(--text-primary)]">{currentSection.label}</h3>
+              <p className="text-[11px] text-[var(--text-muted)] mt-0.5 text-pretty">{currentSection.description}</p>
+            </div>
+            <button
+              onClick={onClose}
+              aria-label="Close settings"
+              className="p-1.5 rounded-lg text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)] transition cursor-pointer"
+            >
+              <X className="w-4 h-4" />
+            </button>
+          </header>
 
-          <button
-            onClick={() => setActiveTab('ai')}
-            className={`px-3 py-2 rounded-t-xl text-xs font-medium flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'ai'
-                ? 'border-[var(--accent-violet)] text-[var(--accent-violet)] bg-[var(--bg-surface)] font-semibold'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]/50'
-            }`}
-          >
-            <Cpu className="w-3.5 h-3.5" />
-            <span>AI Models</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('identity')}
-            className={`px-3 py-2 rounded-t-xl text-xs font-medium flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'identity'
-                ? 'border-[var(--accent-violet)] text-[var(--accent-violet)] bg-[var(--bg-surface)] font-semibold'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]/50'
-            }`}
-          >
-            <User className="w-3.5 h-3.5" />
-            <span>Git Identity</span>
-          </button>
-
-          <button
-            onClick={() => setActiveTab('appearance')}
-            className={`px-3 py-2 rounded-t-xl text-xs font-medium flex items-center gap-2 border-b-2 transition cursor-pointer ${
-              activeTab === 'appearance'
-                ? 'border-[var(--accent-violet)] text-[var(--accent-violet)] bg-[var(--bg-surface)] font-semibold'
-                : 'border-transparent text-[var(--text-muted)] hover:text-[var(--text-primary)] hover:bg-[var(--bg-card)]/50'
-            }`}
-          >
-            <Palette className="w-3.5 h-3.5" />
-            <span>Appearance &amp; App</span>
-          </button>
-        </div>
-
-        {/* Tab Body Content */}
-        <div className="p-6 overflow-y-auto flex-1 space-y-4">
+        <div className="px-7 py-6 overflow-y-auto flex-1 space-y-4">
           
           {/* TAB 1: GIT PROVIDERS & AUTH */}
           {activeTab === 'providers' && (
@@ -420,7 +407,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Status Notice */}
               {syncSshNotice && (
-                <div className={`p-3 rounded-xl border flex items-center justify-between text-xs font-mono animate-in fade-in ${
+                <div className={`p-3 rounded-xl border flex items-center justify-between text-xs animate-in fade-in ${
                   syncSshNotice.toLowerCase().startsWith('error')
                     ? 'border-rose-500/30 bg-rose-500/10 text-rose-300 dark:border-rose-500/30 dark:bg-rose-500/10 dark:text-rose-300'
                     : 'border-[var(--alert-success-border)] bg-[var(--alert-success-bg)] text-[var(--alert-success-text)]'
@@ -444,12 +431,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
               {/* Section Header */}
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="text-xs font-semibold text-[var(--text-primary)]">Connected Git Providers</h3>
-                  <p className="text-[11px] text-[var(--text-muted)]">
-                    Local repositories work offline. Account checks verify API access; push and pull use each repository’s SSH key or HTTPS Git credentials. Test a remote before syncing.
-                  </p>
-                </div>
+                <p className="text-[11px] text-[var(--text-muted)] text-pretty max-w-md">
+                  Push and pull use each repository’s SSH key or HTTPS credentials. Test a remote before syncing.
+                </p>
                 <button
                   onClick={fetchProviders}
                   disabled={isLoadingProviders}
@@ -756,10 +740,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           type="button"
                           onClick={() => {
                             setSelectedKeyType('ed25519');
-                            if (gitlerKey?.keyType !== 'ed25519') handleRegenerateKey('ed25519');
+                            if (sshKey?.keyType !== 'ed25519') handleRegenerateKey('ed25519');
                           }}
                           className={`px-3 py-1 rounded-md text-[10px] font-bold transition cursor-pointer ${
-                            (gitlerKey?.keyType || selectedKeyType) === 'ed25519'
+                            (sshKey?.keyType || selectedKeyType) === 'ed25519'
                               ? 'bg-[var(--btn-accent-bg)] text-[var(--btn-accent-text)] shadow-xs'
                               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                           }`}
@@ -770,10 +754,10 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                           type="button"
                           onClick={() => {
                             setSelectedKeyType('rsa');
-                            if (gitlerKey?.keyType !== 'rsa') handleRegenerateKey('rsa');
+                            if (sshKey?.keyType !== 'rsa') handleRegenerateKey('rsa');
                           }}
                           className={`px-3 py-1 rounded-md text-[10px] font-bold transition cursor-pointer ${
-                            (gitlerKey?.keyType || selectedKeyType) === 'rsa'
+                            (sshKey?.keyType || selectedKeyType) === 'rsa'
                               ? 'bg-[var(--btn-accent-bg)] text-[var(--btn-accent-text)] shadow-xs'
                               : 'text-[var(--text-secondary)] hover:text-[var(--text-primary)]'
                           }`}
@@ -788,8 +772,8 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       <div className="flex items-center justify-between gap-2 text-[10px] text-[var(--text-muted)]">
                         <div className="flex items-center gap-2 min-w-0">
                           <span>Public key</span>
-                          <span className="px-1.5 py-0.5 rounded-full border border-[var(--border-interactive)] font-mono text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'}</span>
-                          <span className="font-mono truncate">gitler-app</span>
+                          <span className="px-1.5 py-0.5 rounded-full border border-[var(--border-interactive)] font-mono text-[var(--text-primary)]">{sshKey?.keyType || 'ed25519'}</span>
+                          <span className="font-mono truncate">{sshKey?.publicKey?.trim().split(/\s+/)[2] || 'git-mate'}</span>
                         </div>
                         <button
                           onClick={() => handleRegenerateKey()}
@@ -801,7 +785,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                         </button>
                       </div>
                       <div className="p-2.5 bg-black/5 dark:bg-black/30 rounded-lg font-mono text-[10px] break-all text-[var(--text-primary)] select-all leading-relaxed max-h-20 overflow-y-auto border border-[var(--border-subtle)]">
-                        {gitlerKey?.publicKey || 'Loading key...'}
+                        {sshKey?.publicKey || 'Loading key...'}
                       </div>
                       <button
                         onClick={handleCopyKey}
@@ -875,12 +859,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {activeTab === 'identity' && (
             <form onSubmit={handleSaveGitConfig} className="space-y-4">
               <div className="p-4 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-card)] space-y-3.5">
-                <div className="flex items-center gap-2">
-                  <User className="w-4 h-4 text-[var(--accent-violet)]" />
-                  <div>
-                    <h4 className="font-semibold text-xs text-[var(--text-primary)]">Global Git Author Identity</h4>
-                    <p className="text-[10px] text-[var(--text-muted)]">Configured in ~/.gitconfig for all commits</p>
-                  </div>
+                <div>
+                  <h4 className="font-semibold text-xs text-[var(--text-primary)]">Author</h4>
+                  <p className="text-[10px] text-[var(--text-muted)]">Saved in ~/.gitconfig and used for all commits.</p>
                 </div>
 
                 <div className="space-y-3 pt-1">
@@ -893,7 +874,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={gitConfig.userName}
                       onChange={e => setGitConfig({ ...gitConfig, userName: e.target.value })}
                       placeholder="e.g. John Doe"
-                      className="w-full bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
+                      className="w-full bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
                     />
                   </div>
 
@@ -906,7 +887,7 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
                       value={gitConfig.userEmail}
                       onChange={e => setGitConfig({ ...gitConfig, userEmail: e.target.value })}
                       placeholder="e.g. john@example.com"
-                      className="w-full bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 text-xs font-mono text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
+                      className="w-full bg-[var(--bg-canvas)] border border-[var(--border-interactive)] rounded-xl px-3 py-2 text-xs text-[var(--text-primary)] focus:outline-none focus:border-[var(--accent-violet)]"
                     />
                   </div>
 
@@ -926,16 +907,16 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
 
                 <div className="flex items-center justify-between pt-2 border-t border-[var(--border-subtle)]">
                   {gitConfigNotice ? (
-                    <span className="text-[11px] font-mono text-emerald-600 dark:text-emerald-400 font-medium">
+                    <span className="text-[11px] text-emerald-600 dark:text-emerald-400 font-medium">
                       {gitConfigNotice}
                     </span>
                   ) : <span />}
                   <button
                     type="submit"
                     disabled={isSavingGitConfig}
-                    className="px-4 py-2 rounded-xl bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs cursor-pointer hover:opacity-90 disabled:opacity-40 transition"
+                    className="px-4 py-1.5 rounded-full bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] font-semibold text-xs cursor-pointer hover:opacity-90 disabled:opacity-40 transition"
                   >
-                    {isSavingGitConfig ? 'Saving...' : 'Save Git Config'}
+                    {isSavingGitConfig ? 'Saving…' : 'Save'}
                   </button>
                 </div>
               </div>
@@ -946,12 +927,9 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
           {activeTab === 'appearance' && (
             <div className="space-y-4">
               <div className="p-4 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-card)] space-y-3">
-                <div className="flex items-center gap-2">
-                  <Palette className="w-4 h-4 text-[var(--accent-violet)]" />
-                  <div>
-                    <h4 className="font-semibold text-xs text-[var(--text-primary)]">Interface Theme</h4>
-                    <p className="text-[10px] text-[var(--text-muted)]">Switch between dark and light appearance</p>
-                  </div>
+                <div>
+                  <h4 className="font-semibold text-xs text-[var(--text-primary)]">Theme</h4>
+                  <p className="text-[10px] text-[var(--text-muted)]">Choose dark or light.</p>
                 </div>
 
                 <div className="grid grid-cols-2 gap-2.5 pt-1">
@@ -995,36 +973,24 @@ export const SettingsModal: React.FC<SettingsModalProps> = ({
               <AppUpdates />
 
               {/* Application Details */}
-              <div className="p-4 rounded-xl border border-[var(--border-subtle)] bg-[var(--bg-surface)] space-y-2">
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-muted)]">Git Mate Application</span>
-                  <span className="text-[var(--text-primary)] font-semibold">v{appVersion}</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-muted)]">Architecture</span>
-                  <span className="text-[var(--text-primary)]">macOS Apple Silicon (arm64)</span>
-                </div>
-                <div className="flex items-center justify-between text-[11px] font-mono">
-                  <span className="text-[var(--text-muted)]">Privacy Guarantee</span>
-                  <span className="text-emerald-600 dark:text-emerald-400 font-semibold">100% Local &bull; No Telemetry</span>
-                </div>
+              <div className="p-4 rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-card)] space-y-2">
+                <h4 className="font-semibold text-xs text-[var(--text-primary)]">About Git Mate</h4>
+                {[
+                  ['Version', `v${appVersion}`],
+                  ['Architecture', 'Apple Silicon (arm64)'],
+                  ['Privacy', 'Runs locally · No telemetry']
+                ].map(([label, value]) => (
+                  <div key={label} className="flex items-center justify-between text-[11px]">
+                    <span className="text-[var(--text-muted)]">{label}</span>
+                    <span className="text-[var(--text-primary)] tabular-nums">{value}</span>
+                  </div>
+                ))}
               </div>
             </div>
           )}
 
         </div>
 
-        {/* Modal Bottom Footer */}
-        <div className="px-6 py-3 border-t border-[var(--border-subtle)] flex items-center justify-between bg-[var(--bg-surface)] shrink-0">
-          <span className="text-[10px] text-[var(--text-muted)] font-mono">
-            Git Mate Command Center &bull; All changes saved automatically
-          </span>
-          <button
-            onClick={onClose}
-            className="px-5 py-2 rounded-[33px] bg-[var(--btn-primary-bg)] text-[var(--btn-primary-text)] text-xs font-semibold hover:opacity-90 transition cursor-pointer"
-          >
-            Done
-          </button>
         </div>
 
       {/* Interactive Provider Connect Modal */}

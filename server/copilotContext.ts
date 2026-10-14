@@ -7,7 +7,7 @@ import { redactRemote } from './remoteSafety';
 
 export function safeContextFile(repoPath: string, file: string) {
   validateFilePath(repoPath, file);
-  if (/(^|\/)(\.env(?:\..*)?|\.git|node_modules|vendor|dist|build|\.next|coverage|\.ssh|\.gitler)(\/|$)|(?:^|\/)(?:id_rsa|id_ed25519|credentials|secrets)(?:\.|$)|\.(?:pem|p12|pfx|key|keystore)$/i.test(file)) throw new Error('This file is excluded from Copilot context.');
+  if (/(^|\/)(\.env(?:\..*)?|\.git|node_modules|vendor|dist|build|\.next|coverage|\.ssh|\.gitler|\.gitmate)(\/|$)|(?:^|\/)(?:id_rsa|id_ed25519|credentials|secrets)(?:\.|$)|\.(?:pem|p12|pfx|key|keystore)$/i.test(file)) throw new Error('This file is excluded from Copilot context.');
   const real = fs.realpathSync(path.join(repoPath, file));
   const relative = path.relative(fs.realpathSync(repoPath), real);
   if (relative.startsWith('..') || path.isAbsolute(relative)) throw new Error('This file is outside the repository.');

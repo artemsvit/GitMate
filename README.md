@@ -2,9 +2,9 @@
 
 > **The Modern, Local-First Git Command Center & Multi-Repository Manager with AI Copilot**
 
-[![Platform](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon%20%7C%20Intel)-6e3ad6?style=flat-square&logo=apple)](https://github.com/artemsvit/Gitler)
+[![Platform](https://img.shields.io/badge/Platform-macOS%20(Apple%20Silicon%20%7C%20Intel)-6e3ad6?style=flat-square&logo=apple)](https://github.com/artemsvit/GitMate)
 [![License](https://img.shields.io/badge/License-MIT-blue?style=flat-square)](LICENSE)
-[![Zero Telemetry](https://img.shields.io/badge/Privacy-100%25%20Local%20%26%20Private-10b981?style=flat-square)](https://github.com/artemsvit/Gitler)
+[![Zero Telemetry](https://img.shields.io/badge/Privacy-100%25%20Local%20%26%20Private-10b981?style=flat-square)](https://github.com/artemsvit/GitMate)
 [![React](https://img.shields.io/badge/React-19-61dafb?style=flat-square&logo=react)](https://react.dev)
 [![TypeScript](https://img.shields.io/badge/TypeScript-7.0-3178c6?style=flat-square&logo=typescript)](https://www.typescriptlang.org)
 
@@ -28,7 +28,7 @@
 * **Zero Telemetry**: No diffs, code tokens, or private credentials ever leave your machine.
 
 ### 🌐 Unified Git Providers & SSH Authorization
-* **Dedicated Git Mate SSH Key**: Generates a clean `ed25519 (gitler-app)` keypair (`~/.ssh/gitler_ed25519`) specifically for Git Mate.
+* **Dedicated Git Mate SSH Key**: Generates a clean `ed25519 (git-mate)` keypair (`~/.ssh/gitmate_ed25519`) specifically for Git Mate.
 * **Gitea & Self-Hosted Ready**: 1-click **Copy Public Key** button to paste into your Gitea profile (**Settings → SSH / GPG Keys**), unlocking push/pull access across all your self-hosted repositories.
 * **Live Host Connection Tester**: Test SSH reachability to any host (e.g., `192.168.0.102:222`) in real time.
 * **GitHub & GitLab Integration**: Automatically detects macOS Keychain helpers (`osxkeychain`), SSH agent keys, and GitHub CLI authorization.
@@ -51,8 +51,8 @@
 
 1. **Clone the repository:**
    ```bash
-   git clone git@github.com:artemsvit/Gitler.git
-   cd Git Mate
+   git clone git@github.com:artemsvit/GitMate.git
+   cd GitMate
    ```
 
 2. **Install dependencies:**
@@ -100,7 +100,7 @@ The output file will be generated in `release/GitMate-1.3.0-arm64.dmg`.
 ## 📁 Project Structure
 
 ```
-Git Mate/
+GitMate/
 ├── electron/
 │   ├── main.cjs               # Electron main process (lifecycle, window, autostart)
 │   └── preload.cjs            # Secure context bridge
@@ -130,7 +130,7 @@ Git Mate/
 ## 🔒 Privacy & Security First
 
 * **No Telemetry**: Git Mate does not collect usage analytics, crash reports, or diagnostic telemetry.
-* **No Account Snooping**: Git Mate does not inspect or expose personal work credentials, keys, or configurations from `~/.ssh`. Dedicated keys are created with the neutral `gitler-app` identifier.
+* **No Account Snooping**: Git Mate does not inspect or expose personal work credentials, keys, or configurations from `~/.ssh`. Dedicated keys are created with the neutral `git-mate` identifier.
 * **Native Keychain**: Credentials leverage macOS's secure Keychain Access (`osxkeychain`) and native SSH agents.
 
 ---
@@ -179,9 +179,9 @@ Selecting a changed PNG, JPEG, GIF, WebP, SVG, ICO, or BMP shows its image previ
 
 ### Copilot chat and interface controls
 
-Copilot has separate **Commit** and **Chat** tabs. Commit suggestions use the on-device Qwen3.5-9B model when it is downloaded, following Conventional Commits or the plain style the repository already uses. Without the model, Git Mate suggests a header from built-in rules and lists the changed files. Chat requires macOS 14 or newer; Git features retain macOS 12 support. In **Settings → AI Models**, choose the AI source. **Git Mate Local AI** runs a downloaded model on this Mac: Qwen3.5 4B (2.7 GB, light), Qwen3.5 9B (5.7 GB, recommended, up to a 32K-token context), or Qwen3.6 27B (16.8 GB, needs 32 GB memory). You can download, pause, switch, and delete models there. **LM Studio / Ollama** uses a model already running on this Mac (ports 1234 and 11434); cloud-hosted Ollama models are not listed, so code stays on this Mac. The AI Copilot title shows the model in use. Git Mate removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitler/models` and survives app updates.
+Copilot has separate **Commit** and **Chat** tabs. Commit suggestions use the on-device Qwen3.5-9B model when it is downloaded, following Conventional Commits or the plain style the repository already uses. Without the model, Git Mate suggests a header from built-in rules and lists the changed files. Chat requires macOS 14 or newer; Git features retain macOS 12 support. In **Settings → AI Models**, choose the AI source. **Git Mate Local AI** runs a downloaded model on this Mac: Qwen3.5 4B (2.7 GB, light), Qwen3.5 9B (5.7 GB, recommended, up to a 32K-token context), or Qwen3.6 27B (16.8 GB, needs 32 GB memory). You can download, pause, switch, and delete models there. **LM Studio / Ollama** uses a model already running on this Mac (ports 1234 and 11434); cloud-hosted Ollama models are not listed, so code stays on this Mac. The AI Copilot title shows the model in use. Git Mate removes the earlier Qwen3-4B file after the new download finishes. Download progress, cancellation, resume, and checksum verification are built in. The model is stored under `~/.gitmate/models` and survives app updates.
 
-Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitler/conversations`; use New chat or Delete chat to manage them.
+Chat can review changes, explain a commit, and summarize repository code. It reads the selected repository by default. Add other scanned repositories explicitly through the context selector. Context sources and truncation are shown with replies. Chat cannot edit files, run commands, commit, or push. Conversations are saved per repository under `~/.gitmate/conversations`; use New chat or Delete chat to manage them.
 
 Settings → Appearance includes 80%, 90%, 100%, 110%, and 125% interface zoom. Cmd− and Cmd+ change the level; Cmd0 returns to 100%. The setting is saved across launches. Application updates in the same Appearance tab provide Check for Updates, Download Update, and Restart & Install.
 

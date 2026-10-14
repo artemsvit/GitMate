@@ -10,7 +10,7 @@ test('packaged executable UUID is unique per app and stable across rebuilds', ()
   binary.writeUInt32LE(0xfeedfacf, 0); binary.writeUInt32LE(1, 16);
   binary.writeUInt32LE(0x1b, 32); binary.writeUInt32LE(24, 36);
   const a = Buffer.from(binary), b = Buffer.from(binary), other = Buffer.from(binary);
-  patchUUID(a, 'gitler:arm64'); patchUUID(b, 'gitler:arm64'); patchUUID(other, 'other-app:arm64');
+  patchUUID(a, 'gitmate:arm64'); patchUUID(b, 'gitmate:arm64'); patchUUID(other, 'other-app:arm64');
   assert.deepEqual(a, b); assert.notDeepEqual(a.subarray(40), other.subarray(40));
   assert.deepEqual(a.subarray(0, 40), binary.subarray(0, 40));
 });
@@ -66,7 +66,7 @@ test('application and Dock menus offer Check for Updates', async () => {
   const module = { exports: {} as any }; runInNewContext(fs.readFileSync('electron/menu.cjs', 'utf8'), { module });
   let appMenu: any; let dockMenu: any; let checks = 0;
   const Menu = { buildFromTemplate: (template: any) => template, setApplicationMenu: (menu: any) => { appMenu = menu; } };
-  module.exports.installMenu({ name: 'gitler', dock: { setMenu: (menu: any) => { dockMenu = menu; } } }, Menu, () => checks++);
+  module.exports.installMenu({ name: 'gitmate', dock: { setMenu: (menu: any) => { dockMenu = menu; } } }, Menu, () => checks++);
   const appItem = appMenu[0].submenu.find((item: any) => item.label === 'Check for Updates…'); const dockItem = dockMenu.find((item: any) => item.label === 'Check for Updates…');
   appItem.click(); dockItem.click(); assert.equal(checks, 2);
   assert.deepEqual([...appMenu[0].submenu].filter((item: any) => /Git Mate/i.test(item.label || '')).map((item: any) => item.label), ['About Git Mate', 'Hide Git Mate', 'Quit Git Mate']);

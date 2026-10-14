@@ -16,6 +16,7 @@ const appRoot = typeof __dirname !== 'undefined'
   ? path.resolve(__dirname, '..')
   : process.cwd();
 import { scanForRepositories } from './scanner';
+import { migrateLegacyStorage } from './paths';
 import {
   authorizeHttpsRemote,
   getRepoSummary,
@@ -32,7 +33,7 @@ import {
   setRemoteUrl,
   testRemoteConnection,
   getAuthDiagnostics,
-  getOrCreateGitlerSshKey,
+  getOrCreateSshKey,
   getGlobalGitConfig,
   updateGlobalGitConfig,
   testHostSsh
@@ -366,9 +367,9 @@ app.post('/api/repos/remotes/test', async (req, res) => {
 });
 
 // 11e. Get or create dedicated Git Mate SSH Key
-app.get('/api/auth/gitler-key', async (_req, res) => {
+app.get('/api/auth/ssh-key', async (_req, res) => {
   try {
-    const keyInfo = await getOrCreateGitlerSshKey(false);
+    const keyInfo = await getOrCreateSshKey(false);
     res.json(keyInfo);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -376,10 +377,10 @@ app.get('/api/auth/gitler-key', async (_req, res) => {
 });
 
 // 11f. Regenerate dedicated Git Mate SSH Key
-app.post('/api/auth/gitler-key/regenerate', async (req, res) => {
+app.post('/api/auth/ssh-key/regenerate', async (req, res) => {
   try {
     const keyType = (req.body?.keyType === 'rsa' ? 'rsa' : 'ed25519') as 'ed25519' | 'rsa';
-    const keyInfo = await getOrCreateGitlerSshKey(true, keyType);
+    const keyInfo = await getOrCreateSshKey(true, keyType);
     res.json(keyInfo);
   } catch (err: any) {
     res.status(500).json({ error: err.message });
@@ -550,6 +551,8 @@ if (fs.existsSync(distPath)) {
 }
 
 export function startServer() {
+  // Move data from the earlier Gitler locations before any request reads it.
+  migrateLegacyStorage();
   return app.listen(PORT, '127.0.0.1', () => {
     console.log(`Git Mate is running at http://127.0.0.1:${PORT}`);
   });

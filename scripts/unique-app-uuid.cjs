@@ -22,7 +22,7 @@ module.exports = async context => {
   const file = path.join(context.appOutDir, `${info.productFilename}.app`, 'Contents', 'MacOS', info.productFilename);
   const binary = fs.readFileSync(file);
   // Stable per app and architecture; Electron's shared UUID must not identify multiple apps.
-  patchUUID(binary, `${info.id}:${context.arch}:gitler-main-executable`);
+  patchUUID(binary, `${info.id}:${context.arch}:gitmate-main-executable`);
   fs.writeFileSync(file, binary);
 };
 module.exports.patchUUID = patchUUID;

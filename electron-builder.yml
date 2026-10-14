@@ -71,5 +71,5 @@ dmg:
 publish:
   provider: github
   owner: artemsvit
-  repo: Gitler
+  repo: GitMate
   releaseType: release

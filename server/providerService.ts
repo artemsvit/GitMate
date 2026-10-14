@@ -3,7 +3,8 @@ import path from 'path';
 import os from 'os';
 import http from 'http';
 import https from 'https';
-import { getOrCreateGitlerSshKey } from './gitService.js';
+import { getOrCreateSshKey, sshKeyTitle } from './gitService.js';
+import { configDir } from './paths';
 
 interface HttpRequestOptions {
   method?: string;
@@ -132,21 +133,21 @@ export interface ProvidersConfig {
   gitea?: ProviderAccount;
 }
 
-const CONFIG_DIR = process.env.GITLER_CONFIG_DIR || path.join(os.homedir(), '.gitler');
-const CONFIG_FILE = path.join(CONFIG_DIR, 'providers.json');
+const CONFIG_DIR = () => configDir();
+const CONFIG_FILE = () => path.join(configDir(), 'providers.json');
 
 function ensureConfigDir(): void {
   try {
-    if (!fs.existsSync(CONFIG_DIR)) {
-      fs.mkdirSync(CONFIG_DIR, { recursive: true, mode: 0o700 });
+    if (!fs.existsSync(CONFIG_DIR())) {
+      fs.mkdirSync(CONFIG_DIR(), { recursive: true, mode: 0o700 });
     }
   } catch {}
 }
 
 export function readProvidersConfig(): ProvidersConfig {
   try {
-    if (fs.existsSync(CONFIG_FILE)) {
-      const raw = fs.readFileSync(CONFIG_FILE, 'utf8');
+    if (fs.existsSync(CONFIG_FILE())) {
+      const raw = fs.readFileSync(CONFIG_FILE(), 'utf8');
       return JSON.parse(raw);
     }
   } catch {}
@@ -155,10 +156,10 @@ export function readProvidersConfig(): ProvidersConfig {
 
 export function writeProvidersConfig(config: ProvidersConfig): void {
   ensureConfigDir();
-  const temporary = `${CONFIG_FILE}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`;
+  const temporary = `${CONFIG_FILE()}.${process.pid}.${Math.random().toString(16).slice(2)}.tmp`;
   try {
     fs.writeFileSync(temporary, JSON.stringify(config, null, 2), { mode: 0o600 });
-    fs.renameSync(temporary, CONFIG_FILE);
+    fs.renameSync(temporary, CONFIG_FILE());
   } catch {
     throw new Error('Could not save your account settings. Check access to the Git Mate configuration folder.');
   } finally {
@@ -333,7 +334,7 @@ export async function connectProvider(params: {
 
     // Auto-sync Git Mate's SSH key directly into Gitea
     try {
-      const keyInfo = params.syncSshKey === false ? null : await getOrCreateGitlerSshKey(false);
+      const keyInfo = params.syncSshKey === false ? null : await getOrCreateSshKey(false);
       if (keyInfo?.publicKey) {
         const keyPostRes = await universalFetch(`${instance}/api/v1/user/keys`, {
           method: 'POST',
@@ -343,7 +344,7 @@ export async function connectProvider(params: {
             Accept: 'application/json'
           },
           body: JSON.stringify({
-            title: 'gitler-app',
+            title: sshKeyTitle,
             key: keyInfo.publicKey,
             read_only: false
           })
@@ -392,7 +393,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
     throw new Error(`Cannot sync SSH key: ${provider} is not connected with a token.`);
   }
 
-  const keyInfo = await getOrCreateGitlerSshKey(false);
+  const keyInfo = await getOrCreateSshKey(false);
   if (!keyInfo.publicKey) {
     throw new Error('No local Git Mate SSH key found.');
   }
@@ -407,7 +408,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
         Accept: 'application/json'
       },
       body: JSON.stringify({
-        title: 'gitler-app',
+        title: sshKeyTitle,
         key: keyInfo.publicKey,
         read_only: false
       })
@@ -436,7 +437,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
         'Content-Type': 'application/json'
       },
       body: JSON.stringify({
-        title: 'gitler-app',
+        title: sshKeyTitle,
         key: keyInfo.publicKey
       })
     });
@@ -464,7 +465,7 @@ export async function syncSshKeyToProvider(provider: 'github' | 'gitlab' | 'gite
         Accept: 'application/vnd.github.v3+json'
       },
       body: JSON.stringify({
-        title: 'gitler-app',
+        title: sshKeyTitle,
         key: keyInfo.publicKey
       })
     });

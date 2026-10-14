@@ -4,7 +4,7 @@ import { apiFetch } from './api';
 // One AI source serves both commit messages and Chat: Git Mate Local AI (downloaded models) or a running LM Studio / Ollama.
 export type AIMode = 'embedded' | 'external';
 export interface ExternalChoice { provider: 'lmstudio' | 'ollama'; model: string }
-const modeKey = 'gitler_ai_mode'; const externalKey = 'gitler_external_model'; const changed = 'gitmate-ai-engine';
+const modeKey = 'gitmate_ai_mode'; const externalKey = 'gitmate_external_model'; const changed = 'gitmate-ai-engine';
 
 const read = (key: string) => { try { return localStorage.getItem(key); } catch { return null; } };
 const write = (key: string, value: string) => { try { localStorage.setItem(key, value); } catch {} window.dispatchEvent(new Event(changed)); };

@@ -8,7 +8,7 @@ import { promisify } from 'node:util';
 import { commit, stageFiles, pushDestinations, withRepositoryMutation } from '../server/gitService';
 const run = promisify(execFile);
 async function fixture(t: any) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitler-multipush-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-multipush-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
   const repo = path.join(root, 'client'); const first = path.join(root, 'first.git'); const second = path.join(root, 'second.git');
   await run('git', ['init', '-b', 'main', repo]); for (const remote of [first, second]) await run('git', ['init', '--bare', remote]);
   const git = (...args: string[]) => run('git', ['-C', repo, ...args]);

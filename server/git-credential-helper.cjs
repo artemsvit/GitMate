@@ -30,7 +30,7 @@ if (require.main === module) {
   try {
     const input = fs.readFileSync(0, 'utf8');
     if (process.argv[2] !== 'get') process.exit(0);
-    const configPath = path.join(process.env.GITLER_CONFIG_DIR || path.join(os.homedir(), '.gitler'), 'providers.json');
+    const configPath = path.join(process.env.GITMATE_CONFIG_DIR || path.join(os.homedir(), '.gitmate'), 'providers.json');
     const config = fs.existsSync(configPath) ? JSON.parse(fs.readFileSync(configPath, 'utf8')) : {};
     const credential = credentialFor(input, config);
     if (credential) process.stdout.write(`username=${credential.username}\npassword=${credential.password}\n\n`);

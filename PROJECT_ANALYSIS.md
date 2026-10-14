@@ -1,6 +1,6 @@
-# Gitler project analysis
+# Git Mate project analysis
 
-Reviewed on 12 October 2026. Source: [artemsvit/Gitler](https://github.com/artemsvit/Gitler).
+Reviewed on 12 October 2026. Source: [artemsvit/GitMate](https://github.com/artemsvit/GitMate).
 
 ## Setup completed
 
@@ -15,7 +15,7 @@ Reviewed on 12 October 2026. Source: [artemsvit/Gitler](https://github.com/artem
 
 ## What the project does
 
-Gitler is a macOS-focused Electron Git client. It discovers local repositories, displays changes and history, stages files, commits, switches branches, and runs fetch, pull, and push. It also manages remote URLs, SSH diagnostics, a dedicated SSH key, global Git identity, and suggested commit messages.
+Git Mate is a macOS-focused Electron Git client. It discovers local repositories, displays changes and history, stages files, commits, switches branches, and runs fetch, pull, and push. It also manages remote URLs, SSH diagnostics, a dedicated SSH key, global Git identity, and suggested commit messages.
 
 | Layer | Main files | Responsibility |
 | --- | --- | --- |
@@ -41,7 +41,7 @@ The default “Embedded Neural Engine” is a deterministic heuristic implementa
 | `tsc --noEmit` | Fail; seven errors listed below |
 | Electron executable | Pass; version 33.4.11 |
 | HTTP smoke checks | Pass; frontend, repository details, scan, AI status returned 200 |
-| Browser check | Interface loaded Gitler, branch, changed lockfile, and diff |
+| Browser check | Interface loaded Git Mate, branch, changed lockfile, and diff |
 | Git fixtures | Confirmed count errors, partial staging visibility issue, blank untracked diff, lock deletion |
 | React Doctor | 40/100; 1 error and 115 warnings; automated findings require individual review |
 | npm audit | 18 affected packages: 1 critical, 13 high, 4 moderate |
@@ -101,7 +101,7 @@ Vite and esbuild transpile without running the TypeScript checker. Current error
 
 The Finder click issue can pass a MouseEvent as the default path and break the browser fallback. Add a typecheck script and run it in CI before packaging.
 
-The SSH configuration error also has a runtime consequence: the installed simple-git implementation only accepts `uid` and `gid` from `spawnOptions`, so this code's `env` is discarded. The dedicated Gitler key selection is therefore not applied through this path. Its documented environment API also has guards for `GIT_SSH_COMMAND`; use the supported configuration and verify the selected key with a controlled SSH fixture.
+The SSH configuration error also has a runtime consequence: the installed simple-git implementation only accepts `uid` and `gid` from `spawnOptions`, so this code's `env` is discarded. The dedicated Git Mate key selection is therefore not applied through this path. Its documented environment API also has guards for `GIT_SSH_COMMAND`; use the supported configuration and verify the selected key with a controlled SSH fixture.
 
 ### 8. Medium: API-supplied AI endpoint can send code away from the device
 

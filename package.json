@@ -1,5 +1,5 @@
 {
-  "name": "gitler",
+  "name": "gitmate",
   "version": "1.3.0",
   "description": "A local Git client for macOS",
   "main": "electron/main.cjs",
@@ -13,7 +13,7 @@
     "build:server": "esbuild server/main.ts --bundle --platform=node --format=cjs --packages=external --outfile=server/index.cjs",
     "build": "node scripts/sync-version.cjs && npm run typecheck && npm run build:client && npm run build:server",
     "build:dmg-assets": "electron scripts/generate-dmg-assets.cjs",
-    "dist:mac": "npm run build && npm run build:dmg-assets && GITLER_RELEASE=1 electron-builder --mac dmg zip --arm64 --publish never",
+    "dist:mac": "npm run build && npm run build:dmg-assets && GITMATE_RELEASE=1 electron-builder --mac dmg zip --arm64 --publish never",
     "dist:dir": "npm run build && electron-builder --mac dir --publish never",
     "typecheck": "tsc --noEmit",
     "test": "tsx --test tests/*.test.ts",

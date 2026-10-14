@@ -17,7 +17,7 @@ This document outlines the architecture for embedding on-device AI models into G
      - Git Mate automatically checks `http://127.0.0.1:11434` (Ollama) and `http://127.0.0.1:1234` (LM Studio).
      - If the user has larger models installed (e.g. `qwen3.5:0.8b-mlx`, `qwen2.5:7b-instruct`, `gemma2:2b`), Git Mate uses them seamlessly for higher reasoning depth.
   3. **On-Demand 1-Click Downloader**:
-     - Users can choose to download larger 7B/8B models directly inside Git Mate's Settings modal, storing weights in `~/Library/Application Support/Gitler/models/`.
+     - Users can choose to download larger 7B/8B models directly inside Git Mate's Settings modal, storing weights in `~/.gitmate/models/`.
 
 ---
 
@@ -27,7 +27,7 @@ Git Mate is configured with **Electron** and **Electron-Builder**:
 - **Output**: Native macOS universal / Apple Silicon `.app` and a drag-and-drop `.dmg` installer.
 - **Vibrancy**: macOS native translucent background (`vibrancy: 'under-window'`).
 - **Unified Titlebar**: Traffic lights integrated into the top bar (`titleBarStyle: 'hiddenInset'`).
-- **Configuration**: Located in [`electron-builder.yml`](file:///Users/asvit/Desktop/Gitler/electron-builder.yml).
+- **Configuration**: Located in [`electron-builder.yml`](./electron-builder.yml).
 
 ### Build Commands:
 ```bash
@@ -38,8 +38,8 @@ npm run build
 npx electron-builder --mac dmg --publish never
 ```
 Output files will be generated in `release/`:
-- `release/Gitler-1.0.0-arm64.dmg`
-- `release/Gitler-1.0.0-arm64-mac.zip`
+- `release/GitMate-1.0.0-arm64.dmg`
+- `release/GitMate-1.0.0-arm64-mac.zip`
 
 ---
 
@@ -58,7 +58,7 @@ Add these secrets in **GitHub Repository Settings $\rightarrow$ Secrets and vari
 | `APPLE_CERTIFICATE` | Base64-encoded `Developer ID Application.p12` certificate | Export from macOS Keychain Access |
 | `APPLE_CERTIFICATE_PASSWORD` | Password protecting the exported `.p12` file | Password you set during export |
 
-The release workflow ([`.github/workflows/release.yml`](file:///Users/asvit/Desktop/Gitler/.github/workflows/release.yml)) automatically handles:
+The release workflow ([`.github/workflows/release.yml`](./.github/workflows/release.yml)) automatically handles:
 - Creating a temporary keychain on the GitHub runner.
 - Codesigning with hardened runtime enabled (`--options runtime`).
 - Submitting the `.dmg` to Apple's `notarytool` notary service.
@@ -80,7 +80,7 @@ Git Mate is configured with **`electron-updater`**, which follows the Sparkle pr
 
 ## 5. Promotional Landing Page
 
-A promotional landing page is built in [`landing/`](file:///Users/asvit/Desktop/Gitler/landing/):
+A promotional landing page is built in [`landing/`](./landing/):
 - **Live Local Preview**: Open **[http://localhost:3001/landing](http://localhost:3001/landing)** in your browser right now!
 - **Features Highlighted**:
   - Hero header with Warp Dev Tools design system.
@@ -99,7 +99,7 @@ To initialize and publish Git Mate to GitHub:
 
 ```bash
 # 1. Add your GitHub remote repository (replace with your repo URL):
-git remote add origin https://github.com/artemsvitelskyi/Gitler.git
+git remote add origin https://github.com/artemsvit/GitMate.git
 
 # 2. Push the master branch to GitHub:
 git push -u origin master

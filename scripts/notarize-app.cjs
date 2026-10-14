@@ -3,7 +3,7 @@ const { execFileSync } = require('node:child_process');
 const fs = require('node:fs');
 const path = require('node:path');
 module.exports = async context => {
-  if (process.env.GITLER_RELEASE !== '1') return;
+  if (process.env.GITMATE_RELEASE !== '1') return;
   for (const key of ['APPLE_ID', 'APPLE_APP_SPECIFIC_PASSWORD', 'APPLE_TEAM_ID']) if (!process.env[key]) throw new Error(`Release requires ${key}.`);
   const bundle = path.join(context.appOutDir, `${context.packager.appInfo.productFilename}.app`);
   const output = path.resolve('release/notarization'); fs.mkdirSync(output, { recursive: true });

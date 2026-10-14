@@ -36,7 +36,7 @@ test('API access, repository scope, and staged-only suggestions', async t => {
   const headers = { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' };
   const post = (route: string, data: unknown) => request(route, { method: 'POST', headers, body: JSON.stringify(data) });
   assert.equal((await request('/api/system/folders', { headers })).status, 200);
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitler-api-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-api-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   await run('git', ['init', '-b', 'main', root]);
   const detailsUrl = `/api/repos/details?path=${encodeURIComponent(root)}`;

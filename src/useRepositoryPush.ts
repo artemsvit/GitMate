@@ -5,7 +5,7 @@ export interface PushDestination { remote: string; pushIndex: number; url: strin
 export interface PushReport { commitHash: string; success: boolean; output: string; results: { destination: PushDestination; status: 'verified' | 'failed' | 'unverified'; message: string }[] }
 export const destinationKey = (target: PushDestination) => JSON.stringify([target.remote, target.pushIndex, target.url]);
 export function useRepositoryPush(repo: RepoSummary | null, refresh: () => void) {
-  const [saved, setSaved] = useState<Record<string, PushDestination[]>>(() => { try { return JSON.parse(localStorage.getItem('gitler_push_destinations') || '{}'); } catch { return {}; } });
+  const [saved, setSaved] = useState<Record<string, PushDestination[]>>(() => { try { return JSON.parse(localStorage.getItem('gitmate_push_destinations') || '{}'); } catch { return {}; } });
   const [reportState, setReport] = useState<{ path: string; report: PushReport } | null>(null);
   const [busyPath, setBusyPath] = useState('');
   const all = repo?.remotes.flatMap(remote => remote.pushUrls.map((url, pushIndex) => ({ remote: remote.name, pushIndex, url }))) || [];
@@ -17,7 +17,7 @@ export function useRepositoryPush(repo: RepoSummary | null, refresh: () => void)
     if (!repo) return;
     const target = all.find(target => destinationKey(target) === key); if (!target) return;
     const next = destinations.some(item => destinationKey(item) === key) ? destinations.filter(item => destinationKey(item) !== key) : [...destinations, target];
-    const updated = { ...saved, [repo.path]: next }; setSaved(updated); localStorage.setItem('gitler_push_destinations', JSON.stringify(updated));
+    const updated = { ...saved, [repo.path]: next }; setSaved(updated); localStorage.setItem('gitmate_push_destinations', JSON.stringify(updated));
   };
   const push = async (expectedCommit?: string, targets = destinations): Promise<PushReport> => {
     if (!repo || !targets.length) throw new Error('Choose push destinations first.');

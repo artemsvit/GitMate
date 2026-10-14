@@ -50,24 +50,24 @@ export function App() {
 
   // Theme (Dark / Light)
   const [theme, setTheme] = useState<'dark' | 'light'>(() => {
-    return (localStorage.getItem('gitler_theme') as 'dark' | 'light') || 'dark';
+    return (localStorage.getItem('gitmate_theme') as 'dark' | 'light') || 'dark';
   });
 
   // Keep the working area usable while respecting saved panel sizes.
   const [sidebarWidth, setSidebarWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('gitler_sidebar_width');
+    const saved = localStorage.getItem('gitmate_sidebar_width');
     if (!saved || !Number.isFinite(Number(saved))) return 300;
     return Math.max(260, Math.min(650, Number(saved)));
   });
 
   const [copilotWidth, setCopilotWidth] = useState<number>(() => {
-    const saved = localStorage.getItem('gitler_copilot_width');
+    const saved = localStorage.getItem('gitmate_copilot_width');
     if (!saved || !Number.isFinite(Number(saved))) return 320;
     return Math.max(260, Math.min(650, Number(saved)));
   });
 
   const [isCopilotCollapsed, setIsCopilotCollapsed] = useState<boolean>(() => {
-    return localStorage.getItem('gitler_copilot_collapsed') === 'true';
+    return localStorage.getItem('gitmate_copilot_collapsed') === 'true';
   });
 
   const viewportWidth = useSyncExternalStore(subscribeToViewport, getViewportWidth);
@@ -83,7 +83,7 @@ export function App() {
     }
     setIsCopilotCollapsed(prev => {
       const next = !prev;
-      localStorage.setItem('gitler_copilot_collapsed', String(next));
+      localStorage.setItem('gitmate_copilot_collapsed', String(next));
       return next;
     });
   };
@@ -101,7 +101,7 @@ export function App() {
       root.classList.remove('light');
       root.classList.add('dark');
     }
-    localStorage.setItem('gitler_theme', theme);
+    localStorage.setItem('gitmate_theme', theme);
   }, [theme]);
 
   const handleToggleTheme = () => {
@@ -119,7 +119,7 @@ export function App() {
       const delta = moveEvent.clientX - startX;
       const nextWidth = Math.max(260, Math.min(650, startWidth + delta));
       setSidebarWidth(nextWidth);
-      localStorage.setItem('gitler_sidebar_width', String(nextWidth));
+      localStorage.setItem('gitmate_sidebar_width', String(nextWidth));
     };
 
     const onMouseUp = () => {
@@ -147,7 +147,7 @@ export function App() {
       const delta = moveEvent.clientX - startX;
       const nextWidth = Math.max(260, Math.min(650, startWidth - delta));
       setCopilotWidth(nextWidth);
-      localStorage.setItem('gitler_copilot_width', String(nextWidth));
+      localStorage.setItem('gitmate_copilot_width', String(nextWidth));
     };
 
     const onMouseUp = () => {
@@ -175,7 +175,7 @@ export function App() {
           apiFetch('/api/ai/status')
         ]);
 
-        let targetFolder = localStorage.getItem('gitler_selected_folder');
+        let targetFolder = localStorage.getItem('gitmate_selected_folder');
 
         if (folderRes.ok) {
           const folderData = await folderRes.json();
@@ -209,7 +209,7 @@ export function App() {
     setIsScanning(true);
     setScanError(null);
     setCurrentPath(path);
-    localStorage.setItem('gitler_selected_folder', path);
+    localStorage.setItem('gitmate_selected_folder', path);
 
     try {
       const res = await apiFetch('/api/repos/scan', {
@@ -403,13 +403,13 @@ export function App() {
               event.preventDefault();
               const width = Math.max(260, Math.min(650, effectiveSidebarWidth + (event.key === 'ArrowRight' ? 20 : -20)));
               setSidebarWidth(width);
-              localStorage.setItem('gitler_sidebar_width', String(width));
+              localStorage.setItem('gitmate_sidebar_width', String(width));
             }
           }}
           onMouseDown={handleSidebarMouseDown}
           onDoubleClick={() => {
             setSidebarWidth(300);
-            localStorage.setItem('gitler_sidebar_width', '300');
+            localStorage.setItem('gitmate_sidebar_width', '300');
           }}
           title="Drag to resize repositories sidebar (Double-click to reset to 300px)"
           className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${
@@ -440,13 +440,13 @@ export function App() {
                 event.preventDefault();
                 const width = Math.max(260, Math.min(650, copilotWidth + (event.key === 'ArrowLeft' ? 20 : -20)));
                 setCopilotWidth(width);
-                localStorage.setItem('gitler_copilot_width', String(width));
+                localStorage.setItem('gitmate_copilot_width', String(width));
               }
             }}
             onMouseDown={handleCopilotMouseDown}
             onDoubleClick={() => {
               setCopilotWidth(320);
-              localStorage.setItem('gitler_copilot_width', '320');
+              localStorage.setItem('gitmate_copilot_width', '320');
             }}
             title="Drag to resize AI Copilot panel (Double-click to reset)"
             className={`w-[6px] -ml-[3px] -mr-[3px] z-20 cursor-col-resize group relative flex items-center justify-center shrink-0 select-none ${

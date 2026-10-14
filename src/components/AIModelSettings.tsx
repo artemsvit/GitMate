@@ -76,7 +76,7 @@ export function AIModelSettings({ onChanged }: { onChanged: () => void }) {
       <div className="flex items-center justify-between gap-3">
         <div>
           <h4 className="font-semibold text-xs text-[var(--text-primary)]">Local AI models</h4>
-          <p className="text-[10px] text-[var(--text-muted)] text-pretty">Stored in ~/.gitler/models.{list ? ` This Mac has ${list.memoryGB} GB memory.` : ''}</p>
+          <p className="text-[10px] text-[var(--text-muted)] text-pretty">Stored in ~/.gitmate/models.{list ? ` This Mac has ${list.memoryGB} GB memory.` : ''}</p>
         </div>
       </div>
       {list && !list.supported && <p className="text-[11px] text-[var(--text-muted)]">Local AI models require macOS 14 or newer.</p>}

@@ -49,7 +49,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   const [showTechnicalDetails, setShowTechnicalDetails] = useState(false);
 
   // Dedicated Git Mate SSH Key
-  const [gitlerKey, setGitlerKey] = useState<{
+  const [sshKey, setSshKey] = useState<{
     hasKey: boolean;
     publicKey: string;
     keyPath: string;
@@ -102,7 +102,7 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
 
   useEffect(() => {
     fetchDiagnostics();
-    fetchGitlerKey();
+    fetchSshKey();
   }, []);
 
   useEffect(() => {
@@ -121,11 +121,11 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
     }
   };
 
-  const fetchGitlerKey = async () => {
+  const fetchSshKey = async () => {
     try {
-      const res = await apiFetch('/api/auth/gitler-key');
+      const res = await apiFetch('/api/auth/ssh-key');
       if (res.ok) {
-        setGitlerKey(await res.json());
+        setSshKey(await res.json());
       }
     } catch (e) {
       console.error(e);
@@ -133,15 +133,15 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   };
 
   const handleCopyKey = () => {
-    if (gitlerKey?.publicKey) {
-      navigator.clipboard.writeText(gitlerKey.publicKey);
+    if (sshKey?.publicKey) {
+      navigator.clipboard.writeText(sshKey.publicKey);
       setCopiedKey(true);
       setTimeout(() => setCopiedKey(false), 2500);
     }
   };
 
   const handleCopyTitle = () => {
-    navigator.clipboard.writeText('gitler-app');
+    navigator.clipboard.writeText(sshKey?.publicKey?.trim().split(/\s+/)[2] || 'git-mate');
     setCopiedTitle(true);
     setTimeout(() => setCopiedTitle(false), 2500);
   };
@@ -149,13 +149,13 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
   const handleRegenerateKey = async () => {
     setIsRegeneratingKey(true);
     try {
-      const res = await apiFetch('/api/auth/gitler-key/regenerate', {
+      const res = await apiFetch('/api/auth/ssh-key/regenerate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ keyType: gitlerKey?.keyType || 'ed25519' })
+        body: JSON.stringify({ keyType: sshKey?.keyType || 'ed25519' })
       });
       if (res.ok) {
-        setGitlerKey(await res.json());
+        setSshKey(await res.json());
       }
     } catch (e) {
       console.error(e);
@@ -440,12 +440,12 @@ export const RemoteAuthModal: React.FC<RemoteAuthModalProps> = ({
             <div className="rounded-xl border border-[var(--border-interactive)] bg-[var(--bg-canvas)] p-3 space-y-2.5">
               <div className="flex items-center gap-2 text-[10px] text-[var(--text-muted)]">
                 <span>Git Mate key</span>
-                <span className="px-1.5 py-0.5 rounded-full border border-[var(--border-interactive)] font-mono text-[var(--text-primary)]">{gitlerKey?.keyType || 'ed25519'}</span>
-                <span className="font-mono truncate">gitler-app</span>
+                <span className="px-1.5 py-0.5 rounded-full border border-[var(--border-interactive)] font-mono text-[var(--text-primary)]">{sshKey?.keyType || 'ed25519'}</span>
+                <span className="font-mono truncate">{sshKey?.publicKey?.trim().split(/\s+/)[2] || 'git-mate'}</span>
               </div>
 
               <div className="p-2.5 bg-black/5 dark:bg-black/30 rounded-lg font-mono text-[10px] break-all text-[var(--text-primary)] select-all leading-relaxed max-h-20 overflow-y-auto border border-[var(--border-subtle)]">
-                {gitlerKey?.publicKey || 'Generating key...'}
+                {sshKey?.publicKey || 'Generating key...'}
               </div>
 
               <div className="grid grid-cols-2 gap-2">

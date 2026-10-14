@@ -5,6 +5,7 @@ import crypto from 'node:crypto';
 import { downloadArtifact, hashFile } from './modelDownload';
 export { hashFile } from './modelDownload';
 import { gatherContext } from './copilotContext';
+import { configDir } from './paths';
 import { buildCommitPrompt, commitInstructions, finalizeCommitMessage } from './commitMessage';
 import { externalContextTokens, streamExternalChat, type ExternalProvider } from './externalModels';
 
@@ -24,7 +25,6 @@ export const modelCatalog: ModelSpec[] = [
 const legacyModelFiles = ['Qwen3-4B-Q4_K_M.gguf'];
 // The runtime picks the largest context that fits in memory within these bounds.
 const contextBounds = { min: 8192, max: 32768 }; const replyTokens = 2048; const charsPerToken = 2.5;
-const configDir = () => process.env.GITLER_CONFIG_DIR || path.join(os.homedir(), '.gitler');
 const memoryGB = () => Math.round(os.totalmem() / 1024 ** 3);
 const settingsFile = () => path.join(configDir(), 'copilot.json');
 const fitsMemory = (spec: ModelSpec) => memoryGB() >= spec.minMemoryGB;

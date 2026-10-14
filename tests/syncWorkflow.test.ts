@@ -13,7 +13,7 @@ import { createRequire } from 'node:module';
 const { credentialFor } = createRequire(import.meta.url)('../server/git-credential-helper.cjs');
 const run = promisify(execFile);
 async function fixture(t: any) {
-  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitler-workflow-'));
+  const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-workflow-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const repo = path.join(root, 'client'), bare = path.join(root, 'remote.git');
   await run('git', ['init', '--bare', bare]); await run('git', ['init', '-b', 'main', repo]);
@@ -125,8 +125,8 @@ test('real Git HTTP fetch and push use account credentials without embedding the
   const base = `http://127.0.0.1:${(server.address() as any).port}`;
   const configDir = path.join(root, 'config'); await fs.mkdir(configDir);
   await fs.writeFile(path.join(configDir, 'providers.json'), JSON.stringify({ gitea: { connected: true, token: 'fixture-token', username: 'fixture', instanceUrl: base } }));
-  const previous = process.env.GITLER_CONFIG_DIR; process.env.GITLER_CONFIG_DIR = configDir;
-  t.after(() => { if (previous === undefined) delete process.env.GITLER_CONFIG_DIR; else process.env.GITLER_CONFIG_DIR = previous; });
+  const previous = process.env.GITMATE_CONFIG_DIR; process.env.GITMATE_CONFIG_DIR = configDir;
+  t.after(() => { if (previous === undefined) delete process.env.GITMATE_CONFIG_DIR; else process.env.GITMATE_CONFIG_DIR = previous; });
   await git('remote', 'set-url', 'origin', base + '/remote.git');
   await fs.writeFile(path.join(repo, 'file.txt'), 'HTTP'); await stageFiles(repo); await commit(repo, 'HTTP');
   await push(repo); await fetchAll(repo, 'origin'); await pull(repo, 'origin');
@@ -165,8 +165,8 @@ test('authorization targets the selected push server and cleans credentials only
   await git('remote', 'set-url', '--add', '--push', 'origin', first + '/repo.git');
   await git('remote', 'set-url', '--add', '--push', 'origin', second.replace('://', '://legacy-user@') + '/repo.git');
   const configDir = path.join(root, 'authorization-config'); await fs.mkdir(configDir);
-  const previous = process.env.GITLER_CONFIG_DIR; process.env.GITLER_CONFIG_DIR = configDir;
-  t.after(() => { if (previous === undefined) delete process.env.GITLER_CONFIG_DIR; else process.env.GITLER_CONFIG_DIR = previous; });
+  const previous = process.env.GITMATE_CONFIG_DIR; process.env.GITMATE_CONFIG_DIR = configDir;
+  t.after(() => { if (previous === undefined) delete process.env.GITMATE_CONFIG_DIR; else process.env.GITMATE_CONFIG_DIR = previous; });
   await authorizeHttpsRemote(repo, 'origin', 'gitea', 'fixture-token', 'push', 1);
   assert.deepEqual(calls, ['push-server']);
   assert.equal((await git('remote', 'get-url', 'origin')).stdout.trim(), first + '/repo.git');

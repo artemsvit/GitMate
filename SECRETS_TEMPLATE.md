@@ -1,7 +1,7 @@
 # GitHub Actions Secrets Template for Git Mate macOS Release
 
 Paste these secrets into your repository settings at:
-👉 **[https://github.com/artemsvit/Gitler/settings/secrets/actions](https://github.com/artemsvit/Gitler/settings/secrets/actions)**
+👉 **[https://github.com/artemsvit/GitMate/settings/secrets/actions](https://github.com/artemsvit/GitMate/settings/secrets/actions)**
 
 Click **"New repository secret"** for each of the following:
 

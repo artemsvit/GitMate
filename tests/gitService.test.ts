@@ -9,7 +9,7 @@ import { getRepoDetails, getRepoSummary, getDiff, stageFiles, unstageFiles, upda
 
 const run = promisify(execFile);
 async function fixture(t: any) {
-  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'gitler-test-'));
+  const dir = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-test-'));
   t.after(() => fs.rm(dir, { recursive: true, force: true }));
   const git = (...args: string[]) => run('git', ['-C', dir, ...args]);
   await git('init', '-b', 'main');
@@ -116,7 +116,7 @@ test('simple-git applies the dedicated SSH command to its child process', async 
   await assert.rejects(getGit(dir).listRemote(['origin']));
   const args = await fs.readFile(output, 'utf8');
   assert.match(args, /BatchMode=yes/); assert.match(args, /ConnectTimeout=15/);
-  if (await fs.access(path.join(os.homedir(), '.ssh/gitler_ed25519')).then(() => true, () => false)) assert.match(args, /gitler_ed25519/);
+  if (await fs.access(path.join(os.homedir(), '.ssh/gitmate_ed25519')).then(() => true, () => false)) assert.match(args, /gitmate_ed25519/);
 });
 
 

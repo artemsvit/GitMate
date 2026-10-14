@@ -15,7 +15,7 @@ on:
 permissions:
   contents: write
 concurrency:
-  group: gitler-release-${{ github.event.inputs.tag || github.ref_name }}
+  group: gitmate-release-${{ github.event.inputs.tag || github.ref_name }}
   cancel-in-progress: false
 jobs:
   release-macos:
@@ -27,7 +27,7 @@ jobs:
       APPLE_ID: ${{ secrets.APPLE_ID }}
       APPLE_APP_SPECIFIC_PASSWORD: ${{ secrets.APPLE_APP_SPECIFIC_PASSWORD }}
       APPLE_TEAM_ID: ${{ secrets.APPLE_TEAM_ID }}
-      GITLER_RELEASE: '1'
+      GITMATE_RELEASE: '1'
     steps:
       - uses: actions/checkout@v4
         with:
@@ -58,7 +58,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          KEYCHAIN_PATH="$RUNNER_TEMP/gitler-build.keychain-db"
+          KEYCHAIN_PATH="$RUNNER_TEMP/gitmate-build.keychain-db"
           KEYCHAIN_PASSWORD="$(openssl rand -hex 24)"
           echo "::add-mask::$KEYCHAIN_PASSWORD"
           security list-keychains -d user > "$RUNNER_TEMP/original-keychains.txt"
@@ -113,4 +113,4 @@ jobs:
           if test -f "$RUNNER_TEMP/original-keychains.txt"; then
             python3 -c 'import shlex,subprocess,sys; subprocess.run(["security","list-keychains","-d","user","-s",*shlex.split(open(sys.argv[1]).read())],check=True)' "$RUNNER_TEMP/original-keychains.txt"
           fi
-          security delete-keychain "$RUNNER_TEMP/gitler-build.keychain-db" || true
+          security delete-keychain "$RUNNER_TEMP/gitmate-build.keychain-db" || true

@@ -13,7 +13,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged, 
   const [showImage, setShowImage] = useState(true);
   const [isWrapped, setIsWrapped] = useState<boolean>(() => {
     try {
-      return localStorage.getItem('gitler_diff_wrap') === 'true';
+      return localStorage.getItem('gitmate_diff_wrap') === 'true';
     } catch {
       return false;
     }
@@ -23,7 +23,7 @@ export const DiffViewer: React.FC<DiffViewerProps> = ({ diff, filename, staged, 
     setIsWrapped(prev => {
       const next = !prev;
       try {
-        localStorage.setItem('gitler_diff_wrap', String(next));
+        localStorage.setItem('gitmate_diff_wrap', String(next));
       } catch {
         // Ignore storage errors
       }

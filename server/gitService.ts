@@ -1,3 +1,6 @@
+import { sshKeyPaths } from './paths';
+// New keys are titled with this name; keys created by earlier versions keep their original comment.
+export const sshKeyTitle = 'git-mate';
 import { simpleGit, type SimpleGit, type StatusResult } from 'simple-git';
 import path from 'path';
 import fs from 'fs';
@@ -56,11 +59,9 @@ export interface RepoDetails extends RepoSummary {
 
 export function getGitSshKeyPath(): string | null {
   try {
-    const home = os.homedir();
-    const edKey = path.join(home, '.ssh', 'gitler_ed25519');
-    if (fs.existsSync(edKey)) return edKey;
-    const rsaKey = path.join(home, '.ssh', 'gitler_rsa');
-    if (fs.existsSync(rsaKey)) return rsaKey;
+    const keys = sshKeyPaths();
+    if (fs.existsSync(keys.ed25519)) return keys.ed25519;
+    if (fs.existsSync(keys.rsa)) return keys.rsa;
   } catch {}
   return null;
 }
@@ -107,7 +108,7 @@ export async function getNetworkGit(repoPath: string): Promise<SimpleGit> {
     allowEnvironment: ['GIT_SSH_COMMAND', 'GIT_TERMINAL_PROMPT']
   }).env({ PATH: process.env.PATH, HOME: os.homedir(), TMPDIR: process.env.TMPDIR,
     SSH_AUTH_SOCK: process.env.SSH_AUTH_SOCK, LANG: process.env.LANG,
-    GITLER_CONFIG_DIR: process.env.GITLER_CONFIG_DIR, ELECTRON_RUN_AS_NODE: '1',
+    GITMATE_CONFIG_DIR: process.env.GITMATE_CONFIG_DIR, ELECTRON_RUN_AS_NODE: '1',
     GIT_TERMINAL_PROMPT: '0', GIT_SSH_COMMAND: getGitSshCommand(),
     ...Object.fromEntries(Object.entries(process.env).filter(([key]) => /^(https?|all|no)_proxy$/i.test(key)))
   });
@@ -468,7 +469,7 @@ export async function authorizeHttpsRemote(repoPath: string, remoteName: string,
   return 'Account verified. Git credentials are provided privately; remote URLs contain no token.';
 }
 
-export async function getOrCreateGitlerSshKey(
+export async function getOrCreateSshKey(
   regenerate = false,
   keyType: 'ed25519' | 'rsa' = 'ed25519'
 ): Promise<{
@@ -479,8 +480,7 @@ export async function getOrCreateGitlerSshKey(
 }> {
   const home = os.homedir();
   const sshDir = path.join(home, '.ssh');
-  const edPath = path.join(sshDir, 'gitler_ed25519');
-  const rsaPath = path.join(sshDir, 'gitler_rsa');
+  const { ed25519: edPath, rsa: rsaPath } = sshKeyPaths();
 
   if (!fs.existsSync(sshDir)) {
     try {
@@ -517,8 +517,8 @@ export async function getOrCreateGitlerSshKey(
   const selectedPath = keyType === 'rsa' ? rsaPath : edPath;
   const selectedPub = `${selectedPath}.pub`;
   const keygenArgs = keyType === 'rsa'
-    ? ['-t', 'rsa', '-b', '4096', '-N', '', '-C', 'gitler-app', '-f', selectedPath]
-    : ['-t', 'ed25519', '-N', '', '-C', 'gitler-app', '-f', selectedPath];
+    ? ['-t', 'rsa', '-b', '4096', '-N', '', '-C', sshKeyTitle, '-f', selectedPath]
+    : ['-t', 'ed25519', '-N', '', '-C', sshKeyTitle, '-f', selectedPath];
 
   await new Promise<void>((resolve, reject) => {
     execFile('ssh-keygen', keygenArgs, (err) => {

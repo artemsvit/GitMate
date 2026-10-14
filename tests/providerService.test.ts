@@ -8,8 +8,8 @@ import https from 'node:https';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
 import { after } from 'node:test';
-const testConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gitler-provider-test-'));
-process.env.GITLER_CONFIG_DIR = testConfigDir;
+const testConfigDir = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-provider-test-'));
+process.env.GITMATE_CONFIG_DIR = testConfigDir;
 after(() => fs.rm(testConfigDir, { recursive: true, force: true }));
 const { readProvidersConfig, writeProvidersConfig, getProvidersStatus, disconnectProvider,
   httpRequest, universalFetch, testProviderConnection, describeNetworkError } = await import('../server/providerService');
