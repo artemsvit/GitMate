@@ -16,7 +16,7 @@ async function fixture(t: any) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-workflow-'));
   t.after(() => fs.rm(root, { recursive: true, force: true }));
   const repo = path.join(root, 'client'), bare = path.join(root, 'remote.git');
-  await run('git', ['init', '--bare', bare]); await run('git', ['init', '-b', 'main', repo]);
+  await run('git', ['init', '--bare', '-b', 'main', bare]); await run('git', ['init', '-b', 'main', repo]);
   const git = (...args: string[]) => run('git', ['-C', repo, ...args]);
   await git('config', 'user.name', 'Fixture'); await git('config', 'user.email', 'fixture@example.invalid');
   await git('remote', 'add', 'origin', bare);
@@ -43,7 +43,7 @@ test('commit is local; push is verified remotely; fetch and pull advance the cor
 
 test('multiple push URLs require an explicit destination and never report local commit as remote success', async t => {
   const { root, repo, bare, git } = await fixture(t);
-  const second = path.join(root, 'second.git'); await run('git', ['init', '--bare', second]);
+  const second = path.join(root, 'second.git'); await run('git', ['init', '--bare', '-b', 'main', second]);
   await git('remote', 'set-url', '--add', '--push', 'origin', bare);
   await git('remote', 'set-url', '--add', '--push', 'origin', second);
   await fs.writeFile(path.join(repo, 'file.txt'), 'one'); await stageFiles(repo); await commit(repo, 'one');
@@ -142,7 +142,7 @@ test('real Git HTTP fetch and push use account credentials without embedding the
 
 test('push URL edits preserve the fetch URL and other destinations', async t => {
   const { root, repo, bare, git } = await fixture(t);
-  const newPush = path.join(root, 'new.git'); await run('git', ['init', '--bare', newPush]);
+  const newPush = path.join(root, 'new.git'); await run('git', ['init', '--bare', '-b', 'main', newPush]);
   await setRemoteUrl(repo, 'origin', newPush, 'push', 0);
   assert.equal((await git('remote', 'get-url', 'origin')).stdout.trim(), bare);
   assert.equal((await git('remote', 'get-url', '--push', 'origin')).stdout.trim(), newPush);
