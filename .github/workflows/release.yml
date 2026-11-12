@@ -28,7 +28,7 @@ jobs:
       contents: read
   release-macos:
     needs: secret-scan
-    runs-on: macos-14
+    runs-on: macos-15
     env:
       RELEASE_TAG: ${{ github.event.inputs.tag || github.ref_name }}
       GITMATE_RELEASE: '1'
