@@ -1,4 +1,4 @@
-import { useRepositoryPush, destinationKey } from '../useRepositoryPush';
+import { useRepositoryPush, destinationKey, destinationStatus, staleDestinationsMessage } from '../useRepositoryPush';
 import { PushResults } from './PushResults';
 import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
@@ -190,8 +190,9 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
         setDetails(data);
         onDetailsUpdated(data);
 
-        // Auto select first file if none selected
-        if (data.files.length > 0 && !selectedFile) {
+        // Select the first file when nothing is selected or the selected file left this list (for example, it was committed).
+        const stillListed = selectedFile && data.files.some(file => file.path === selectedFile && (selectedDiffStaged ? file.isStaged : file.isUnstaged));
+        if (data.files.length > 0 && !stillListed) {
           onSelectFile(data.files[0].path, data.files[0].isStaged);
         }
       }
@@ -217,6 +218,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
     return () => controller.abort();
   }, [repoSummary.path, selectedFile, selectedDiffStaged]);
 
+  const filesKey = details?.files.map(file => `${file.path}:${file.indexStatus}${file.workingDirStatus}`).join('|') ?? '';
   // Cancel stale requests when the selection changes, including the initial all-files request.
   useEffect(() => {
     const controller = new AbortController();
@@ -239,7 +241,8 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
     };
     fetchDiff();
     return () => controller.abort();
-  }, [selectedFile, selectedDiffStaged, repoSummary.path]);
+    // filesKey reloads the diff after a commit, stage, or discard changes the files, even when the selection stays.
+  }, [selectedFile, selectedDiffStaged, repoSummary.path, filesKey]);
 
   // Stage single file
   const handleStage = async (file: string) => {
@@ -395,13 +398,13 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       const res = await apiFetch('/api/repos/fetch', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: repoSummary.path, remote: syncRemote, pushIndex: undefined })
+        body: JSON.stringify({ path: repoSummary.path })
       });
       const data = await res.json();
       if (res.ok) {
         setSyncNotice({
           type: 'success',
-          message: data.output || `Fetched ${syncRemote}.`
+          message: data.output || 'Fetched all remotes.'
         });
         setDetails(data.updated);
         onDetailsUpdated(data.updated);
@@ -603,7 +606,7 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
           <button
             onClick={handleFetch}
             disabled={isFetching}
-            title="Fetch remote branches"
+            title="Fetch every remote"
             className="flex items-center gap-1.5 px-2.5 sm:px-3 py-1.5 rounded-[33px] border border-[var(--border-interactive)] hover:border-[var(--text-muted)] bg-transparent text-xs text-[var(--text-secondary)] hover:text-[var(--text-primary)] transition disabled:opacity-30 cursor-pointer"
           >
             <RefreshCw className={`w-3 h-3 ${isFetching ? 'animate-spin' : ''}`} />
@@ -627,15 +630,15 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
 
           <button
             onClick={() => handlePush()}
-            disabled={isPushing || !pushState.destinations.length || pushState.pushing || !repoSummary.lastCommit}
-            title={repoSummary.ahead > 0 ? `Push ${repoSummary.ahead} local commits` : 'Push to remote'}
+            disabled={isPushing || !pushState.destinations.length || pushState.stale || pushState.pushing || !repoSummary.lastCommit}
+            title={pushState.stale ? staleDestinationsMessage : pushState.destinations.length ? `Push to:\n${pushState.destinations.map(pushState.describe).join('\n')}` : 'Choose push destinations first.'}
             className="flex items-center gap-1.5 px-2.5 sm:px-3.5 py-1.5 rounded-[33px] border border-[var(--border-interactive)] bg-[var(--bg-card)] hover:bg-[var(--bg-elevated)] text-xs font-semibold text-[var(--text-primary)] transition disabled:opacity-30 cursor-pointer"
           >
             <ArrowUpRight className="w-3.5 h-3.5 text-[var(--accent-violet)] shrink-0" />
             <span className="hidden sm:inline text-xs">Push</span>
-            {repoSummary.ahead > 0 && (
+            {pushState.pending > 0 && (
               <span className="font-mono text-[10px] font-bold text-[var(--accent-violet)]">
-                ({repoSummary.ahead})
+                ({pushState.pending})
               </span>
             )}
           </button>
@@ -757,8 +760,9 @@ export const MainWorkspace: React.FC<MainWorkspaceProps> = ({
       {/* Main Workspace Body */}
       <div className="px-3 py-2 border-b border-[var(--border-subtle)] flex flex-wrap gap-2 items-center text-xs">
         <div className="flex items-center gap-2 min-w-0" title={`${repoSummary.remotes.find(remote => remote.name === syncRemote)?.fetchUrl || 'No remote'}\nTracking: ${details?.tracking || 'not configured'}`}><span>Fetch / pull from</span><Dropdown label="Fetch and pull remote" value={syncRemote} options={repoSummary.remotes.map(remote => ({ value: remote.name, label: remote.name }))} onChange={value => onSyncTargetChange(value, 0)} /></div>
-        <div className="flex items-center gap-2 min-w-0"><span>Push to</span><Dropdown label="Push destinations" multiple value={pushState.destinations.map(destinationKey)} options={pushState.all.map(target => ({ value: destinationKey(target), label: target.url, group: target.remote }))} onChange={pushState.toggle} placeholder="Choose destinations" /></div>
-        {pushState.stale && <p className="text-amber-600">A saved destination changed. Select the destinations again.</p>}
+        <div className="flex items-center gap-2 min-w-0"><span>Push to</span><Dropdown label="Push destinations" multiple value={pushState.destinations.map(destinationKey)} options={pushState.all.map(target => { const status = destinationStatus(repoSummary, target); return { value: destinationKey(target), label: status ? `${target.url} · ${status.label}` : target.url, group: target.remote }; })} onChange={pushState.toggle} placeholder="Choose destinations" /></div>
+        {pushState.stale && <p className="text-amber-600">{staleDestinationsMessage}</p>}
+        {!pushState.stale && pushState.behindAny && <p className="text-amber-600">A push destination has commits you do not have. Pull from it first, or its push is refused.</p>}
       </div>
 
       {activeTab === 'changes' && (

@@ -16,7 +16,7 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.2/GitMate-1.4.2-arm64.dmg"><b>Download v1.4.2 for Apple Silicon</b></a>
+  <a href="https://github.com/artemsvit/GitMate/releases/download/v1.4.3/GitMate-1.4.3-arm64.dmg"><b>Download v1.4.3 for Apple Silicon</b></a>
   &nbsp;·&nbsp;
   <a href="https://gitmate.artsvit.com">Website</a>
   &nbsp;·&nbsp;
@@ -38,14 +38,14 @@
 | **Branches and graph** | Switch, merge, and delete branches, check out remote branches, and follow branches, merges, and tags in the graph. Right-click a commit to cherry-pick, revert, tag, or branch from it. |
 | **Worktrees** | See every worktree of a repository — including ones created by AI coding agents — open it to review changes, and create, lock, or remove worktrees. |
 | **Stash, discard, amend** | Stash work in progress, discard changes with a backup, and amend the last commit. |
-| **Verified pushes** | Commit once and push to several destinations. Each remote is checked for the exact commit; failed destinations can be retried. |
+| **Verified pushes** | Commit once and push to several remotes at the same time. Each destination shows what a push would do, each remote is checked for the exact commit, and failed destinations can be retried. |
 | **Local AI Copilot** | Suggest commit messages from staged changes, explain commits, and ask questions about repository code. |
 | **Accounts and connections** | Connect GitHub, GitLab, Gitea, or Forgejo. Set up a dedicated SSH key and test access. |
 | **macOS controls** | Use native menus, keyboard shortcuts, saved interface zoom, and an update window with release notes. |
 
 ## Get started
 
-1. [Download the DMG](https://github.com/artemsvit/GitMate/releases/download/v1.4.2/GitMate-1.4.2-arm64.dmg), open it, and drag **Git Mate** to **Applications**.
+1. [Download the DMG](https://github.com/artemsvit/GitMate/releases/download/v1.4.3/GitMate-1.4.3-arm64.dmg), open it, and drag **Git Mate** to **Applications**.
 2. Open Git Mate and choose a folder to scan for Git repositories.
 3. Select a repository to review changes, stage files, and commit. Configure remote access when you are ready to fetch or push.
 

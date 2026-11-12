@@ -22,7 +22,7 @@ export interface RepoSummary {
   stagedCount: number;
   unstagedCount: number;
   tracking?: string | null;
-  remotes: { name: string; fetchUrl?: string; pushUrl?: string; pushUrls: string[]; hasEmbeddedCredentials: boolean }[];
+  remotes: { name: string; fetchUrl?: string; pushUrl?: string; pushUrls: string[]; hasEmbeddedCredentials: boolean; branch?: { ahead: number; behind: number } | null }[];
   sync?: { pullRemote?: string; pullBranch?: string; pushRemote?: string; pushBranch?: string };
   lastCommit?: {
     hash: string;
@@ -138,6 +138,17 @@ async function requireRemote(git: SimpleGit, name: string | undefined) {
   validateArgument(name, 'remote'); return name;
 }
 
+// How the current branch compares with its copy on one remote, from the last fetch.
+// null means the branch is not on that remote yet (the next push creates it).
+export async function remoteBranchStatus(git: SimpleGit, remote: string, branch: string): Promise<{ ahead: number; behind: number } | null> {
+  const ref = `refs/remotes/${remote}/${branch}`;
+  try { await git.raw(['rev-parse', '--verify', '--quiet', ref]); } catch { return null; }
+  try {
+    const [ahead, behind] = (await git.raw(['rev-list', '--left-right', '--count', `HEAD...${ref}`])).trim().split(/\s+/).map(Number);
+    return { ahead: ahead || 0, behind: behind || 0 };
+  } catch { return null; }
+}
+
 function statusFiles(status: StatusResult): FileChange[] {
   return status.files.map(file => ({
     path: file.path,
@@ -189,7 +200,8 @@ export async function getRepoSummary(repoPath: string): Promise<RepoSummary> {
       remotes: await Promise.all(remotes.map(async r => {
         const urls = await getPushUrls(git, r.name);
         return { name: r.name, fetchUrl: redactRemote(r.refs.fetch), pushUrl: redactRemote(urls[0] || r.refs.push),
-          pushUrls: urls.map(redactRemote), hasEmbeddedCredentials: /https?:\/\/[^/]+@/.test([r.refs.fetch, ...urls].join(' ')) };
+          pushUrls: urls.map(redactRemote), hasEmbeddedCredentials: /https?:\/\/[^/]+@/.test([r.refs.fetch, ...urls].join(' ')),
+          branch: status.detached || !status.current ? undefined : await remoteBranchStatus(git, r.name, status.current) };
       })),
       sync: await getSyncTargets(repoPath),
       lastCommit
@@ -347,18 +359,28 @@ function formatRemoteError(err: any, remoteName?: string): Error {
   if (/Authentication failed|HTTP 401|HTTP 403/i.test(msg)) {
     return new Error(`Authentication failed${remoteName ? ` for "${remoteName}"` : ''}. Check your Personal Access Token or credentials.`);
   }
+  const target = remoteName ? `"${remoteName}"` : 'The remote';
+  if (/\[rejected\] \((fetch first|non-fast-forward)\)/.test(msg)) {
+    return new Error(`${target} has commits that your branch does not have. Fetch, then pull from ${remoteName ? `"${remoteName}"` : 'it'} before you push again.`);
+  }
+  const declined = msg.match(/\[remote rejected\] \(([^)]+)\)/);
+  if (declined) {
+    const details = msg.split('\n').filter(line => line.startsWith('remote:')).map(line => line.slice(7).trim()).filter(Boolean).slice(0, 3).join(' ');
+    return new Error(`${target} refused the push (${declined[1]}).${details ? ` Server message: ${details}` : ''}`);
+  }
   return new Error(msg);
 }
 
-async function pushUnlocked(repoPath: string, remote?: string, branch?: string, pushIndex?: number, expectedCommit?: string): Promise<string> {
+interface PushPlan { git: SimpleGit; remote: string; url: string; branch: string; localBranch: string; ref: string; hash: string }
+async function preparePush(repoPath: string, remote?: string, branch?: string, pushIndex?: number, expectedCommit?: string): Promise<PushPlan> {
   if (remote !== undefined) validateArgument(remote, 'remote');
   if (branch !== undefined) validateArgument(branch, 'branch');
   const git = await getNetworkGit(repoPath);
   const status = await git.status();
   if (!status.current || status.detached) throw new Error('Select a branch before pushing.');
   try { await git.revparse(['--verify', 'HEAD']); } catch { throw new Error('Create a local commit before pushing.'); }
-  const localHash = (await git.revparse(['HEAD'])).trim();
-  if (expectedCommit && localHash !== expectedCommit) throw new Error('The local commit changed. Refresh before retrying this push.');
+  const hash = (await git.revparse(['HEAD'])).trim();
+  if (expectedCommit && hash !== expectedCommit) throw new Error('The local commit changed. Refresh before retrying this push.');
   const sync = await getSyncTargets(repoPath);
   const targetRemote = await requireRemote(git, remote || sync.pushRemote);
   const urls = await getPushUrls(git, targetRemote);
@@ -369,17 +391,34 @@ async function pushUnlocked(repoPath: string, remote?: string, branch?: string, 
   validateArgument(destinationBranch, 'branch');
   const ref = `refs/heads/${destinationBranch}`;
   await git.raw(['check-ref-format', ref]);
+  return { git, remote: targetRemote, url: urls[index], branch: destinationBranch, localBranch: status.current, ref, hash };
+}
+// Network part: push the exact commit and confirm the remote now has it.
+async function sendPush(plan: PushPlan): Promise<void> {
   try {
-    await git.raw(['push', '--porcelain', urls[index], `${localHash}:${ref}`]);
-    const result = (await git.raw(['ls-remote', urls[index], ref])).trim().split(/\s+/)[0];
-    if (result !== localHash) throw new Error('The push command finished, but the remote commit could not be verified. Refresh and test the destination before retrying.');
-    const configuredFetch = (await git.raw(['remote', 'get-url', targetRemote])).trim();
-    if (redactRemote(configuredFetch) === redactRemote(urls[index])) {
-      await git.raw(['update-ref', `refs/remotes/${targetRemote}/${destinationBranch}`, localHash]);
-      if (!status.tracking) await git.raw(['branch', `--set-upstream-to=${targetRemote}/${destinationBranch}`, status.current]);
-    }
-    return `Verified ${localHash.slice(0, 7)} on ${targetRemote} → ${redactRemote(urls[index])} (${destinationBranch}).`;
-  } catch (error) { throw formatRemoteError(error, targetRemote); }
+    await plan.git.raw(['push', '--porcelain', plan.url, `${plan.hash}:${plan.ref}`]);
+    const result = (await plan.git.raw(['ls-remote', plan.url, plan.ref])).trim().split(/\s+/)[0];
+    if (result !== plan.hash) throw new Error('The push command finished, but the remote commit could not be verified. Refresh and test the destination before retrying.');
+  } catch (error) { throw formatRemoteError(error, plan.remote); }
+}
+// Local part: update the remote-tracking branch and, for a new branch, its upstream. Run one at a time.
+async function recordPush(repoPath: string, plan: PushPlan): Promise<string> {
+  const { git } = plan;
+  const configuredFetch = (await git.raw(['remote', 'get-url', plan.remote])).trim();
+  if (redactRemote(configuredFetch) === redactRemote(plan.url)) {
+    await git.raw(['update-ref', `refs/remotes/${plan.remote}/${plan.branch}`, plan.hash]);
+    // In a multi-destination push the upstream goes to the preferred push remote (for example origin), not to
+    // whichever destination is pushed first. With no preferred remote, the first verified destination is used.
+    const tracking = await configValue(git, `branch.${plan.localBranch}.remote`);
+    const sync = await getSyncTargets(repoPath);
+    if (!tracking && (!sync.pushRemote || sync.pushRemote === plan.remote)) await git.raw(['branch', `--set-upstream-to=${plan.remote}/${plan.branch}`, plan.localBranch]);
+  }
+  return `Verified ${plan.hash.slice(0, 7)} on ${plan.remote} → ${redactRemote(plan.url)} (${plan.branch}).`;
+}
+async function pushUnlocked(repoPath: string, remote?: string, branch?: string, pushIndex?: number, expectedCommit?: string): Promise<string> {
+  const plan = await preparePush(repoPath, remote, branch, pushIndex, expectedCommit);
+  await sendPush(plan);
+  try { return await recordPush(repoPath, plan); } catch (error) { throw formatRemoteError(error, plan.remote); }
 }
 
 async function pullUnlocked(repoPath: string, remote?: string, branch?: string): Promise<string> {
@@ -802,14 +841,31 @@ export async function pushDestinations(repoPath: string, destinations: PushDesti
       if (!Number.isInteger(target.pushIndex) || target.pushIndex < 0 || target.pushIndex >= urls.length || typeof target.url !== 'string' || !target.url || redactRemote(urls[target.pushIndex] || '') !== target.url) throw new Error('A push destination changed. Select the destinations again.');
       if (!seen.has(target.url)) { targets.push(target); seen.add(target.url); }
     }
-    const results: PushResult[] = [];
-    for (const destination of targets) {
-      try {
-        const message = await pushUnlocked(repoPath, destination.remote, branch, destination.pushIndex, commitHash);
-        results.push({ destination, status: 'verified', message });
-      } catch (error: any) {
-        results.push({ destination, status: /could not be verified/.test(error.message) ? 'unverified' : 'failed', message: error.message });
+    const plans = await Promise.all(targets.map(async destination => {
+      try { return await preparePush(repoPath, destination.remote, branch, destination.pushIndex, commitHash); }
+      catch (error) { return error as Error; }
+    }));
+    // The servers are independent, so the network work runs in parallel (at most 4 at a time).
+    const sent: (Error | null)[] = new Array(targets.length).fill(null);
+    let next = 0;
+    await Promise.all(Array.from({ length: Math.min(4, targets.length) }, async () => {
+      while (next < targets.length) {
+        const index = next++; const plan = plans[index];
+        if (plan instanceof Error) { sent[index] = plan; continue; }
+        try { await sendPush(plan); } catch (error) { sent[index] = error as Error; }
       }
+    }));
+    const preferred = (await getSyncTargets(repoPath)).pushRemote;
+    const order = targets.map((_, index) => index).sort((a, b) => Number(targets[b].remote === preferred) - Number(targets[a].remote === preferred));
+    const results: PushResult[] = new Array(targets.length);
+    for (const index of order) {
+      const destination = targets[index]; const plan = plans[index]; let error = sent[index];
+      if (!error && !(plan instanceof Error)) {
+        try { results[index] = { destination, status: 'verified', message: await recordPush(repoPath, plan) }; continue; }
+        catch (recordError) { error = formatRemoteError(recordError, destination.remote); }
+      }
+      const message = error?.message || 'The push failed.';
+      results[index] = { destination, status: /could not be verified/.test(message) ? 'unverified' : 'failed', message };
     }
     return { commitHash, results, success: results.every(result => result.status === 'verified'), output: results.map(result => result.message).join('\n') };
   });

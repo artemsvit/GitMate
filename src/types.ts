@@ -8,7 +8,9 @@ export interface RepoSummary {
   stagedCount: number;
   unstagedCount: number;
   tracking?: string | null;
-  remotes: { name: string; fetchUrl?: string; pushUrl?: string; pushUrls: string[]; hasEmbeddedCredentials: boolean }[];
+  remotes: { name: string; fetchUrl?: string; pushUrl?: string; pushUrls: string[]; hasEmbeddedCredentials: boolean;
+    // The current branch on this remote, from the last fetch. null: not on the remote yet. Absent: no branch checked out.
+    branch?: { ahead: number; behind: number } | null }[];
   sync?: { pullRemote?: string; pullBranch?: string; pushRemote?: string; pushBranch?: string };
   lastCommit?: {
     hash: string;

@@ -5,7 +5,7 @@ import os from 'node:os';
 import path from 'node:path';
 import { execFile } from 'node:child_process';
 import { promisify } from 'node:util';
-import { commit, stageFiles, pushDestinations, withRepositoryMutation } from '../server/gitService';
+import { commit, stageFiles, pushDestinations, withRepositoryMutation, getRepoSummary } from '../server/gitService';
 const run = promisify(execFile);
 async function fixture(t: any) {
   const root = await fs.mkdtemp(path.join(os.tmpdir(), 'gitmate-multipush-')); t.after(() => fs.rm(root, { recursive: true, force: true }));
@@ -45,4 +45,39 @@ test('repository mutation lock rejects overlaps and releases after success or fa
   const blocker = withRepositoryMutation(repo, () => new Promise<void>(resolve => { release = resolve; }));
   await assert.rejects(stageFiles(repo), /Another operation/); release(); await blocker;
   await assert.rejects(withRepositoryMutation(repo, async () => { throw new Error('fixture'); }), /fixture/); await stageFiles(repo);
+});
+test('multi-push sets the upstream to the preferred remote even when another destination is pushed first', async t => {
+  const { repo, git, hash, targets } = await fixture(t);
+  const report = await pushDestinations(repo, [...targets].reverse(), hash);
+  assert.equal(report.success, true);
+  assert.equal((await git('rev-parse', '--abbrev-ref', 'main@{upstream}')).stdout.trim(), 'origin/main');
+  assert.equal((await git('rev-parse', 'refs/remotes/mirror/main')).stdout.trim(), hash);
+});
+test('a destination with newer commits gets a clear pull-first message and the other destination still succeeds', async t => {
+  const { root, repo, first, second, hash, targets } = await fixture(t);
+  await pushDestinations(repo, targets, hash);
+  const other = path.join(root, 'other'); await run('git', ['clone', '-q', first, other]); const og = (...a: string[]) => run('git', ['-C', other, ...a]);
+  await og('config', 'user.name', 'Other'); await og('config', 'user.email', 'other@example.invalid');
+  await fs.writeFile(path.join(other, 'remote.txt'), 'x'); await og('add', '.'); await og('commit', '-qm', 'remote work'); await og('push', '-q', 'origin', 'main');
+  await fs.writeFile(path.join(repo, 'file.txt'), 'local'); await stageFiles(repo); const local = await commit(repo, 'local');
+  const report = await pushDestinations(repo, targets, local);
+  assert.deepEqual(report.results.map(result => result.status), ['failed', 'verified']);
+  assert.match(report.results[0].message, /"origin" has commits that your branch does not have/);
+  assert.equal((await run('git', ['--git-dir', second, 'rev-parse', 'main'])).stdout.trim(), local);
+});
+test('a server hook refusal names the remote and shows the server message', async t => {
+  const { repo, first, hash, targets } = await fixture(t);
+  await fs.writeFile(path.join(first, 'hooks/pre-receive'), '#!/bin/sh\necho "protected branch"\nexit 1\n', { mode: 0o755 });
+  const report = await pushDestinations(repo, targets, hash);
+  assert.match(report.results[0].message, /"origin" refused the push \(pre-receive hook declined\)\. Server message: protected branch/);
+});
+test('the summary reports each remote: ahead, behind, or branch not there yet', async t => {
+  const { repo, hash, targets } = await fixture(t);
+  let summary = await getRepoSummary(repo);
+  assert.deepEqual(summary.remotes.map(remote => remote.branch), [null, null]);
+  await pushDestinations(repo, [targets[0]], hash);
+  await fs.writeFile(path.join(repo, 'file.txt'), 'next'); await stageFiles(repo); await commit(repo, 'next');
+  summary = await getRepoSummary(repo);
+  const byName = Object.fromEntries(summary.remotes.map(remote => [remote.name, remote.branch]));
+  assert.deepEqual(byName, { origin: { ahead: 1, behind: 0 }, mirror: null });
 });

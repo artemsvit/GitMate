@@ -1,6 +1,6 @@
 import { cn } from '../cn';
 import { currentCommitNotice, type CommitNotice } from '../pushStatus';
-import { useRepositoryPush, destinationKey } from '../useRepositoryPush';
+import { useRepositoryPush, destinationKey, staleDestinationsMessage } from '../useRepositoryPush';
 import { PushResults } from './PushResults';
 import { Dropdown } from './Dropdown';
 import { apiFetch } from '../api';
@@ -59,7 +59,10 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
   const [activeTab, setActiveTabState] = useState<'commit' | 'chat'>(() => { try { return localStorage.getItem('gitmate_copilot_tab') === 'chat' ? 'chat' : 'commit'; } catch { return 'commit'; } });
   const setActiveTab = (tab: 'commit' | 'chat') => { setActiveTabState(tab); try { localStorage.setItem('gitmate_copilot_tab', tab); } catch {} };
   const engine = useAIEngine();
-  const [commitMessage, setCommitMessage] = useState('');
+  // The draft is kept per repository, so switching repositories or restarting the app does not lose it.
+  const draftKey = `gitmate_commit_draft:${repoSummary.path}`;
+  const [commitMessage, setCommitMessage] = useState(() => { try { return localStorage.getItem(draftKey) || ''; } catch { return ''; } });
+  useEffect(() => { try { if (commitMessage) localStorage.setItem(draftKey, commitMessage); else localStorage.removeItem(draftKey); } catch {} }, [draftKey, commitMessage]);
   const [isGenerating, setIsGenerating] = useState(false);
   const [isCommitting, setIsCommitting] = useState(false);
   const [statusMessage, setStatusMessage] = useState<CommitNotice | null>(null);
@@ -113,7 +116,8 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
         setCommitMessage(data.message);
         setAiResult(data);
       } else {
-        setStatusMessage({ text: 'Generation failed', type: 'error' });
+        const failure = await res.json().catch(() => ({}));
+        setStatusMessage({ text: failure.error || 'Could not generate a commit message.', type: 'error' });
       }
     } catch (e: any) {
       setStatusMessage({ text: e.message || 'Error generating', type: 'error' });
@@ -144,6 +148,11 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
       return;
     }
     if (amend) { await handleAmend(); return; }
+    // Check the push targets before the commit, so ⇧⌘↩ never leaves a commit that cannot be pushed.
+    if (andPush && (pushState.stale || !pushState.destinations.length || pushState.pushing)) {
+      setStatusMessage({ text: pushState.stale ? staleDestinationsMessage : pushState.pushing ? 'A push is already running. Wait for it to finish.' : 'Choose push destinations first.', type: 'error' });
+      return;
+    }
 
     setIsCommitting(true);
     setStatusMessage(null);
@@ -409,13 +418,18 @@ export const AICopilotPanel: React.FC<AICopilotPanelProps> = ({
 
         <button
           onClick={() => handleCommit(true)}
-          title={amend ? 'An amended commit replaces one that may be pushed; push it separately.' : undefined}
-          disabled={amend || isCommitting || !hasStagedChanges || !commitMessage.trim() || !pushState.destinations.length || pushState.pushing}
+          title={amend ? 'An amended commit replaces one that may be pushed; push it separately.' : pushState.stale ? staleDestinationsMessage : pushState.destinations.length ? `Push to:\n${pushState.destinations.map(pushState.describe).join('\n')}` : 'Choose push destinations first.'}
+          disabled={amend || isCommitting || !hasStagedChanges || !commitMessage.trim() || !pushState.destinations.length || pushState.stale || pushState.pushing}
           className="w-full py-2.5 rounded-[33px] bg-[var(--btn-primary-bg)] hover:opacity-90 text-[var(--btn-primary-text)] font-semibold text-xs transition flex items-center justify-center gap-1.5 disabled:opacity-30"
         >
           <Send className="w-3.5 h-3.5" />
           <span>Commit & Push{pushState.destinations.length > 1 ? ` to ${pushState.destinations.length}` : ''}</span>
         </button>
+        {pushState.stale && !amend && <p className="px-1 text-[11px] text-amber-600">{staleDestinationsMessage}</p>}
+        {!pushState.stale && !amend && pushState.destinations.length > 0 && <p className="px-1 text-[10px] text-[var(--text-muted)] truncate" title={pushState.destinations.map(pushState.describe).join('\n')}>
+          Pushes to {[...new Set(pushState.destinations.map(target => target.remote))].join(', ')}{pushState.destinations.length > new Set(pushState.destinations.map(target => target.remote)).size ? ` (${pushState.destinations.length} URLs)` : ''}
+        </p>}
+        {!pushState.stale && !amend && pushState.behindAny && <p className="px-1 text-[10px] text-amber-600">A destination has commits you do not have. Pull from it first, or its push is refused.</p>}
       </div>}
       <ConfirmDialog open={amendPublished} title="Amend a pushed commit?" confirmLabel="Amend" destructive
         message={<>The last commit is already on a remote. Amending rewrites it, so the next push to that branch must be forced and can disrupt others who use it.</>}
